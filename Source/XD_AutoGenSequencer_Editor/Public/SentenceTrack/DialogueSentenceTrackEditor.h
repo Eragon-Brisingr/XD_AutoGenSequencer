@@ -20,6 +20,7 @@ public:
 	bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
 	TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) override;
 	bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
+	bool SupportsSequence(UMovieSceneSequence* InSequence) const override;
 	void BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track) override;
 	TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	bool OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track, int32 RowIndex, const FGuid& TargetObjectGuid) override;
@@ -38,26 +39,19 @@ public:
 	/** Virtual destructor. */
 	virtual ~FDialogueSentenceSection() { }
 
-// public:
-// 
-// 	// ISequencerSection interface
-// 
+ public:
+ 
+ 	// ISequencerSection interface
+ 
  	UMovieSceneSection* GetSectionObject() override;
-// 	FText GetSectionTitle() const override;
-// 	float GetSectionHeight() const override;
-// 	FMargin GetContentPadding() const override;
+ 	FText GetSectionTitle() const override;
+ 	float GetSectionHeight() const override;
  	int32 OnPaintSection(FSequencerSectionPainter& Painter) const override;
-// 	void BeginResizeSection() override;
-// 	void ResizeSection(ESequencerSectionResizeMode ResizeMode, FFrameNumber ResizeTime) override;
-// 	void BeginSlipSection() override;
-// 	void SlipSection(FFrameNumber SlipTime) override;
-// 	void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& InObjectBinding) override;
-// 
-// private:
-// 
-// 	bool CreatePoseAsset(const TArray<UObject*> NewAssets, FGuid InObjectBinding);
-// 	void HandleCreatePoseAsset(FGuid InObjectBinding);
-// 
+ 	void BeginResizeSection() override;
+ 	void ResizeSection(ESequencerSectionResizeMode ResizeMode, FFrameNumber ResizeTime) override;
+ 	void BeginSlipSection() override;
+ 	void SlipSection(FFrameNumber SlipTime) override;
+ 
  private:
  
  	/** The section we are visualizing */

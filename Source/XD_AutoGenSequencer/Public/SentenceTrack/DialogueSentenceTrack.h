@@ -34,4 +34,14 @@ public:
 public:
 	UPROPERTY()
 	TArray<UMovieSceneSection*> SentenceSections;
+
+#if WITH_EDITORONLY_DATA
+public:
+	int32 GetRowHeight() const { return RowHeight; }
+
+	void SetRowHeight(int32 NewRowHeight) { RowHeight = FMath::Max(16, NewRowHeight); }
+private:
+	UPROPERTY()
+	int32 RowHeight = 16;
+#endif
 };
