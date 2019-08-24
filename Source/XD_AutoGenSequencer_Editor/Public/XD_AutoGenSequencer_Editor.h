@@ -4,6 +4,8 @@
 
 #include "Modules/ModuleManager.h"
 
+class UPreviewDialogueSoundSequence;
+
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
 public:
@@ -14,4 +16,8 @@ public:
 
 private:
 	FDelegateHandle DialogueSentenceTrackEditorHandle;
+	FDelegateHandle PreviewDialogueSentenceTrackEditorHandle;
+
+	FName DialogueStationInstanceOverrideTypeName = TEXT("DialogueStationInstanceOverride");
+	FName DialogueSentenceEditDataTypeName = TEXT("DialogueSentenceEditData");
 };

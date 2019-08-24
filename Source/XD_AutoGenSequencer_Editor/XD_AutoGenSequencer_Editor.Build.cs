@@ -43,7 +43,9 @@ public class XD_AutoGenSequencer_Editor : ModuleRules
                 "Sequencer",
                 "MovieScene",
                 "LevelSequence",
+                "MovieSceneTools",
                 "MovieSceneTracks",
+                "CinematicCamera",
 
                 "XD_AutoGenSequencer",
 				// ... add private dependencies that you statically link with here ...

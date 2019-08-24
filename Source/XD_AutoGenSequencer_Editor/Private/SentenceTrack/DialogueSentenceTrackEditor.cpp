@@ -18,6 +18,8 @@
 #include "SBox.h"
 #include "IContentBrowserSingleton.h"
 #include "SButton.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/DialogueVoice.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencerModule"
 
@@ -122,59 +124,43 @@ TSharedPtr<SWidget> FDialogueSentenceTrackEditor::BuildOutlinerEditWidget(const 
 		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
-// 			FSequencerUtilities::MakeAddButton(LOCTEXT("DialogueSentenceText", "Dialogue Sentence"), FOnGetContent::CreateLambda([=]()
-// 				{
-// 					FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-// 					TArray<FName> ClassNames;
-// 					ClassNames.Add(USoundBase::StaticClass()->GetFName());
-// 					TSet<FName> DerivedClassNames;
-// 					AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
-// 
-// 					FMenuBuilder MenuBuilder(true, nullptr);
-// 
-// 					FAssetPickerConfig AssetPickerConfig;
-// 					{
-// // 						AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw(this, &FAudioTrackEditor::OnAudioAssetSelected, Track);
-// // 						AssetPickerConfig.OnAssetEnterPressed = FOnAssetEnterPressed::CreateRaw(this, &FAudioTrackEditor::OnAudioAssetEnterPressed, Track);
-// 						AssetPickerConfig.bAllowNullSelection = false;
-// 						AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-// 						for (auto ClassName : DerivedClassNames)
-// 						{
-// 							AssetPickerConfig.Filter.ClassNames.Add(ClassName);
-// 						}
-// 					}
-// 
-// 					FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-// 
-// 					TSharedPtr<SBox> MenuEntry = SNew(SBox)
-// 						.WidthOverride(300.0f)
-// 						.HeightOverride(300.f)
-// 						[
-// 							ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-// 						];
-// 
-// 					MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
-// 
-// 					return MenuBuilder.MakeWidget();
-// 				}), Params.NodeIsHovered, GetSequencer())
-			SNew(SButton)
-			.OnClicked_Lambda([=]()
+			FSequencerUtilities::MakeAddButton(LOCTEXT("DialogueSentenceText", "Dialogue Sentence"), FOnGetContent::CreateLambda([=]()
 				{
-					const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddAudio_Transaction", "Add Audio"));
+					FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+					TArray<FName> ClassNames;
+					ClassNames.Add(UDialogueVoice::StaticClass()->GetFName());
+					TSet<FName> DerivedClassNames;
+					AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
 
-					auto DialogueSentenceTrack = Cast<UDialogueSentenceTrack>(Track);
-					DialogueSentenceTrack->Modify();
+					FMenuBuilder MenuBuilder(true, nullptr);
 
-					UMovieSceneSection* NewSection = DialogueSentenceTrack->CreateNewSection();
-					DialogueSentenceTrack->AddSection(*NewSection);
+					FAssetPickerConfig AssetPickerConfig;
+					{
+ 						AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw(this, &FDialogueSentenceTrackEditor::OnDialogueWaveAssetSelected, Track);
+ 						AssetPickerConfig.OnAssetEnterPressed = FOnAssetEnterPressed::CreateRaw(this, &FDialogueSentenceTrackEditor::OnDialogueWaveAssetEnterPressed, Track);
+						AssetPickerConfig.bAllowNullSelection = false;
+						AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 
-					GetSequencer()->EmptySelection();
-					GetSequencer()->SelectSection(NewSection);
-					GetSequencer()->ThrobSectionSelection();
+						// TODO: 自定义过滤规则，根据DialogueVoice过滤
+						for (auto ClassName : DerivedClassNames)
+						{
+							AssetPickerConfig.Filter.ClassNames.Add(ClassName);
+						}
+					}
 
-					GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
-					return FReply::Handled();
-				})
+					FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+					TSharedPtr<SBox> MenuEntry = SNew(SBox)
+						.WidthOverride(300.0f)
+						.HeightOverride(300.f)
+						[
+							ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+						];
+
+					MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
+
+					return MenuBuilder.MakeWidget();
+				}), Params.NodeIsHovered, GetSequencer())
 		];
 }
 
@@ -188,8 +174,44 @@ FReply FDialogueSentenceTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent,
 	return FReply::Unhandled();
 }
 
+void FDialogueSentenceTrackEditor::OnDialogueWaveAssetSelected(const FAssetData& AssetData, UMovieSceneTrack* Track)
+{
+	FSlateApplication::Get().DismissAllMenus();
+
+	UObject* SelectedObject = AssetData.GetAsset();
+
+	if (SelectedObject)
+	{
+		UDialogueWave* NewSound = CastChecked<UDialogueWave>(AssetData.GetAsset());
+		if (NewSound != nullptr)
+		{
+			const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddAudio_Transaction", "Add Audio"));
+
+			auto AudioTrack = Cast<UDialogueSentenceTrack>(Track);
+			AudioTrack->Modify();
+
+			FFrameTime KeyTime = GetSequencer()->GetLocalTime().Time;
+			UMovieSceneSection* NewSection = AudioTrack->AddNewSentenceOnRow(NewSound, KeyTime.FrameNumber);
+
+			GetSequencer()->EmptySelection();
+			GetSequencer()->SelectSection(NewSection);
+			GetSequencer()->ThrobSectionSelection();
+
+			GetSequencer()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemAdded);
+		}
+	}
+}
+
+void FDialogueSentenceTrackEditor::OnDialogueWaveAssetEnterPressed(const TArray<FAssetData>& AssetData, UMovieSceneTrack* Track)
+{
+	if (AssetData.Num() > 0)
+	{
+		OnDialogueWaveAssetSelected(AssetData[0].GetAsset(), Track);
+	}
+}
+
 FDialogueSentenceSection::FDialogueSentenceSection(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer)
-	:Section(InSection), 
+	:Section(*Cast<UDialogueSentenceSection>(&InSection)),
 	Sequencer(InSequencer)
 {
 
@@ -202,6 +224,10 @@ UMovieSceneSection* FDialogueSentenceSection::GetSectionObject()
 
 FText FDialogueSentenceSection::GetSectionTitle() const
 {
+	if (Section.DialogueWave)
+	{
+		return FText::FromString(Section.DialogueWave->SpokenText);
+	}
 	return LOCTEXT("NoDialogueSentenceTitleName", "No Dialogue Sentence");
 }
 
@@ -219,14 +245,14 @@ int32 FDialogueSentenceSection::OnPaintSection(FSequencerSectionPainter& Painter
 
 void FDialogueSentenceSection::BeginResizeSection()
 {
-	UDialogueSentenceSection* DialogueSentenceSection = Cast<UDialogueSentenceSection>(&Section);
+	UDialogueSentenceSection* DialogueSentenceSection = &Section;
 	InitialStartOffsetDuringResize = DialogueSentenceSection->StartFrameOffset;
 	InitialStartTimeDuringResize = DialogueSentenceSection->HasStartFrame() ? DialogueSentenceSection->GetInclusiveStartFrame() : 0;
 }
 
 void FDialogueSentenceSection::ResizeSection(ESequencerSectionResizeMode ResizeMode, FFrameNumber ResizeTime)
 {
-	UDialogueSentenceSection* DialogueSentenceSection = Cast<UDialogueSentenceSection>(&Section);
+	UDialogueSentenceSection* DialogueSentenceSection = &Section;
 
 	if (ResizeMode == SSRM_LeadingEdge && DialogueSentenceSection)
 	{
@@ -248,14 +274,14 @@ void FDialogueSentenceSection::ResizeSection(ESequencerSectionResizeMode ResizeM
 
 void FDialogueSentenceSection::BeginSlipSection()
 {
-	UDialogueSentenceSection* DialogueSentenceSection = Cast<UDialogueSentenceSection>(&Section);
+	UDialogueSentenceSection* DialogueSentenceSection = &Section;
 	InitialStartOffsetDuringResize = DialogueSentenceSection->StartFrameOffset;
 	InitialStartTimeDuringResize = DialogueSentenceSection->HasStartFrame() ? DialogueSentenceSection->GetInclusiveStartFrame() : 0;
 }
 
 void FDialogueSentenceSection::SlipSection(FFrameNumber SlipTime)
 {
-	UDialogueSentenceSection* DialogueSentenceSection = Cast<UDialogueSentenceSection>(&Section);
+	UDialogueSentenceSection* DialogueSentenceSection = &Section;
 
 	FFrameNumber NewStartOffset = SlipTime - InitialStartTimeDuringResize;
 	NewStartOffset += InitialStartOffsetDuringResize;

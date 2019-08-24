@@ -7,6 +7,7 @@
 #include "DialogueSentenceTrack.generated.h"
 
 class UDialogueSentenceSection;
+class USoundBase;
 
 /**
  * 
@@ -44,4 +45,6 @@ private:
 	UPROPERTY()
 	int32 RowHeight = 16;
 #endif
+public:
+	UDialogueSentenceSection* AddNewSentenceOnRow(UDialogueWave* DialogueWave, FFrameNumber Time, int32 RowIndex = INDEX_NONE);
 };

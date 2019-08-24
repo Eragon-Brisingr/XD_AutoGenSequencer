@@ -40,6 +40,8 @@ public class XD_AutoGenSequencer : ModuleRules
 				"SlateCore",
 
                 "MovieScene",
+                "LevelSequence",
+                "MovieSceneTracks",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

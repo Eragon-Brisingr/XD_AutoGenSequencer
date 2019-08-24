@@ -25,6 +25,10 @@ public:
 	TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	bool OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track, int32 RowIndex, const FGuid& TargetObjectGuid) override;
 	FReply OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track, int32 RowIndex, const FGuid& TargetObjectGuid) override;
+
+private:
+	void OnDialogueWaveAssetSelected(const FAssetData& AssetData, UMovieSceneTrack* Track);
+	void OnDialogueWaveAssetEnterPressed(const TArray<FAssetData>& AssetData, UMovieSceneTrack* Track);
 };
 
 class FDialogueSentenceSection
@@ -55,7 +59,7 @@ public:
  private:
  
  	/** The section we are visualizing */
-	UMovieSceneSection& Section;
+	UDialogueSentenceSection& Section;
  
  	/** Used to draw animation frame, need selection state and local time*/
  	TWeakPtr<ISequencer> Sequencer;

@@ -7,6 +7,9 @@
 #include "MovieSceneEvalTemplate.h"
 #include "DialogueSentenceSection.generated.h"
 
+class USoundBase;
+class UDialogueWave;
+
 /**
  * 
  */
@@ -24,9 +27,17 @@ public:
 
 public:
 	/** The offset into the beginning of the audio clip */
-	UPROPERTY(EditAnywhere, Category="Audio")
+	UPROPERTY(EditAnywhere, Category = Dialogue)
 	FFrameNumber StartFrameOffset;
 
+	UPROPERTY(EditAnywhere, Category = Dialogue)
+	UDialogueWave* DialogueWave;
+
+	UPROPERTY(EditAnywhere, Category = Dialogue)
+	TArray<FMovieSceneObjectBindingID> Targets;
+
+	USoundBase* GetDefualtSentenceSound() const;
+	static USoundBase* GetDefualtSentenceSound(UDialogueWave* DialogueWave);
 private:
 	static FFrameNumber GetStartOffsetAtTrimTime(FQualifiedFrameTime TrimTime, FFrameNumber StartOffset, FFrameNumber StartFrame);
 };
