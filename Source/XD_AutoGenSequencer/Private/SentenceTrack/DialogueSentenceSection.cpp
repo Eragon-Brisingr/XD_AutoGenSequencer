@@ -66,9 +66,9 @@ struct FCachedDialogueSentenceTrackData : IPersistentEvaluationData
 	UAudioComponent* AddAudioComponentForRow(USoundBase* Sentence, FObjectKey SectionKey, AActor& PrincipalActor, IMovieScenePlayer& Player)
 	{
 		UAudioComponent* ExistingComponent = nullptr;
-		if (IDialogueInterface* DialogueInterface = Cast<IDialogueInterface>(&PrincipalActor))
+		if (PrincipalActor.Implements<UDialogueInterface>())
 		{
-			ExistingComponent = DialogueInterface->GetMouthComponent();
+			ExistingComponent = IDialogueInterface::GetMouthComponent(&PrincipalActor);
 		}
 
 		//测试用代码
@@ -154,9 +154,9 @@ struct FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
 	static USoundBase* GetSentenceSound(const UDialogueSentenceSection* Section, AActor* Speaker, IMovieScenePlayer& Player, const FMovieSceneSequenceID& SequenceID)
 	{
 		UDialogueVoice* SpeakerDialogueVoice = nullptr;
-		if (IDialogueInterface* SpeakerDialogueInterface = Cast<IDialogueInterface>(Speaker))
+		if (Speaker->Implements<UDialogueInterface>())
 		{
-			SpeakerDialogueVoice = SpeakerDialogueInterface->GetDialogueVoice();
+			SpeakerDialogueVoice = IDialogueInterface::GetDialogueVoice(Speaker);
 		}
 
 		USoundBase* SentenceWave = nullptr;
@@ -169,9 +169,9 @@ struct FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
 				{
 					if (WeakObject.IsValid())
 					{
-						if (IDialogueInterface* DialogueInterface = Cast<IDialogueInterface>(Speaker))
+						if (WeakObject->Implements<UDialogueInterface>())
 						{
-							TargetDialogueVoices.Add(DialogueInterface->GetDialogueVoice());
+							TargetDialogueVoices.Add(IDialogueInterface::GetDialogueVoice(WeakObject.Get()));
 						}
 						break;
 					}

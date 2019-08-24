@@ -59,10 +59,10 @@ void FDialogueStationInstanceOverride_Customization::CustomizeHeader(TSharedRef<
 			if (ACharacter* Character = DialogueStationInstanceOverride.InstanceOverride.Get())
 			{
 				DialogueStationInstanceOverride.TypeOverride = Character->GetClass();
-				if (IDialogueInterface* DialogueInterface = Cast<IDialogueInterface>(Character))
+				if (Character->Implements<UDialogueInterface>())
 				{
-					DialogueStationInstanceOverride.DialogueVoiceOverride = DialogueInterface->GetDialogueVoice();
-					DialogueStationInstanceOverride.NameOverride = DialogueInterface->GetDialogueCharacterName();
+					DialogueStationInstanceOverride.DialogueVoiceOverride = IDialogueInterface::GetDialogueVoice(Character);
+					DialogueStationInstanceOverride.NameOverride = IDialogueInterface::GetDialogueCharacterName(Character);
 				}
 			}
 			CustomizationUtils::SetValue(StructPropertyHandle, DialogueStationInstanceOverride);

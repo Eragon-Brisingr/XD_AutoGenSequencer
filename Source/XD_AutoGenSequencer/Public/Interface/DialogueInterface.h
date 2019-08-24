@@ -25,7 +25,16 @@ class XD_AUTOGENSEQUENCER_API IDialogueInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual UAudioComponent* GetMouthComponent() const = 0;
-	virtual UDialogueVoice* GetDialogueVoice() const = 0;
-	virtual FName GetDialogueCharacterName() const;
+	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue", meta = (DispalyName = GetMouthComponent))
+	UAudioComponent* GetMouthComponent() const;
+	virtual UAudioComponent* GetMouthComponent_Implementation() const;
+	static UAudioComponent* GetMouthComponent(const UObject* Obj);
+	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue", meta = (DispalyName = GetDialogueVoice))
+	UDialogueVoice* GetDialogueVoice() const;
+	virtual UDialogueVoice* GetDialogueVoice_Implementation() const;
+	static UDialogueVoice* GetDialogueVoice(const UObject* Obj);
+	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue", meta = (DispalyName = GetDialogueCharacterName))
+	FName GetDialogueCharacterName() const;
+	virtual FName GetDialogueCharacterName_Implementation() const;
+	static FName GetDialogueCharacterName(const UObject* Obj);
 };

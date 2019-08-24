@@ -27,7 +27,7 @@ public:
 	UChildActorComponent* PreviewCharacterInstance;
 };
 
-UCLASS(Transient, abstract, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking), showCategories = ("Utilities|Transformation"))
+UCLASS(Transient, abstract, Blueprintable, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking), showCategories = ("Utilities|Transformation"))
 class XD_AUTOGENSEQUENCER_API ADialogueStandPositionTemplate : public AInfo
 {
 	GENERATED_BODY()

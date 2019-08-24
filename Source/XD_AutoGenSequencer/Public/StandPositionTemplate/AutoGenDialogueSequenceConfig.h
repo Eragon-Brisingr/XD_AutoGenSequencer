@@ -11,6 +11,7 @@ class ADialogueStandPositionTemplate;
 class USoundWave;
 class UDialogueVoice;
 class ACharacter;
+class UAnimSequence;
 
 
 USTRUCT()
@@ -74,10 +75,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "对话")
 	TArray<FDialogueSentenceEditData> DialogueSentenceEditDatas;
 
+	// 临时，要再设计
+	UPROPERTY(EditAnywhere, Category = "对话")
+	TArray<UAnimSequence*> RandomAnims;
+
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	const FDialogueStationInstanceOverride* GetStationOverrideDataBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	FName GetSpeakerNameBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	bool IsConfigValid() const;
 };

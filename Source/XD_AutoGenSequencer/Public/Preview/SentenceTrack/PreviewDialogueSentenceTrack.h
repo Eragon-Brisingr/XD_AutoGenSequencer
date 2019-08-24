@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -19,10 +19,9 @@ public:
 	UPreviewDialogueSentenceTrack();
 
 	bool SupportsType(TSubclassOf<UMovieSceneSection> SectionClass) const override;
-
 	UMovieSceneSection* CreateNewSection() override;
-
 	UMovieSceneSection* AddNewDialogueOnRow(const FDialogueSentenceEditData& DialogueSentenceEditData, FFrameNumber Time, FFrameNumber& DurationTime, int32 RowIndex = INDEX_NONE);
+	bool SupportsMultipleRows() const override;
 
 public:
 	UPROPERTY()

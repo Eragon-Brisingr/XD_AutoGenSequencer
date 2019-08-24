@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "PreviewDialogueSentenceTrack.h"
@@ -10,7 +10,8 @@
 UPreviewDialogueSentenceTrack::UPreviewDialogueSentenceTrack()
 {
 #if WITH_EDITORONLY_DATA
-	SetDisplayName(LOCTEXT("PreviewDialogueSentenceTrackName", "Preview Dialogue Sentence Track"));
+	SetDisplayName(LOCTEXT("PreviewDialogueSentenceTrackName", "对话预览轨"));
+	SetRowHeight(16.f);
 #endif
 }
 
@@ -48,6 +49,11 @@ UMovieSceneSection* UPreviewDialogueSentenceTrack::AddNewDialogueOnRow(const FDi
 	AddSection(*NewSection);
 
 	return NewSection;
+}
+
+bool UPreviewDialogueSentenceTrack::SupportsMultipleRows() const
+{
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

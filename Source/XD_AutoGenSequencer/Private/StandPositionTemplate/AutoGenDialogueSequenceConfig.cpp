@@ -52,15 +52,20 @@ void UAutoGenDialogueSequenceConfig::PostEditChangeProperty(FPropertyChangedEven
 }
 #endif
 
-FName UAutoGenDialogueSequenceConfig::GetSpeakerNameBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const
-{
+const FDialogueStationInstanceOverride* UAutoGenDialogueSequenceConfig::GetStationOverrideDataBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const
+{	
+	// TODO: 通过Character配置的DialogueVoice找到站位的名字
 	if (const FDialogueStationInstanceOverride* DialogueStationInstanceOverride = DialogueStation.DialogueStationTemplateOverride.FindByPredicate([&](const FDialogueStationInstanceOverride& E) {return E.DialogueVoiceOverride == DialogueSentenceEditData.GetDefualtDialogueSpeaker(); }))
 	{
-		// TODO: 通过Character配置的DialogueVoice找到站位的名字
-		return DialogueStationInstanceOverride->NameOverride;
+		return DialogueStationInstanceOverride;
 	}
 	checkNoEntry();
-	return NAME_None;
+	return nullptr;
+}
+
+FName UAutoGenDialogueSequenceConfig::GetSpeakerNameBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const
+{
+	return GetStationOverrideDataBySentence(DialogueSentenceEditData)->NameOverride;
 }
 
 bool UAutoGenDialogueSequenceConfig::IsConfigValid() const
