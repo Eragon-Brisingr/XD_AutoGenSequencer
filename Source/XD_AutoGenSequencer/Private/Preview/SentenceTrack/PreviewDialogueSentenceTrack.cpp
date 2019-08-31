@@ -27,7 +27,7 @@ UMovieSceneSection* UPreviewDialogueSentenceTrack::CreateNewSection()
 
 UMovieSceneSection* UPreviewDialogueSentenceTrack::AddNewDialogueOnRow(const FDialogueSentenceEditData& DialogueSentenceEditData, FFrameNumber Time, FFrameNumber& DurationTime, int32 RowIndex)
 {
-	USoundWave* Sound = DialogueSentenceEditData.GetDefaultDialogueSound();
+	USoundBase* Sound = DialogueSentenceEditData.GetDefaultDialogueSound();
 	check(Sound);
 
 	FFrameRate FrameRate = GetTypedOuter<UMovieScene>()->GetTickResolution();

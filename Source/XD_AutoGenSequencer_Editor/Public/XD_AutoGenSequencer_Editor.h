@@ -17,7 +17,9 @@ public:
 private:
 	FDelegateHandle DialogueSentenceTrackEditorHandle;
 	FDelegateHandle PreviewDialogueSentenceTrackEditorHandle;
+	FDelegateHandle TwoTargetCameraTrackingTrackEditorHandle;
 
 	FName DialogueStationInstanceOverrideTypeName = TEXT("DialogueStationInstanceOverride");
 	FName DialogueSentenceEditDataTypeName = TEXT("DialogueSentenceEditData");
+	FName DialogueCharacterName = TEXT("DialogueCharacterName");
 };

@@ -14,6 +14,11 @@ struct FDialogueStandPosition
 {
 	GENERATED_BODY()
 public:
+	FDialogueStandPosition() = default;
+	FDialogueStandPosition(const FName& StandName, const TSubclassOf<ACharacter>& PreviewCharacter)
+		:StandName(StandName), PreviewCharacter(PreviewCharacter)
+	{}
+
 	UPROPERTY(EditAnywhere, meta = (MakeEditWidget = true))
 	FTransform StandPosition;
 
@@ -24,7 +29,7 @@ public:
 	TSubclassOf<ACharacter> PreviewCharacter;
 
 	UPROPERTY(Transient)
-	UChildActorComponent* PreviewCharacterInstance;
+	UChildActorComponent* PreviewCharacterInstance = nullptr;
 };
 
 UCLASS(Transient, abstract, Blueprintable, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking), showCategories = ("Utilities|Transformation"))
@@ -53,12 +58,10 @@ public:
 
 	void ClearInvalidPreviewCharacter();
 
-	//应用站位坐标
-	UFUNCTION(CallInEditor, meta = (DisplayName = "应用站位坐标"), Category = "站位模板")
 	void ApplyStandPositionsToDefault();
 
 	UPROPERTY(Transient)
-	TSet<UChildActorComponent*> PreviewCharacters;
+	TArray<UChildActorComponent*> PreviewCharacters;
 
 	DECLARE_DELEGATE(FOnInstanceChanged);
 	FOnInstanceChanged OnInstanceChanged;

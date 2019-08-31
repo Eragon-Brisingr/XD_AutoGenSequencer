@@ -31,17 +31,17 @@ private:
 	void OnDialogueWaveAssetEnterPressed(const TArray<FAssetData>& AssetData, UMovieSceneTrack* Track);
 };
 
-class FDialogueSentenceSection
+class XD_AUTOGENSEQUENCER_EDITOR_API FDialogueSentenceSectionEditor
 	: public ISequencerSection
-	, public TSharedFromThis<FDialogueSentenceSection>
+	, public TSharedFromThis<FDialogueSentenceSectionEditor>
 {
 public:
 
 	/** Constructor. */
-	FDialogueSentenceSection(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer);
+	FDialogueSentenceSectionEditor(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer);
 
 	/** Virtual destructor. */
-	virtual ~FDialogueSentenceSection() { }
+	virtual ~FDialogueSentenceSectionEditor() { }
 
  public:
  

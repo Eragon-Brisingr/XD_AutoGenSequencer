@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/BillboardComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 
 #if WITH_EDITOR
@@ -12,19 +13,29 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 {
 	bIsEditorOnlyActor = true;
 	bHidden = false;
+
+	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr));
+	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr));
 }
 
 void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, StandPositions))
+	if (PropertyChangedEvent.Property)
 	{
-		if (!IsTemplate())
+		FName PropertyName = PropertyChangedEvent.Property->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, StandPositions) || PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, PreviewCharacter))
 		{
-			ClearInvalidPreviewCharacter();
-			CreateAllTemplatePreviewCharacter();
+			if (!IsTemplate())
+			{
+				ClearInvalidPreviewCharacter();
+				CreateAllTemplatePreviewCharacter();
+			}
+		}
+		if (!IsTemplate() && PropertyName != TEXT("ActorLabel"))
+		{
+			ApplyStandPositionsToDefault();
 		}
 	}
 }
@@ -77,6 +88,7 @@ void ADialogueStandPositionTemplate::CreateAllTemplatePreviewCharacter()
 		{
 			ChildActorComponent->SetChildActorClass(CharacterClass);
 			ChildActorComponent->GetChildActor()->SetFlags(RF_Transient);
+
 			ChildActorComponent->GetChildActor()->SetActorLabel(StandPosition.StandName.ToString());
 		}
 
@@ -99,7 +111,7 @@ void ADialogueStandPositionTemplate::ClearInvalidPreviewCharacter()
 		}
 	}
 
-	for (UChildActorComponent* InvalidActorComponent : PreviewCharacters.Difference(ValidChildActorComponent))
+	for (UChildActorComponent* InvalidActorComponent : TSet<UChildActorComponent*>(PreviewCharacters).Difference(ValidChildActorComponent))
 	{
 		PreviewCharacters.Remove(InvalidActorComponent);
 		InvalidActorComponent->DestroyComponent(true);
@@ -110,12 +122,13 @@ void ADialogueStandPositionTemplate::ApplyStandPositionsToDefault()
 {
 	if (!IsTemplate())
 	{
+		// TODO:这么做会导致这Actor还存在在关卡里的话引起关卡保存报错，需查明原因
 		if (UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(GetClass()))
 		{
 			BlueprintGeneratedClass->Modify(true);
+			ADialogueStandPositionTemplate* Default = GetClass()->GetDefaultObject<ADialogueStandPositionTemplate>();
+			Default->StandPositions = StandPositions;
 		}
-		ADialogueStandPositionTemplate* Default = GetClass()->GetDefaultObject<ADialogueStandPositionTemplate>();
-		Default->StandPositions = StandPositions;
 	}
 }
 

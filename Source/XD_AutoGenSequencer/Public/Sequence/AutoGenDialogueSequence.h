@@ -33,6 +33,8 @@ public:
 	TArray<UMovieSceneTrack*> AutoGenTracks;
 	UPROPERTY()
 	TArray<FGuid> AutoGenCameraGuids;
+	UPROPERTY()
+	TArray<FGuid> AutoGenCameraComponentGuids;
 
 	FGuid FindOrAddPossessable(UObject* ObjectToPossess);
 	using ULevelSequence::CreateSpawnable;

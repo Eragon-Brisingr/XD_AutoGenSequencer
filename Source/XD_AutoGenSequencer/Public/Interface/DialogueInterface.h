@@ -7,7 +7,6 @@
 #include "DialogueInterface.generated.h"
 
 class UAudioComponent;
-class UDialogueVoice;
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
@@ -29,10 +28,6 @@ public:
 	UAudioComponent* GetMouthComponent() const;
 	virtual UAudioComponent* GetMouthComponent_Implementation() const;
 	static UAudioComponent* GetMouthComponent(const UObject* Obj);
-	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue", meta = (DispalyName = GetDialogueVoice))
-	UDialogueVoice* GetDialogueVoice() const;
-	virtual UDialogueVoice* GetDialogueVoice_Implementation() const;
-	static UDialogueVoice* GetDialogueVoice(const UObject* Obj);
 	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue", meta = (DispalyName = GetDialogueCharacterName))
 	FName GetDialogueCharacterName() const;
 	virtual FName GetDialogueCharacterName_Implementation() const;

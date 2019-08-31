@@ -6,7 +6,7 @@
 #include "PreviewDialogueSoundSequence.h"
 #include "PreviewDialogueSentenceSection.h"
 #include "SequencerSectionPainter.h"
-#include "Sound/DialogueWave.h"
+#include "DialogueSentence.h"
 
 FPreviewDialogueSentenceEditor::FPreviewDialogueSentenceEditor(TSharedRef<ISequencer> InSequencer) 
 	: FMovieSceneTrackEditor(InSequencer)
@@ -78,9 +78,9 @@ UMovieSceneSection* FPreviewDialogueSentenceSection::GetSectionObject()
 
 FText FPreviewDialogueSentenceSection::GetSectionTitle() const
 {
-	if (UDialogueWave* DialogueWave = Section.DialogueSentenceEditData.DialogueWave)
+	if (UDialogueSentence* DialogueSentence = Section.DialogueSentenceEditData.DialogueSentence)
 	{
-		return FText::FromString(DialogueWave->SpokenText);
+		return DialogueSentence->GetSubTitle();
 	}
 	return FText::GetEmpty();
 }

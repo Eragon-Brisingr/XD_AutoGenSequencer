@@ -4,22 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "MovieSceneNameableTrack.h"
-#include "DialogueSentenceTrack.generated.h"
+#include "TwoTargetCameraTrackingTrack.generated.h"
 
-class UDialogueSentenceSection;
-class USoundBase;
+class UTwoTargetCameraTrackingSection;
 
 /**
  * 
  */
 UCLASS()
-class XD_AUTOGENSEQUENCER_API UDialogueSentenceTrack : public UMovieSceneNameableTrack
+class XD_AUTOGENSEQUENCER_API UTwoTargetCameraTrackingTrack : public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
 public:
-	UDialogueSentenceTrack(const FObjectInitializer& ObjectInitializer);
-
-	// UMovieSceneTrack interface
+	UTwoTargetCameraTrackingTrack(const FObjectInitializer& ObjectInitializer);
 
 	bool SupportsType(TSubclassOf<UMovieSceneSection> SectionClass) const override;
 	void RemoveAllAnimationData() override;
@@ -34,17 +31,8 @@ public:
 	UMovieSceneSection* CreateNewSection() override;
 public:
 	UPROPERTY()
-	TArray<UMovieSceneSection*> SentenceSections;
+	TArray<UMovieSceneSection*> CameraTrackingSections;
 
-#if WITH_EDITORONLY_DATA
 public:
-	int32 GetRowHeight() const { return RowHeight; }
-
-	void SetRowHeight(int32 NewRowHeight) { RowHeight = FMath::Max(16, NewRowHeight); }
-private:
-	UPROPERTY()
-	int32 RowHeight = 16;
-#endif
-public:
-	UDialogueSentenceSection* AddNewSentenceOnRow(UDialogueWave* DialogueWave, FFrameNumber Time, int32 RowIndex = INDEX_NONE);
+	UTwoTargetCameraTrackingSection* AddNewSentenceOnRow(FMovieSceneObjectBindingID FrontTarget, FMovieSceneObjectBindingID BackTarget);
 };

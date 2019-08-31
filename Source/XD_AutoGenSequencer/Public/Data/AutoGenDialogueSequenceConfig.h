@@ -6,12 +6,12 @@
 #include "SubclassOf.h"
 #include "AutoGenDialogueSequenceConfig.generated.h"
 
-class UDialogueWave;
 class ADialogueStandPositionTemplate;
 class USoundWave;
-class UDialogueVoice;
 class ACharacter;
 class UAnimSequence;
+class UDialogueSentence;
+class AAutoGenDialogueCameraTemplate;
 
 
 USTRUCT()
@@ -20,9 +20,6 @@ struct XD_AUTOGENSEQUENCER_API FDialogueStationInstanceOverride
 	GENERATED_BODY()
 public:
 	FDialogueStationInstanceOverride() = default;
-
-	UPROPERTY(EditAnywhere)
-	UDialogueVoice* DialogueVoiceOverride;
 
 	UPROPERTY(EditAnywhere)
 	FName NameOverride;
@@ -50,6 +47,30 @@ public:
 
 	void SyncInstanceData(const ADialogueStandPositionTemplate* Instance);
 	bool IsValid() const;
+	TArray<FName> GetCharacterNames() const;
+
+#if WITH_EDITORONLY_DATA
+	TArray<TSharedPtr<FString>> DialogueNameList;
+	TArray<TSharedPtr<FString>>& GetDialogueNameList();
+	void ReinitDialogueNameList();
+#endif
+};
+
+USTRUCT()
+struct XD_AUTOGENSEQUENCER_API FDialogueCharacterName
+{
+	GENERATED_BODY()
+public:
+	FDialogueCharacterName(const FName& Name = NAME_None)
+		:Name(Name)
+	{}
+
+	UPROPERTY(EditAnywhere)
+	FName Name;
+
+	friend bool operator==(const FDialogueCharacterName& LHS, const FDialogueCharacterName& RHS) { return LHS.Name == RHS.Name; }
+	friend uint32 GetTypeHash(const FDialogueCharacterName& DialogueCharacterName) { return GetTypeHash(DialogueCharacterName.Name); }
+	FORCEINLINE FName GetName() const { return Name; }
 };
 
 USTRUCT()
@@ -58,10 +79,17 @@ struct XD_AUTOGENSEQUENCER_API FDialogueSentenceEditData
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere)
-	UDialogueWave* DialogueWave;
+	UDialogueSentence* DialogueSentence;
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "说话者"))
+	FDialogueCharacterName SpeakerName = TEXT("Role");
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "向所有人说"))
+	uint8 bToAllTargets : 1;
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "对话目标"))
+	TArray<FDialogueCharacterName> TargetNames = { FDialogueCharacterName(TEXT("Target1")) };
+	UPROPERTY(EditAnywhere)
+	FName Emotion;
 public:
-	USoundWave* GetDefaultDialogueSound() const;
-	UDialogueVoice* GetDefualtDialogueSpeaker() const;
+	USoundBase* GetDefaultDialogueSound() const;
 };
 
 UCLASS()
@@ -76,8 +104,12 @@ public:
 	TArray<FDialogueSentenceEditData> DialogueSentenceEditDatas;
 
 	// 临时，要再设计
-	UPROPERTY(EditAnywhere, Category = "对话")
+	UPROPERTY(EditAnywhere, Category = "动作")
 	TArray<UAnimSequence*> RandomAnims;
+
+	// 临时，要再设计
+	UPROPERTY(EditAnywhere, Category = "镜头")
+	TArray<TSubclassOf<AAutoGenDialogueCameraTemplate>> CameraTemplates;
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -86,4 +118,5 @@ public:
 	const FDialogueStationInstanceOverride* GetStationOverrideDataBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	FName GetSpeakerNameBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	bool IsConfigValid() const;
+	bool IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList) const;
 };

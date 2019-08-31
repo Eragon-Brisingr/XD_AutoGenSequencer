@@ -101,14 +101,11 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 							if (IsPreviewDialogueSequenceActived())
 							{
 								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
-								if (!PreviewStandPositionTemplate.IsValid())
-								{
-									GeneratePreviewCharacters();
-								}
+								GeneratePreviewCharacters();
 								FPreviewDialogueGenerator::Get().Generate(PreviewDialogueSoundSequence->GetDialogueConfig(), PreviewDialogueSoundSequence);
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								//不知道怎么直接刷新，临时切换下来刷新
+								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
 								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence->GetAutoGenDialogueSequence());
 								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
 							}
@@ -123,7 +120,7 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 								FDialogueSequenceGenerator::Get().Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, AutoGenDialogueSequence->PreviewDialogueSoundSequence, AutoGenDialogueSequence);
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								//不知道怎么直接刷新，临时切换下来刷新
+								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
 								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence->PreviewDialogueSoundSequence);
 								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence);
 							}
@@ -266,16 +263,16 @@ void FDialogueSequenceExtender::DestroyPreviewStandPositionTemplate()
 	}
 	CachedSourceCharacterInstance.Empty();
 	CharacterNameInstanceMap.Empty();
-	PreviewStandPositionTemplate->Destroy();
+	if (PreviewStandPositionTemplate.IsValid())
+	{
+		PreviewStandPositionTemplate->Destroy();
+	}
 	PreviewStandPositionTemplate = nullptr;
 }
 
 void FDialogueSequenceExtender::GeneratePreviewCharacters()
 {
-	if (PreviewStandPositionTemplate.IsValid())
-	{
-		DestroyPreviewStandPositionTemplate();
-	}
+	DestroyPreviewStandPositionTemplate();
 
 	UAutoGenDialogueSequenceConfig* DialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
 	UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence();

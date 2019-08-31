@@ -8,7 +8,7 @@
 #include "DialogueSentenceSection.generated.h"
 
 class USoundBase;
-class UDialogueWave;
+class UDialogueSentence;
 
 /**
  * 
@@ -31,13 +31,12 @@ public:
 	FFrameNumber StartFrameOffset;
 
 	UPROPERTY(EditAnywhere, Category = Dialogue)
-	UDialogueWave* DialogueWave;
+	UDialogueSentence* DialogueSentence;
 
 	UPROPERTY(EditAnywhere, Category = Dialogue)
 	TArray<FMovieSceneObjectBindingID> Targets;
 
 	USoundBase* GetDefualtSentenceSound() const;
-	static USoundBase* GetDefualtSentenceSound(UDialogueWave* DialogueWave);
 private:
 	static FFrameNumber GetStartOffsetAtTrimTime(FQualifiedFrameTime TrimTime, FFrameNumber StartOffset, FFrameNumber StartFrame);
 };

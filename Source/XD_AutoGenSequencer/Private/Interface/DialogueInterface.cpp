@@ -19,17 +19,6 @@ UAudioComponent* IDialogueInterface::GetMouthComponent(const UObject* Obj)
 	return IDialogueInterface::Execute_GetMouthComponent(const_cast<UObject*>(Obj));
 }
 
-UDialogueVoice* IDialogueInterface::GetDialogueVoice_Implementation() const
-{
-	return nullptr;
-}
-
-UDialogueVoice* IDialogueInterface::GetDialogueVoice(const UObject* Obj)
-{
-	FEditorScriptExecutionGuard ScriptGuard;
-	return IDialogueInterface::Execute_GetDialogueVoice(const_cast<UObject*>(Obj));
-}
-
 FName IDialogueInterface::GetDialogueCharacterName_Implementation() const
 {
 	return Cast<UObject>(this)->GetFName();

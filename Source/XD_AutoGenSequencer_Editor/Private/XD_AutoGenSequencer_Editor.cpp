@@ -8,6 +8,7 @@
 #include "DialogueSequenceExtender.h"
 #include "PropertyEditorModule.h"
 #include "DialogueSentenceCustomization.h"
+#include "TwoTargetCameraTrackingEditor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -27,6 +28,10 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 			{
 				return MakeShareable(new FPreviewDialogueSentenceEditor(InSequencer));
 			}));
+		TwoTargetCameraTrackingTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateLambda([](TSharedRef<ISequencer> InSequencer)
+			{
+				return MakeShareable(new FTwoTargetCameraTrackingEditor(InSequencer));
+			}));
 		FDialogueSequenceExtender::Get().Register(SequencerModule);
 	}
 
@@ -39,6 +44,10 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 		PropertyModule.RegisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName, FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]()
 			{
 				return MakeShareable(new FDialogueSentenceEditData_Customization());
+			}));
+		PropertyModule.RegisterCustomPropertyTypeLayout(DialogueCharacterName, FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]()
+			{
+				return MakeShareable(new FDialogueCharacterName_Customization());
 			}));
 	}
 }
@@ -55,6 +64,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 		SequencerModule.UnRegisterTrackEditor(DialogueSentenceTrackEditorHandle);
 		SequencerModule.UnRegisterTrackEditor(PreviewDialogueSentenceTrackEditorHandle);
+		SequencerModule.UnRegisterTrackEditor(TwoTargetCameraTrackingTrackEditorHandle);
 		FDialogueSequenceExtender::Get().Unregister(SequencerModule);
 	}
 
@@ -63,6 +73,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 		FPropertyEditorModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueStationInstanceOverrideTypeName);
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName);
+		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterName);
 	}
 }
 

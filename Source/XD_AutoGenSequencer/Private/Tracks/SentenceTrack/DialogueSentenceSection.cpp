@@ -9,8 +9,8 @@
 #include "XD_AutoGenSequencerUtils.h"
 #include "Interface/DialogueInterface.h"
 #include "MovieSceneCommonHelpers.h"
-#include "Sound/DialogueWave.h"
 #include "IMovieScenePlayer.h"
+#include "DialogueSentence.h"
 
 DECLARE_CYCLE_STAT(TEXT("Dialogue Sentence Track Evaluate"), MovieSceneEval_DialogueSentenceTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Dialogue Sentence Track Tear Down"), MovieSceneEval_DialogueSentenceTrack_TearDown, STATGROUP_MovieSceneEval);
@@ -151,47 +151,10 @@ struct FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
 		: DialogueSentenceSection(InAudioSection), SectionKey(InAudioSection)
 	{}
 
-	static USoundBase* GetSentenceSound(const UDialogueSentenceSection* Section, AActor* Speaker, IMovieScenePlayer& Player, const FMovieSceneSequenceID& SequenceID)
-	{
-		UDialogueVoice* SpeakerDialogueVoice = nullptr;
-		if (Speaker->Implements<UDialogueInterface>())
-		{
-			SpeakerDialogueVoice = IDialogueInterface::GetDialogueVoice(Speaker);
-		}
-
-		USoundBase* SentenceWave = nullptr;
-		if (SpeakerDialogueVoice)
-		{
-			TArray<UDialogueVoice*> TargetDialogueVoices;
-			for (const FMovieSceneObjectBindingID& Target : Section->Targets)
-			{
-				for (TWeakObjectPtr<>& WeakObject : Player.FindBoundObjects(Target.GetGuid(), SequenceID))
-				{
-					if (WeakObject.IsValid())
-					{
-						if (WeakObject->Implements<UDialogueInterface>())
-						{
-							TargetDialogueVoices.Add(IDialogueInterface::GetDialogueVoice(WeakObject.Get()));
-						}
-						break;
-					}
-				}
-				FDialogueContext DialogueContext;
-				DialogueContext.Speaker = SpeakerDialogueVoice;
-				DialogueContext.Targets = TargetDialogueVoices;
-				SentenceWave = Section->DialogueWave->GetWaveFromContext(DialogueContext);
-			}
-		}
-		if (!SentenceWave)
-		{
-			SentenceWave = Section->GetDefualtSentenceSound();
-		}
-
-		return SentenceWave;
-	}
-
 	void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
+		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_DialogueSentenceTrack_TokenExecute);
+
 		FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<FCachedDialogueSentenceTrackData>();
 
 		if ((Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped() || Context.GetDirection() == EPlayDirection::Backwards)
@@ -212,7 +175,7 @@ struct FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
 				TWeakObjectPtr<USoundBase>& SentenceSoundPtr = TrackData.SoundsBySectionKey.FindOrAdd(SectionKey);
 				if (!SentenceSoundPtr.IsValid())
 				{
-					SentenceSoundPtr = GetSentenceSound(DialogueSentenceSection, Actor, Player, Operand.SequenceID);
+					SentenceSoundPtr = DialogueSentenceSection->DialogueSentence->SentenceWave;
 					if (!SentenceSoundPtr.IsValid())
 					{
 						continue;
@@ -383,12 +346,7 @@ FMovieSceneEvalTemplatePtr UDialogueSentenceSection::GenerateTemplate() const
 
 USoundBase* UDialogueSentenceSection::GetDefualtSentenceSound() const
 {
-	return GetDefualtSentenceSound(DialogueWave);
-}
-
-USoundBase* UDialogueSentenceSection::GetDefualtSentenceSound(UDialogueWave* DialogueWave)
-{
-	return DialogueWave ? DialogueWave->ContextMappings[0].SoundWave : nullptr;
+	return DialogueSentence->SentenceWave;
 }
 
 FFrameNumber UDialogueSentenceSection::GetStartOffsetAtTrimTime(FQualifiedFrameTime TrimTime, FFrameNumber StartOffset, FFrameNumber StartFrame)

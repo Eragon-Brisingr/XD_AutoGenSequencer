@@ -6,11 +6,18 @@
 #include "PreviewDialogueSoundSequence.h"
 #include "PreviewDialogueSentenceTrack.h"
 #include "ScopedTransaction.h"
+#include "MessageDialog.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 void FPreviewDialogueGenerator::Generate(const UAutoGenDialogueSequenceConfig* Config, UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence)
 {
+	if (!Config->IsConfigValid())
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("生成预览序列描述", "生成预览序列"));
 	PreviewDialogueSoundSequence->Modify();
 
