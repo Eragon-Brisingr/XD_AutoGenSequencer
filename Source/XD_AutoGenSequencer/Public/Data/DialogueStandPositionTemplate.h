@@ -15,8 +15,8 @@ struct FDialogueStandPosition
 	GENERATED_BODY()
 public:
 	FDialogueStandPosition() = default;
-	FDialogueStandPosition(const FName& StandName, const TSubclassOf<ACharacter>& PreviewCharacter)
-		:StandName(StandName), PreviewCharacter(PreviewCharacter)
+	FDialogueStandPosition(const FName& StandName, const TSubclassOf<ACharacter>& PreviewCharacter, const FTransform& StandPosition)
+		:StandPosition(StandPosition), StandName(StandName), PreviewCharacter(PreviewCharacter)
 	{}
 
 	UPROPERTY(EditAnywhere, meta = (MakeEditWidget = true))

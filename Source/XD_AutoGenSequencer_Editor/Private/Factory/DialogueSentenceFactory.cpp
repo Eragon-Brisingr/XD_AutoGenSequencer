@@ -3,7 +3,8 @@
 
 #include "DialogueSentenceFactory.h"
 #include "AssetTypeCategories.h"
-#include "Data/DialogueSentence.h"
+#include "DialogueSentence.h"
+#include "AutoGenDialogueSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -16,7 +17,7 @@ UDialogueSentenceFactory::UDialogueSentenceFactory()
 
 UObject* UDialogueSentenceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	return NewObject<UDialogueSentence>(InParent, Class, Name, Flags);
+	return NewObject<UDialogueSentence>(InParent, UAutoGenDialogueSettings::GetDialogueSentenceType(), Name, Flags);
 }
 
 FText UDialogueSentenceFactory::GetDisplayName() const

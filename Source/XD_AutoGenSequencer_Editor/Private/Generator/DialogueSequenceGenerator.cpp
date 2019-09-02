@@ -31,6 +31,7 @@
 #include "Animation/AnimSequence.h"
 #include "MovieSceneObjectPropertyTrack.h"
 #include "MovieSceneObjectPropertySection.h"
+#include "MovieSceneSkeletalAnimationSection.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -68,17 +69,24 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 
 	ISequencer& Sequencer = SequencerRef.Get();
 	UMovieScene* MovieScene = AutoGenDialogueSequence->GetMovieScene();
+	FFrameRate FrameRate = MovieScene->GetTickResolution();
 	TArray<UMovieSceneTrack*>& AutoGenTracks = AutoGenDialogueSequence->AutoGenTracks;
 	
 	// 数据预处理
 	TMap<FName, ACharacter*> NameInstanceMap;
-	for (const TPair<FName, TSoftObjectPtr<ACharacter>>& Entry : CharacterNameInstanceMap)
+	TMap<ACharacter*, int32> InstanceIdxMap;
 	{
-		if (ACharacter* Character = Entry.Value.Get())
+		int32 Idx = 0;
+		for (const TPair<FName, TSoftObjectPtr<ACharacter>>& Entry : CharacterNameInstanceMap)
 		{
-			if (Character->Implements<UDialogueInterface>())
+			if (ACharacter* Character = Entry.Value.Get())
 			{
-				NameInstanceMap.Add(Entry.Key, Character);
+				if (Character->Implements<UDialogueInterface>())
+				{
+					NameInstanceMap.Add(Entry.Key, Character);
+					InstanceIdxMap.Add(Character, Idx);
+					Idx += 1;
+				}
 			}
 		}
 	}
@@ -172,12 +180,10 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 		});
 
 	// 生成对象轨
-	TMap<ACharacter*, FGuid> InstanceGuidMap;
 	TMap<ACharacter*, FMovieSceneObjectBindingID> InstanceBindingIdMap;
 	for (const TPair<FName, ACharacter*>& Entry : NameInstanceMap)
 	{
 		FGuid BindingGuid = AutoGenDialogueSequence->FindOrAddPossessable(Entry.Value);
-		InstanceGuidMap.Add(Entry.Value, BindingGuid);
 		// TODO: 先用MovieSceneSequenceID::Root，以后再找MovieSceneSequenceID怎么获得
 		InstanceBindingIdMap.Add(Entry.Value, FMovieSceneObjectBindingID(BindingGuid, MovieSceneSequenceID::Root));
 	}
@@ -197,7 +203,7 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
 		ACharacter* Speaker = GenDialogueData.SpeakerInstance;
 		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
-		FGuid SpeakerBindingGuid = InstanceGuidMap[Speaker];
+		FGuid SpeakerBindingGuid = InstanceBindingIdMap[Speaker].GetGuid();
 
 		// -- 对话
 		{
@@ -226,7 +232,16 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 			}
 			if (GenConfig.RandomAnims.Num() > 0)
 			{
-				AnimationTrackTrack->AddNewAnimation(StartFrameNumber, GenConfig.RandomAnims[FMath::RandHelper(GenConfig.RandomAnims.Num())]);
+				UMovieSceneSkeletalAnimationSection* SkeletalAnimationSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrackTrack->AddNewAnimation(StartFrameNumber, GenConfig.RandomAnims[FMath::RandHelper(GenConfig.RandomAnims.Num())]));
+				SkeletalAnimationSection->SetRange(TRange<FFrameNumber>(StartFrameNumber, EndFrameNumber));
+
+				const float BlendWidget = 0.5f;
+				FFrameNumber BlendFrameNumber = (BlendWidget * FrameRate).GetFrame();
+
+				SkeletalAnimationSection->Params.Weight.AddCubicKey(StartFrameNumber, 0.f);
+				SkeletalAnimationSection->Params.Weight.AddCubicKey(StartFrameNumber + BlendFrameNumber, 1.f);
+				SkeletalAnimationSection->Params.Weight.AddCubicKey(EndFrameNumber - BlendFrameNumber, 1.f);
+				SkeletalAnimationSection->Params.Weight.AddCubicKey(EndFrameNumber, 0.f);
 			}
 		}
 
@@ -267,9 +282,10 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 						ACharacter* Target = Targets[0];
 						AAutoGenDialogueCameraTemplate* CameraTemplate = GenConfig.CameraTemplates[FMath::RandHelper(GenConfig.CameraTemplates.Num())].GetDefaultObject();
 
+						bool InvertCameraPos = InstanceIdxMap[Speaker] - InstanceIdxMap[Target] > 0;
 						UTwoTargetCameraTrackingTrack* TwoTargetCameraTrackingTrack = MovieScene->AddTrack<UTwoTargetCameraTrackingTrack>(CineCameraComponentGuid);
 						UTwoTargetCameraTrackingSection* TwoTargetCameraTrackingSection = TwoTargetCameraTrackingTrack->AddNewSentenceOnRow(InstanceBindingIdMap[Target], InstanceBindingIdMap[Speaker]);
-						TwoTargetCameraTrackingSection->CameraYaw.SetDefault(CameraTemplate->CameraYawAngle);
+						TwoTargetCameraTrackingSection->CameraYaw.SetDefault(!InvertCameraPos ? CameraTemplate->CameraYawAngle : -CameraTemplate->CameraYawAngle);
 						TwoTargetCameraTrackingSection->FrontTargetRate.SetDefault(CameraTemplate->FrontTargetRate);
 						TwoTargetCameraTrackingSection->BackTargetRate.SetDefault(CameraTemplate->BackTargetRate);
 
@@ -287,7 +303,6 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 	}
 
 	// 后处理
-	FFrameRate FrameRate = MovieScene->GetTickResolution();
 	FFrameNumber EndFrameNumber = PreviewDialogueSoundSequence->GetMovieScene()->GetPlaybackRange().GetUpperBoundValue();
 	MovieScene->SetPlaybackRange(FFrameNumber(0), EndFrameNumber.Value);
 	MovieScene->SetWorkingRange(0.f, EndFrameNumber / FrameRate);

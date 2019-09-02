@@ -145,120 +145,119 @@ struct FCachedDialogueSentenceTrackData : IPersistentEvaluationData
 	}
 };
 
-struct FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
+FDialogueSentenceSectionExecutionToken::FDialogueSentenceSectionExecutionToken(const UDialogueSentenceSection* InSentenceSection) 
+	: SentenceSection(InSentenceSection), SectionKey(InSentenceSection)
 {
-	FDialogueSentenceSectionExecutionToken(const UDialogueSentenceSection* InAudioSection)
-		: DialogueSentenceSection(InAudioSection), SectionKey(InAudioSection)
-	{}
 
-	void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+}
+
+void FDialogueSentenceSectionExecutionToken::Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
+{
+	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_DialogueSentenceTrack_TokenExecute);
+
+	FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<FCachedDialogueSentenceTrackData>();
+
+	if ((Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped() || Context.GetDirection() == EPlayDirection::Backwards)
 	{
-		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_DialogueSentenceTrack_TokenExecute);
-
-		FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<FCachedDialogueSentenceTrackData>();
-
-		if ((Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped() || Context.GetDirection() == EPlayDirection::Backwards)
+		// stopped, recording, etc
+		TrackData.StopAllSentences();
+	}
+	else if (Operand.ObjectBindingID.IsValid())
+	{
+		for (const TWeakObjectPtr<>& Object : Player.FindBoundObjects(Operand))
 		{
-			// stopped, recording, etc
-			TrackData.StopAllSentences();
-		}
-		else if (Operand.ObjectBindingID.IsValid())
-		{
-			for (const TWeakObjectPtr<>& Object : Player.FindBoundObjects(Operand))
+			AActor* Actor = Cast<AActor>(Object.Get());
+			if (!Actor)
 			{
-				AActor* Actor = Cast<AActor>(Object.Get());
-				if (!Actor)
+				continue;
+			}
+
+			TWeakObjectPtr<USoundBase>& SentenceSoundPtr = TrackData.SoundsBySectionKey.FindOrAdd(SectionKey);
+			if (!SentenceSoundPtr.IsValid())
+			{
+				SentenceSoundPtr = SentenceSection->DialogueSentence->SentenceWave;
+				if (!SentenceSoundPtr.IsValid())
 				{
 					continue;
 				}
+			}
+			USoundBase* SentenceSound = SentenceSoundPtr.Get();
 
-				TWeakObjectPtr<USoundBase>& SentenceSoundPtr = TrackData.SoundsBySectionKey.FindOrAdd(SectionKey);
-				if (!SentenceSoundPtr.IsValid())
-				{
-					SentenceSoundPtr = DialogueSentenceSection->DialogueSentence->SentenceWave;
-					if (!SentenceSoundPtr.IsValid())
-					{
-						continue;
-					}
-				}
-				USoundBase* SentenceSound = SentenceSoundPtr.Get();
+			UAudioComponent* AudioComponent = TrackData.GetAudioComponent(SectionKey);
+			if (!AudioComponent)
+			{
+				AudioComponent = TrackData.AddAudioComponentForRow(SentenceSound, SectionKey, *Actor, Player);
+			}
 
-				UAudioComponent* AudioComponent = TrackData.GetAudioComponent(SectionKey);
-				if (!AudioComponent)
-				{
-					AudioComponent = TrackData.AddAudioComponentForRow(SentenceSound, SectionKey, *Actor, Player);
-				}
-
-				if (AudioComponent)
-				{
-					EnsureSentenceIsPlaying(SentenceSound, *AudioComponent, PersistentData, Context, true, Player);
-				}
+			if (AudioComponent)
+			{
+				EnsureSentenceIsPlaying(SentenceSound, *AudioComponent, PersistentData, Context, true, Player);
 			}
 		}
 	}
+}
 
-	void EnsureSentenceIsPlaying(USoundBase* SentenceSound, UAudioComponent& AudioComponent, FPersistentEvaluationData& PersistentData, const FMovieSceneContext& Context, bool bAllowSpatialization, IMovieScenePlayer& Player) const
+void FDialogueSentenceSectionExecutionToken::EnsureSentenceIsPlaying(USoundBase* SentenceSound, UAudioComponent& AudioComponent, FPersistentEvaluationData& PersistentData, const FMovieSceneContext& Context, bool bAllowSpatialization, IMovieScenePlayer& Player) const
+{
+	Player.SavePreAnimatedState(AudioComponent, FStopDialogueSentencePreAnimatedToken::GetAnimTypeID(), FStopDialogueSentencePreAnimatedToken::FProducer());
+
+	bool bPlaySound = !AudioComponent.IsPlaying() || AudioComponent.Sound != SentenceSound;
+
+	if (bPlaySound && SentenceSound)
 	{
- 		Player.SavePreAnimatedState(AudioComponent, FStopDialogueSentencePreAnimatedToken::GetAnimTypeID(), FStopDialogueSentencePreAnimatedToken::FProducer());
-
-		bool bPlaySound = !AudioComponent.IsPlaying() || AudioComponent.Sound != SentenceSound;
-
-		if (bPlaySound && SentenceSound)
-		{
 #if WITH_EDITOR
-			UObject* PlaybackContext = Player.GetPlaybackContext();
-			UWorld* World = PlaybackContext ? PlaybackContext->GetWorld() : nullptr;
-			if (GIsEditor && World != nullptr && !World->IsPlayInEditor())
-			{
-				AudioComponent.bIsPreviewSound = true;
-			}
+		UObject* PlaybackContext = Player.GetPlaybackContext();
+		UWorld* World = PlaybackContext ? PlaybackContext->GetWorld() : nullptr;
+		if (GIsEditor && World != nullptr && !World->IsPlayInEditor())
+		{
+			AudioComponent.bIsPreviewSound = true;
+		}
 #endif // WITH_EDITOR
 
-			ensure(SentenceSound->IsPlayWhenSilent());
-			AutoGenSequencer_Error_Log("[%d] 的VirtualizationMode必须标记为PlayWhenSilent，否则超出声音区域后再进入声音会有问题", *SentenceSound->GetName());
-
-			AudioComponent.Stop();
-			AudioComponent.SetSound(SentenceSound);
-
-			float SectionStartTimeSeconds = (DialogueSentenceSection->HasStartFrame() ? DialogueSentenceSection->GetInclusiveStartFrame() : 0) / DialogueSentenceSection->GetTypedOuter<UMovieScene>()->GetTickResolution();
-
-			const float AudioTime = (Context.GetTime() / Context.GetFrameRate()) - SectionStartTimeSeconds + (float)Context.GetFrameRate().AsSeconds(DialogueSentenceSection->StartFrameOffset);
-			if (AudioTime >= 0.f && AudioComponent.Sound && AudioTime < AudioComponent.Sound->GetDuration())
-			{
-				AudioComponent.Play(AudioTime);
-			}
-
-			if (Context.GetStatus() == EMovieScenePlayerStatus::Scrubbing)
-			{
-				// While scrubbing, play the sound for a short time and then cut it.
-				AudioComponent.StopDelayed(0.050f);
-			}
+		if (!SentenceSound->IsPlayWhenSilent())
+		{
+			AutoGenSequencer_Error_Log("[%s] 的VirtualizationMode必须标记为PlayWhenSilent，否则超出声音区域后再进入声音会有问题，已自动设置，请保存音频文件", *SentenceSound->GetName());
+			SentenceSound->Modify();
+			SentenceSound->VirtualizationMode = EVirtualizationMode::PlayWhenSilent;
 		}
 
-		if (bAllowSpatialization)
-		{
-			if (FAudioDevice* AudioDevice = AudioComponent.GetAudioDevice())
-			{
-				DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.MovieSceneUpdateAudioTransform"), STAT_MovieSceneUpdateDialogueSentenceTransform, STATGROUP_TaskGraphTasks);
+		AudioComponent.Stop();
+		AudioComponent.SetSound(SentenceSound);
 
-				const FTransform ActorTransform = AudioComponent.GetOwner()->GetTransform();
-				const uint64 ActorComponentID = AudioComponent.GetAudioComponentID();
-				FAudioThread::RunCommandOnAudioThread([AudioDevice, ActorComponentID, ActorTransform]()
-					{
-						if (FActiveSound * ActiveSound = AudioDevice->FindActiveSound(ActorComponentID))
-						{
-							ActiveSound->bLocationDefined = true;
-							ActiveSound->Transform = ActorTransform;
-						}
-					}, GET_STATID(STAT_MovieSceneUpdateDialogueSentenceTransform));
-			}
+		float SectionStartTimeSeconds = (SentenceSection->HasStartFrame() ? SentenceSection->GetInclusiveStartFrame() : 0) / SentenceSection->GetTypedOuter<UMovieScene>()->GetTickResolution();
+
+		const float AudioTime = (Context.GetTime() / Context.GetFrameRate()) - SectionStartTimeSeconds + (float)Context.GetFrameRate().AsSeconds(SentenceSection->StartFrameOffset);
+		if (AudioTime >= 0.f && AudioComponent.Sound && AudioTime < AudioComponent.Sound->GetDuration())
+		{
+			AudioComponent.Play(AudioTime);
+		}
+
+		if (Context.GetStatus() == EMovieScenePlayerStatus::Scrubbing)
+		{
+			// While scrubbing, play the sound for a short time and then cut it.
+			AudioComponent.StopDelayed(0.050f);
 		}
 	}
 
-	const UDialogueSentenceSection* DialogueSentenceSection;
-	FObjectKey SectionKey;
-	TMap<AActor*, USoundBase*> SentenceSoundMap;
-};
+	if (bAllowSpatialization)
+	{
+		if (FAudioDevice* AudioDevice = AudioComponent.GetAudioDevice())
+		{
+			DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.MovieSceneUpdateAudioTransform"), STAT_MovieSceneUpdateDialogueSentenceTransform, STATGROUP_TaskGraphTasks);
+
+			const FTransform ActorTransform = AudioComponent.GetOwner()->GetTransform();
+			const uint64 ActorComponentID = AudioComponent.GetAudioComponentID();
+			FAudioThread::RunCommandOnAudioThread([AudioDevice, ActorComponentID, ActorTransform]()
+				{
+					if (FActiveSound * ActiveSound = AudioDevice->FindActiveSound(ActorComponentID))
+					{
+						ActiveSound->bLocationDefined = true;
+						ActiveSound->Transform = ActorTransform;
+					}
+				}, GET_STATID(STAT_MovieSceneUpdateDialogueSentenceTransform));
+		}
+	}
+}
 
 void FDialogueSentenceSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
@@ -266,7 +265,7 @@ void FDialogueSentenceSectionTemplate::Evaluate(const FMovieSceneEvaluationOpera
 
 	if (GEngine && GEngine->UseSound() && Context.GetStatus() != EMovieScenePlayerStatus::Jumping)
 	{
-		ExecutionTokens.Add(FDialogueSentenceSectionExecutionToken(AudioSection));
+		ExecutionTokens.Add(FDialogueSentenceSectionExecutionToken(SentenceSection));
 	}
 }
 
@@ -277,8 +276,7 @@ void FDialogueSentenceSectionTemplate::TearDown(FPersistentEvaluationData& Persi
 	if (GEngine && GEngine->UseSound())
 	{
 		FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<FCachedDialogueSentenceTrackData>();
-
-		TrackData.StopSentencesOnSection(AudioSection);
+		TrackData.StopSentencesOnSection(SentenceSection);
 	}
 }
 

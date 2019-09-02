@@ -14,8 +14,8 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 	bIsEditorOnlyActor = true;
 	bHidden = false;
 
-	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr));
-	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr));
+	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));
+	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
 }
 
 void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

@@ -19,7 +19,7 @@ public:
 	UDialogueSentence();
 
 	UPROPERTY(EditAnywhere, Category = "DialogueSentence")
-	USoundBase* SentenceWave;
+	USoundWave* SentenceWave;
 	UPROPERTY(EditAnywhere, Category = "DialogueSentence")
 	FText SubTitle;
 

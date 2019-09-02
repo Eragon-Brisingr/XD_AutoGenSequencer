@@ -7,13 +7,13 @@ void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float 
 {
 	float Dis = FVector::Dist(BackTargetPosition, FrontTargetPosition);
 	float SinCenterAngle, CosCenterAngle;
-	FMath::SinCos(&SinCenterAngle, &CosCenterAngle, FMath::DegreesToRadians(CameraYawAngle));
+	FMath::SinCos(&SinCenterAngle, &CosCenterAngle, FMath::DegreesToRadians(FMath::Abs(CameraYawAngle)));
 	float TanHalfFov = FMath::Tan(FMath::DegreesToRadians(Fov / 2.f));
 
 	float BackTargetTimes = 1.f - FrontTargetRate * 2;
 	float FrontTargetTimes = 1.f - BackTargetRate * 2;
 
-	check(BackTargetTimes != 0 && FrontTargetTimes != 0 && BackTargetTimes + FrontTargetTimes != 0);
+	check(BackTargetTimes != 0.f && FrontTargetTimes != 0.f && BackTargetTimes + FrontTargetTimes != 0.f);
 
 	float HalfWidthDivideCenterDis = TanHalfFov * Aspect;
 	float BackTargetSum = SinCenterAngle / HalfWidthDivideCenterDis / BackTargetTimes - CosCenterAngle;
@@ -23,9 +23,9 @@ void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float 
 	float BackWidthToEdge = (CenterInterval + Dis * FocusInterval * CosCenterAngle) * HalfWidthDivideCenterDis;
 	float FontWidthToEdge = (CenterInterval - Dis * (1.f - FocusInterval) * CosCenterAngle) * HalfWidthDivideCenterDis;
 	float BackTargetProjector = Dis * FocusInterval * SinCenterAngle;
-	float FrontTargetProjector = Dis * (1 - FocusInterval) * SinCenterAngle;
+	float FrontTargetProjector = Dis * (1.f - FocusInterval) * SinCenterAngle;
 
-	FVector LookCenter = BackTargetPosition * (1 - FocusInterval) + FrontTargetPosition * FocusInterval;
+	FVector LookCenter = BackTargetPosition * (1.f - FocusInterval) + FrontTargetPosition * FocusInterval;
 	CameraPosition = LookCenter + CenterInterval * FRotator(0.f, CameraYawAngle, 0.f).RotateVector((FrontTargetPosition - BackTargetPosition)).GetSafeNormal();
 	CameraRotation = (LookCenter - CameraPosition).Rotation();
 }

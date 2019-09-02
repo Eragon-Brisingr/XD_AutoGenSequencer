@@ -9,6 +9,7 @@
 
 class USoundBase;
 class UDialogueSentence;
+class UAudioComponent;
 
 /**
  * 
@@ -42,22 +43,34 @@ private:
 };
 
 USTRUCT()
-struct FDialogueSentenceSectionTemplate : public FMovieSceneEvalTemplate
+struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionTemplate : public FMovieSceneEvalTemplate
 {
 	GENERATED_BODY()
 public:
 	FDialogueSentenceSectionTemplate() = default;
 	FDialogueSentenceSectionTemplate(const UDialogueSentenceSection& Section)
-		:AudioSection(&Section)
+		:SentenceSection(&Section)
 	{}
 
 	UPROPERTY()
-	const UDialogueSentenceSection* AudioSection;
+	const UDialogueSentenceSection* SentenceSection;
 
 private:
-
 	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 	virtual void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag); }
 	virtual void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+};
+
+struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
+{
+	FDialogueSentenceSectionExecutionToken(const UDialogueSentenceSection* InSentenceSection);
+
+	void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override;
+
+	void EnsureSentenceIsPlaying(USoundBase* SentenceSound, UAudioComponent& AudioComponent, FPersistentEvaluationData& PersistentData, const FMovieSceneContext& Context, bool bAllowSpatialization, IMovieScenePlayer& Player) const;
+
+	const UDialogueSentenceSection* SentenceSection;
+	FObjectKey SectionKey;
+	TMap<AActor*, USoundBase*> SentenceSoundMap;
 };
