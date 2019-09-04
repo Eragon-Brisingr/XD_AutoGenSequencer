@@ -29,3 +29,13 @@ FName IDialogueInterface::GetDialogueCharacterName(const UObject* Obj)
 	FEditorScriptExecutionGuard ScriptGuard;
 	return IDialogueInterface::Execute_GetDialogueCharacterName(const_cast<UObject*>(Obj));
 }
+
+void IDialogueInterface::BeginSpeak(UObject* Obj, UDialogueSentence* Sentence)
+{
+	return IDialogueInterface::Execute_BeginSpeak(Obj, Sentence);
+}
+
+void IDialogueInterface::EndSpeak(UObject* Obj)
+{
+	return IDialogueInterface::Execute_EndSpeak(Obj);
+}

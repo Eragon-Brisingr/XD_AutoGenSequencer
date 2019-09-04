@@ -126,12 +126,16 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 
 						float CameraYaw, FrontTargetRate, BackTargetRate;
 						CameraTrackingSection->CameraYaw.Evaluate(Context.GetTime(), CameraYaw);
+						if (CameraYaw == 0.f)
+						{
+							continue;
+						}
 						CameraTrackingSection->FrontTargetRate.Evaluate(Context.GetTime(), FrontTargetRate);
 						CameraTrackingSection->BackTargetRate.Evaluate(Context.GetTime(), BackTargetRate);
 						FVector CameraLocation;
 						FRotator CameraRotation;
-						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, 0.f, 0.49999f), FMath::Clamp(FrontTargetRate, 0.f, 0.49999f),
-							FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CineCameraComponent->AspectRatio, CameraLocation, CameraRotation);
+						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, -1.f, 0.49999f), FMath::Clamp(BackTargetRate, -1.f, 0.49999f),
+							FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CameraLocation, CameraRotation);
 						CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 					}
 				}

@@ -7,6 +7,7 @@
 #include "DialogueSentence.generated.h"
 
 class USoundWave;
+class UDialogueSentenceSection;
 
 /**
  * 
@@ -27,5 +28,7 @@ public:
 
 #if WITH_EDITOR
 	virtual void WhenGenFromSoundWave(USoundWave* InSentenceWave) {}
+
+	virtual TSubclassOf<UDialogueSentenceSection> GetSectionImplType() const;
 #endif
 };

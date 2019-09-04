@@ -35,9 +35,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "站位模板"))
 	TSubclassOf<ADialogueStandPositionTemplate> StandTemplate;
 
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "0.499999"))
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "-1", ClampMax = "0.499999"))
 	float BackTargetRate;
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "0.499999"))
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "-1", ClampMax = "0.499999"))
 	float FrontTargetRate;
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "180"))
 	float CameraYawAngle;

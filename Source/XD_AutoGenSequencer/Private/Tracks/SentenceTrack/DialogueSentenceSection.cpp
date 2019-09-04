@@ -47,35 +47,13 @@ FCachedDialogueSentenceTrackData::FCachedDialogueSentenceTrackData()
 
 }
 
-UAudioComponent* FCachedDialogueSentenceTrackData::GetAudioComponent(TObjectKey<const UDialogueSentenceSection> SectionKey)
-{
-	if (TWeakObjectPtr<UAudioComponent>* ExistingComponentPtr = AudioComponentBySectionKey.Find(SectionKey))
-	{
-		return ExistingComponentPtr->Get();
-	}
-	return nullptr;
-}
-
-UAudioComponent* FCachedDialogueSentenceTrackData::AddAudioComponentForRow(USoundBase* Sentence, TObjectKey<const UDialogueSentenceSection> SectionKey, AActor& PrincipalActor, IMovieScenePlayer& Player)
-{
-	UAudioComponent* ExistingComponent = nullptr;
-	if (PrincipalActor.Implements<UDialogueInterface>())
-	{
-		ExistingComponent = IDialogueInterface::GetMouthComponent(&PrincipalActor);
-	}
-
-	AudioComponentBySectionKey.Add(SectionKey, ExistingComponent);
-
-	return ExistingComponent;
-}
-
 void FCachedDialogueSentenceTrackData::StopAllSentences()
 {
 	for (TPair<TObjectKey<const UDialogueSentenceSection>, TWeakObjectPtr<UAudioComponent>>& Pair : AudioComponentBySectionKey)
 	{
 		if (UAudioComponent* AudioComponent = Pair.Value.Get())
 		{
-			AudioComponent->Stop();
+			StopSentence(AudioComponent);
 #if WITH_EDITOR
 			AudioComponent->bIsPreviewSound = false;
 #endif
@@ -89,12 +67,23 @@ void FCachedDialogueSentenceTrackData::StopSentencesOnSection(TObjectKey<const U
 	{
 		if (UAudioComponent* AudioComponent = AudioComponentPtr->Get())
 		{
-			AudioComponent->Stop();
+			StopSentence(AudioComponent);
+
 #if WITH_EDITOR
 			AudioComponent->bIsPreviewSound = false;
 #endif
 		}
 		AudioComponentBySectionKey.Remove(ObjectKey);
+	}
+}
+
+void FCachedDialogueSentenceTrackData::StopSentence(UAudioComponent* AudioComponent)
+{
+	AudioComponent->Stop();
+	AActor* Actor = AudioComponent->GetOwner();
+	if (Actor->Implements<UDialogueInterface>())
+	{
+		IDialogueInterface::EndSpeak(Actor);
 	}
 }
 
@@ -143,13 +132,17 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 				continue;
 			}
 
-			UAudioComponent* AudioComponent = TrackData.GetAudioComponent(SectionKey);
-			if (!AudioComponent)
+			TWeakObjectPtr<UAudioComponent>& AudioComponentPtr = TrackData.AudioComponentBySectionKey.FindOrAdd(SectionKey);
+			if (!AudioComponentPtr.IsValid())
 			{
-				AudioComponent = TrackData.AddAudioComponentForRow(SentenceSound, SectionKey, *Actor, Player);
+				if (Actor->Implements<UDialogueInterface>())
+				{
+					AudioComponentPtr = IDialogueInterface::GetMouthComponent(Actor);
+					IDialogueInterface::BeginSpeak(Actor, SentenceSection->DialogueSentence);
+				}
 			}
 
-			if (AudioComponent)
+			if (UAudioComponent* AudioComponent = AudioComponentPtr.Get())
 			{
 				Player.SavePreAnimatedState(*AudioComponent, FStopDialogueSentencePreAnimatedToken::GetAnimTypeID(), FStopDialogueSentencePreAnimatedToken::FProducer());
 

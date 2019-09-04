@@ -280,8 +280,8 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 			if (GenConfig.RandomAnims.Num() > 0)
 			{
 				const float BlendTime = 0.25f;
-				UMovieSceneSkeletalAnimationSection* TalkAnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->AddNewAnimation(StartFrameNumber, GenConfig.RandomAnims[FMath::RandHelper(GenConfig.RandomAnims.Num())]));
 
+				UMovieSceneSkeletalAnimationSection* TalkAnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->AddNewAnimation(StartFrameNumber, GenConfig.RandomAnims[FMath::RandHelper(GenConfig.RandomAnims.Num())]));
 				TalkAnimSection->SetRange(TRange<FFrameNumber>(StartFrameNumber, EndFrameNumber));
 
 				TalkAnimSection->Params.SlotName = GenConfig.TalkAnimSlotName;
@@ -316,7 +316,7 @@ void FDialogueSequenceGenerator::Generate(TSharedRef<ISequencer> SequencerRef, U
 				FRotator CameraRotation;
 				UCineCameraComponent* CineCameraComponent = CameraTemplate->CineCameraComponent;
 				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraTemplate->CameraYawAngle, CameraTemplate->FrontTargetRate, CameraTemplate->BackTargetRate,
-					Speaker->GetPawnViewLocation(), Target->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CineCameraComponent->AspectRatio, CameraLocation, CameraRotation);
+					Speaker->GetPawnViewLocation(), Target->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CameraLocation, CameraRotation);
 
 				AutoGenCamera->SetActorLocationAndRotation(CameraLocation, CameraRotation);
 			}

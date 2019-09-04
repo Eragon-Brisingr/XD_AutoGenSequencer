@@ -50,7 +50,7 @@ void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 
 				FVector CameraLocation;
 				FRotator CameraRotation;
-				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos, BackPos, CineCameraComponent->CurrentHorizontalFOV, CineCameraComponent->AspectRatio, CameraLocation, CameraRotation);
+				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos, BackPos, CineCameraComponent->CurrentHorizontalFOV, CameraLocation, CameraRotation);
 
 				CineCamera->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 			}

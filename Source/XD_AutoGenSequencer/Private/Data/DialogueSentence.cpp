@@ -2,8 +2,14 @@
 
 
 #include "DialogueSentence.h"
+#include "DialogueSentenceSection.h"
 
 UDialogueSentence::UDialogueSentence()
 {
 	
+}
+
+TSubclassOf<UDialogueSentenceSection> UDialogueSentence::GetSectionImplType() const
+{
+	return UDialogueSentenceSection::StaticClass();
 }

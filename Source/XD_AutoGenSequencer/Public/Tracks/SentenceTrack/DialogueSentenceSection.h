@@ -82,14 +82,12 @@ struct XD_AUTOGENSEQUENCER_API FCachedDialogueSentenceTrackData : IPersistentEva
 
 	FCachedDialogueSentenceTrackData();
 
-	UAudioComponent* GetAudioComponent(TObjectKey<const UDialogueSentenceSection> SectionKey);
-
-	/** Only to be called on the game thread */
-	UAudioComponent* AddAudioComponentForRow(USoundBase* Sentence, TObjectKey<const UDialogueSentenceSection> SectionKey, AActor& PrincipalActor, IMovieScenePlayer& Player);
-
 	void StopAllSentences();
 
 	void StopSentencesOnSection(TObjectKey<const UDialogueSentenceSection> ObjectKey);
+
+	void StopSentence(UAudioComponent* AudioComponent);
+
 };
 
 struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
