@@ -22,6 +22,8 @@ public:
 	UPROPERTY()
 	FTransform StandPositionPosition = FTransform::Identity;
 
+	FTransform GetStandPositionPosition() const { return StandPositionPosition; }
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	class UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence;

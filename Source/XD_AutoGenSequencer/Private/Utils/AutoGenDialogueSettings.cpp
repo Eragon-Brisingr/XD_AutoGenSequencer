@@ -2,7 +2,6 @@
 
 
 #include "AutoGenDialogueSettings.h"
-#include "AssetTypeCategories.h"
 #include "DialogueSentence.h"
 #include "DialogueSentenceSection.h"
 

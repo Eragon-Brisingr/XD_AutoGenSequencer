@@ -37,9 +37,9 @@ class XD_AUTOGENSEQUENCER_API ADialogueStandPositionTemplate : public AInfo
 {
 	GENERATED_BODY()
 public:
-#if WITH_EDITORONLY_DATA
 	ADialogueStandPositionTemplate();
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "站位模板")
 	TSubclassOf<ACharacter> PreviewCharacter;
 

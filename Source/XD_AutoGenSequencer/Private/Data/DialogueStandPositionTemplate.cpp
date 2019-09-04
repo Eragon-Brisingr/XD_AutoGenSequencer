@@ -8,16 +8,18 @@
 #include "Engine/BlueprintGeneratedClass.h"
 
 
-#if WITH_EDITOR
 ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 {
+#if WITH_EDITOR
 	bIsEditorOnlyActor = true;
 	bHidden = false;
 
 	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));
 	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
+#endif
 }
 
+#if WITH_EDITOR
 void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

@@ -60,6 +60,36 @@ private:
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 	virtual void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag); }
 	virtual void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+
+protected:
+	template<typename DataType>
+	void TearDownAudio(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+	{
+		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_DialogueSentenceTrack_TearDown)
+
+		static_assert(TIsDerivedFrom<DataType, FCachedDialogueSentenceTrackData>::IsDerived, "Must Derived From FCachedDialogueSentenceTrackData");
+		if (GEngine && GEngine->UseSound())
+		{
+			FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<DataType>();
+			TrackData.StopSentencesOnSection(SentenceSection);
+		}
+	}
+};
+
+struct XD_AUTOGENSEQUENCER_API FCachedDialogueSentenceTrackData : IPersistentEvaluationData
+{
+	TMap<TObjectKey<const UDialogueSentenceSection>, TWeakObjectPtr<UAudioComponent>> AudioComponentBySectionKey;
+
+	FCachedDialogueSentenceTrackData();
+
+	UAudioComponent* GetAudioComponent(TObjectKey<const UDialogueSentenceSection> SectionKey);
+
+	/** Only to be called on the game thread */
+	UAudioComponent* AddAudioComponentForRow(USoundBase* Sentence, TObjectKey<const UDialogueSentenceSection> SectionKey, AActor& PrincipalActor, IMovieScenePlayer& Player);
+
+	void StopAllSentences();
+
+	void StopSentencesOnSection(TObjectKey<const UDialogueSentenceSection> ObjectKey);
 };
 
 struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken
@@ -68,9 +98,20 @@ struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionExecutionToken : IMovieSc
 
 	void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override;
 
-	void EnsureSentenceIsPlaying(USoundBase* SentenceSound, UAudioComponent& AudioComponent, FPersistentEvaluationData& PersistentData, const FMovieSceneContext& Context, bool bAllowSpatialization, IMovieScenePlayer& Player) const;
-
 	const UDialogueSentenceSection* SentenceSection;
-	FObjectKey SectionKey;
+	TObjectKey<const UDialogueSentenceSection> SectionKey;
 	TMap<AActor*, USoundBase*> SentenceSoundMap;
+
+protected:
+	float GetCurrentAudioTime(const FMovieSceneContext &Context) const;
+
+	template<typename DataType>
+	void ExecutePlayAudio(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player)
+	{
+		static_assert(TIsDerivedFrom<DataType, FCachedDialogueSentenceTrackData>::IsDerived, "Must Derived From FCachedDialogueSentenceTrackData");
+		FCachedDialogueSentenceTrackData& TrackData = PersistentData.GetOrAddTrackData<DataType>();
+		ExecutePlayAudioImpl(TrackData, Context, Operand, PersistentData, Player);
+	}
+private:
+	void ExecutePlayAudioImpl(FCachedDialogueSentenceTrackData& TrackData, const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player);
 };

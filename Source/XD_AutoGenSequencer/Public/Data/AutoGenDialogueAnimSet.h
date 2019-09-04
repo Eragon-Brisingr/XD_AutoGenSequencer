@@ -17,5 +17,8 @@ class XD_AUTOGENSEQUENCER_API UAutoGenDialogueAnimSet : public UObject
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere)
-	TArray<UAnimSequence*> Anims;
+	TArray<UAnimSequence*> TalkAnims;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UAnimSequence*> IdleAnims;
 };

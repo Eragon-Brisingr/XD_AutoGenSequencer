@@ -5,23 +5,12 @@
 
 #include "ContentBrowserModule.h"
 #include "ContentBrowserDelegates.h"
-#include "LevelSequence.h"
 #include "MultiBoxBuilder.h"
 #include "EditorStyleSet.h"
-#include "GameFramework/Actor.h"
-#include "MovieSceneTransformTrack.h"
-#include "EngineUtils.h"
-#include "Editor/EditorEngine.h"
-#include "Editor.h"
-#include "Engine/Selection.h"
-#include "MovieScene3DTransformTrack.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieSceneFloatChannel.h"
-#include "MovieSceneChannelProxy.h"
-#include "MovieSceneSkeletalAnimationTrack.h"
-#include "Animation/AnimSequence.h"
-#include "MovieSceneCameraCutTrack.h"
-#include "MovieSceneFolder.h"
+#include "Sound/SoundWave.h"
+#include "DialogueSentence.h"
+#include "AssetRegistryModule.h"
+#include "AutoGenDialogueSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -37,93 +26,63 @@ void FAutoGenSequencerContentBrowserExtensions::RegisterExtender()
 
 void FAutoGenSequencerContentBrowserExtensions::UnregisterExtender()
 {
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-	TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
-	CBMenuExtenderDelegates.RemoveAll([](const FContentBrowserMenuExtender_SelectedAssets& Delegate) { return Delegate.GetHandle() == ContentBrowserExtenderDelegateHandle; });
+	if (FModuleManager::Get().IsModuleLoaded("ContentBrowser"))
+	{
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+		TArray<FContentBrowserMenuExtender_SelectedAssets>& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
+		CBMenuExtenderDelegates.RemoveAll([](const FContentBrowserMenuExtender_SelectedAssets& Delegate) { return Delegate.GetHandle() == ContentBrowserExtenderDelegateHandle; });
+	}
 }
 
 TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContentBrowserAssetSelectionMenu(const TArray<FAssetData>& SelectedAssets)
 {
 	TSharedRef<FExtender> Extender(new FExtender());
 
-	// Run thru the assets to determine if any meet our criteria
-	bool bAnySequencer = false;
-	for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
+	bool bAnySoundWave = false;
+
+	TArray<FAssetData> SelectedSoundWaves;
+	for (const FAssetData& Asset : SelectedAssets)
 	{
-		const FAssetData& Asset = *AssetIt;
-		bAnySequencer = bAnySequencer || (Asset.AssetClass == ULevelSequence::StaticClass()->GetFName());
+		if (Asset.AssetClass == USoundWave::StaticClass()->GetFName())
+		{
+			SelectedSoundWaves.Add(Asset);
+		}
 	}
 
-	if (bAnySequencer)
+	if (SelectedSoundWaves.Num() > 0)
 	{
-		// Add the sprite actions sub-menu extender
 		Extender->AddMenuExtension(
-			"CommonAssetActions",
+			"GetAssetActions",
 			EExtensionHook::After,
 			nullptr,
-			FMenuExtensionDelegate::CreateStatic(&FAutoGenSequencerContentBrowserExtensions::CreateAutoGenSequencerSubMenu, SelectedAssets));
+			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
+				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("CreateDialogueSentence_Menu", "生成对白语句"),
+						LOCTEXT("CreateDialogueSentence_Tooltip",
+							"生成对白语句"),
+						FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
+							{
+								for (const FAssetData& SoundWaveAsset : SelectedSoundWaves)
+								{
+									USoundWave* SoundWave = CastChecked<USoundWave>(SoundWaveAsset.GetAsset());
+
+									FString SequenceName = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.AssetName.ToString());
+									FString DialogueSentencePath = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.PackageName.ToString());
+									UPackage* DialogueSentencePackage = CreatePackage(nullptr, *DialogueSentencePath);
+									UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, UAutoGenDialogueSettings::GetDialogueSentenceType(), *SequenceName, RF_Public | RF_Standalone);
+									DialogueSentence->SentenceWave = SoundWave;
+									DialogueSentence->SubTitle = FText::FromString(SoundWave->SpokenText);
+									DialogueSentence->WhenGenFromSoundWave(SoundWave);
+
+									FAssetRegistryModule::AssetCreated(DialogueSentence);
+									DialogueSentence->MarkPackageDirty();
+								}
+							})));
+				}));
 	}
 
 	return Extender;
-}
-
-void FAutoGenSequencerContentBrowserExtensions::CreateAutoGenSequencerSubMenu(FMenuBuilder& MenuBuilder, TArray<FAssetData> SelectedAssets)
-{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AutoGenSequencerMenuLabel", "自动生成轨道"),
-		LOCTEXT("AutoGenSequencerMenuToolTip", "自动生成轨道"),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				for (const FAssetData& AssetData : SelectedAssets)
-				{
-					ULevelSequence* LevelSequence = CastChecked<ULevelSequence>(AssetData.GetAsset());
-					UMovieScene* MovieScene = LevelSequence->MovieScene;
-
-					{
-						UMovieSceneCameraCutTrack* Track = CastChecked<UMovieSceneCameraCutTrack>(MovieScene->AddCameraCutTrack(UMovieSceneCameraCutTrack::StaticClass()));
-						// TODO:添加摄像机和绑定
-						//Track->AddNewCameraCut();
-					}
-
-					UMovieSceneFolder* Folder = NewObject<UMovieSceneFolder>(MovieScene, NAME_None, RF_Transactional);
-					Folder->SetFolderName(TEXT("自动生成"));
-					MovieScene->GetRootFolders().Add(Folder);
-
-					for (FSelectionIterator Iter(*GEditor->GetSelectedActors()); Iter; ++Iter)
-					{
-						AActor* SelectedActor = CastChecked<AActor>(*Iter);
-
-						struct FLevelSequenceFunctionHelper : public ULevelSequence
-						{
-							static FGuid ExecuteCreatePossessable(ULevelSequence* LevelSequence, UObject* ObjectToPossess)
-							{
-								return static_cast<FLevelSequenceFunctionHelper*>(LevelSequence)->CreatePossessable(ObjectToPossess);
-							}
-						};
-
-						FGuid BindingGuid = FLevelSequenceFunctionHelper::ExecuteCreatePossessable(LevelSequence, SelectedActor);
-
-						Folder->AddChildObjectBinding(BindingGuid);
-
-						{
-							UMovieScene3DTransformTrack* Track = MovieScene->AddTrack<UMovieScene3DTransformTrack>(BindingGuid);
-							UMovieScene3DTransformSection* Section = Cast<UMovieScene3DTransformSection>(Track->CreateNewSection());
-							Track->AddSection(*Section);
-							TArrayView<FMovieSceneFloatChannel*> FloatChannels = Section->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>();
-							FloatChannels[0]->AddConstantKey(0, 0.f);
-							FloatChannels[1]->AddConstantKey(0, 0.f);
-							FloatChannels[2]->AddConstantKey(0, 0.f);
-						}
-
-						{
-							UMovieSceneSkeletalAnimationTrack* Track = MovieScene->AddTrack<UMovieSceneSkeletalAnimationTrack>(BindingGuid);
-							Track->AddNewAnimation(0, NewObject<UAnimSequence>());
-						}
-					}
-				}
-			}))
-	);
 }
 
 #undef LOCTEXT_NAMESPACE

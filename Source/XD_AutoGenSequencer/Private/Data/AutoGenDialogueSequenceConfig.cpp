@@ -6,6 +6,7 @@
 #include "DialogueStandPositionTemplate.h"
 #include "DialogueSentence.h"
 
+#if WITH_EDITORONLY_DATA
 void FDialogueStationInstance::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
 {
 	for (int32 Idx = 0; Idx < DialogueStationTemplateOverride.Num(); ++Idx)
@@ -29,7 +30,6 @@ TArray<FName> FDialogueStationInstance::GetCharacterNames() const
 	return ValidNameList;
 }
 
-#if WITH_EDITORONLY_DATA
 TArray<TSharedPtr<FString>>& FDialogueStationInstance::GetDialogueNameList()
 {
 	if (DialogueNameList.Num() == 0)
@@ -100,11 +100,9 @@ void UAutoGenDialogueSequenceConfig::PostEditChangeProperty(FPropertyChangedEven
 		DialogueStation.ReinitDialogueNameList();
 	}
 }
-#endif
 
 const FDialogueStationInstanceOverride* UAutoGenDialogueSequenceConfig::GetStationOverrideDataBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const
-{	
-	// TODO: 通过Character配置的DialogueVoice找到站位的名字
+{
 	if (const FDialogueStationInstanceOverride* DialogueStationInstanceOverride = DialogueStation.DialogueStationTemplateOverride.FindByPredicate([&](const FDialogueStationInstanceOverride& E) {return E.NameOverride == DialogueSentenceEditData.SpeakerName.GetName(); }))
 	{
 		return DialogueStationInstanceOverride;
@@ -167,3 +165,4 @@ bool UAutoGenDialogueSequenceConfig::IsDialogueSentenceEditDataValid(const FDial
 	}
 	return true;
 }
+#endif

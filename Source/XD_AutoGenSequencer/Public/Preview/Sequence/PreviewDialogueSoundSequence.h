@@ -18,9 +18,11 @@ class XD_AUTOGENSEQUENCER_API UPreviewDialogueSoundSequence : public ULevelSeque
 {
 	GENERATED_BODY()
 public:
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	TArray<UPreviewDialogueSentenceTrack*> PreviewDialogueSentenceTracks;
 
 	UAutoGenDialogueSequence* GetAutoGenDialogueSequence() const;
 	UAutoGenDialogueSequenceConfig* GetDialogueConfig() const;
+#endif
 };

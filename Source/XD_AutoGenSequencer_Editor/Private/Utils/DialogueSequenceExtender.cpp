@@ -117,7 +117,8 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 									GeneratePreviewCharacters();
 								}
 
-								FDialogueSequenceGenerator::Get().Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, AutoGenDialogueSequence->PreviewDialogueSoundSequence, AutoGenDialogueSequence);
+								FDialogueSequenceGenerator::Get().Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, 
+									*AutoGenDialogueSequence->AutoGenDialogueSequenceConfig, AutoGenDialogueSequence->PreviewDialogueSoundSequence, AutoGenDialogueSequence);
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged

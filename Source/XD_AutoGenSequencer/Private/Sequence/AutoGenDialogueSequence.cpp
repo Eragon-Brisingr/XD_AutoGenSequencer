@@ -11,7 +11,9 @@ UAutoGenDialogueSequence::UAutoGenDialogueSequence()
 
 }
 
+#if WITH_EDITOR
 FGuid UAutoGenDialogueSequence::FindOrAddPossessable(UObject* ObjectToPossess)
 {
 	return CreatePossessable(ObjectToPossess);
 }
+#endif

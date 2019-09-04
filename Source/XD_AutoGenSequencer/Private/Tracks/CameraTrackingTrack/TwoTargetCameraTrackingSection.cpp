@@ -38,8 +38,9 @@ UTwoTargetCameraTrackingSection::UTwoTargetCameraTrackingSection()
 	Channels.Add(BackTargetRate, EditorData.Data[2], TMovieSceneExternalValue<float>());
 #else
 
-	Channels.Add(SoundVolume);
-	Channels.Add(PitchMultiplier);
+	Channels.Add(CameraYaw);
+	Channels.Add(FrontTargetRate);
+	Channels.Add(BackTargetRate);
 #endif
 
 	ChannelProxy = MakeShared<FMovieSceneChannelProxy>(MoveTemp(Channels));
@@ -130,7 +131,7 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 						FVector CameraLocation;
 						FRotator CameraRotation;
 						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, 0.f, 0.49999f), FMath::Clamp(FrontTargetRate, 0.f, 0.49999f),
-							FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->CurrentHorizontalFOV, CineCameraComponent->AspectRatio, CameraLocation, CameraRotation);
+							FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CineCameraComponent->AspectRatio, CameraLocation, CameraRotation);
 						CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 					}
 				}

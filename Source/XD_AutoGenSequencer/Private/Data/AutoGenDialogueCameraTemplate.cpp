@@ -9,7 +9,6 @@
 #include "GameFramework/Character.h"
 #include "CineCameraActor.h"
 
-// Sets default values
 AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -27,20 +26,7 @@ AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
 #endif
 }
 
-// Called when the game starts or when spawned
-void AAutoGenDialogueCameraTemplate::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void AAutoGenDialogueCameraTemplate::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
+#if WITH_EDITOR
 void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
@@ -72,8 +58,6 @@ void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 	}
 }
 
-#if WITH_EDITOR
-
 void AAutoGenDialogueCameraTemplate::PreEditChange(UProperty* PropertyThatWillChange)
 {
 	//Super::PreEditChange(PropertyThatWillChange);
@@ -96,4 +80,3 @@ void AAutoGenDialogueCameraTemplate::PostEditChangeProperty(FPropertyChangedEven
 	}
 }
 #endif
-

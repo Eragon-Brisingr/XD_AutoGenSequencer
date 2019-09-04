@@ -44,12 +44,12 @@ public:
 
 	UPROPERTY(EditAnywhere, EditFixedSize = true)
 	TArray<FDialogueStationInstanceOverride> DialogueStationTemplateOverride;
-
+	
+#if WITH_EDITORONLY_DATA
 	void SyncInstanceData(const ADialogueStandPositionTemplate* Instance);
 	bool IsValid() const;
 	TArray<FName> GetCharacterNames() const;
 
-#if WITH_EDITORONLY_DATA
 	TArray<TSharedPtr<FString>> DialogueNameList;
 	TArray<TSharedPtr<FString>>& GetDialogueNameList();
 	void ReinitDialogueNameList();
@@ -103,9 +103,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "对话")
 	TArray<FDialogueSentenceEditData> DialogueSentenceEditDatas;
 
-	// 临时，要再设计
+	// 临时，要再设计，应该针对角色配置
+	UPROPERTY(EditAnywhere)
+	FName TalkAnimSlotName = TEXT("DefaultSlot");
 	UPROPERTY(EditAnywhere, Category = "动作")
 	TArray<UAnimSequence*> RandomAnims;
+	UPROPERTY(EditAnywhere, Category = "动作")
+	TArray<UAnimSequence*> IdleAnims;
 
 	// 临时，要再设计
 	UPROPERTY(EditAnywhere, Category = "镜头")
@@ -113,10 +117,9 @@ public:
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
 	const FDialogueStationInstanceOverride* GetStationOverrideDataBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	FName GetSpeakerNameBySentence(const FDialogueSentenceEditData& DialogueSentenceEditData) const;
 	bool IsConfigValid() const;
 	bool IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList) const;
+#endif
 };

@@ -14,22 +14,12 @@ UCLASS(Transient, abstract, Blueprintable, hidedropdown, hidecategories = (Input
 class XD_AUTOGENSEQUENCER_API AAutoGenDialogueCameraTemplate : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	AAutoGenDialogueCameraTemplate();
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
+#if WITH_EDITORONLY_DATA
 	void OnConstruction(const FTransform& Transform) override;
 
-#if WITH_EDITORONLY_DATA
 	void PreEditChange(UProperty* PropertyThatWillChange) override;
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
@@ -41,7 +31,6 @@ public:
 
 	UPROPERTY()
 	UChildActorComponent* CineCamera;
-#endif
 
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "站位模板"))
 	TSubclassOf<ADialogueStandPositionTemplate> StandTemplate;
@@ -50,6 +39,7 @@ public:
 	float BackTargetRate;
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "0.499999"))
 	float FrontTargetRate;
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "-90", ClampMax = "90"))
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "180"))
 	float CameraYawAngle;
+#endif
 };

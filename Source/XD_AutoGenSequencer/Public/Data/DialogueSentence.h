@@ -6,7 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "DialogueSentence.generated.h"
 
-class USoundBase;
+class USoundWave;
 
 /**
  * 
@@ -24,4 +24,8 @@ public:
 	FText SubTitle;
 
 	FORCEINLINE FText GetSubTitle() const { return SubTitle; }
+
+#if WITH_EDITOR
+	virtual void WhenGenFromSoundWave(USoundWave* InSentenceWave) {}
+#endif
 };
