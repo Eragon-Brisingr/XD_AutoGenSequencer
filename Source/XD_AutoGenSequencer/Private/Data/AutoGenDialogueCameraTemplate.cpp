@@ -31,10 +31,8 @@ void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	if (ACineCameraActor* CineCameraActor = Cast<ACineCameraActor>(CineCamera->GetChildActorTemplate()))
-	{
-		CineCameraComponent = CineCameraActor->GetCineCameraComponent();
-	}
+	ACineCameraActor* CineCameraActor = CastChecked<ACineCameraActor>(CineCamera->GetChildActorTemplate());
+	CineCameraComponent = CineCameraActor->GetCineCameraComponent();
 
 	if (const ADialogueStandPositionTemplate* StandPositionTemplate = Cast<ADialogueStandPositionTemplate>(StandTemplatePreview->GetChildActor()))
 	{
@@ -50,7 +48,9 @@ void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 
 				FVector CameraLocation;
 				FRotator CameraRotation;
-				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos, BackPos, CineCameraComponent->CurrentHorizontalFOV, CameraLocation, CameraRotation);
+				FVector FocusCenterLocation;
+				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos, BackPos, 
+					CineCameraComponent->CurrentHorizontalFOV, CameraLocation, CameraRotation, FocusCenterLocation);
 
 				CineCamera->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 			}

@@ -22,4 +22,9 @@ public:
 
 	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, 
 		const UAutoGenDialogueSequenceConfig& GenConfig, const UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence, UAutoGenDialogueSequence* AutoGenDialogueSequence);
+
+	int32 CameraMaxUseTimes = 3;
+	float CameraMergeMaxTime = 2.5f;
+	// 必须大于CameraMergeMaxTime * 3
+	float CameraSplitMinTime = 12.f;
 };

@@ -15,6 +15,7 @@
 #include "SButton.h"
 #include "EditorStyleSet.h"
 #include "SImage.h"
+#include "MessageDialog.h"
 
 namespace CustomizationUtils
 {
@@ -127,17 +128,42 @@ void FDialogueStationInstanceOverride_Customization::CustomizeChildren(TSharedRe
 			{
 				FName NewNameOverride;
 				NameOverridePropertyHandle->GetValue(NewNameOverride);
-				for (FDialogueSentenceEditData& Data : Config->DialogueSentenceEditDatas)
+				
+				int32 SameNameNum = 0;
+				for (FDialogueStationInstanceOverride& DialogueStationInstanceOverride : Config->DialogueStation.DialogueStationTemplateOverride)
 				{
-					if (Data.SpeakerName.Name == PreNameOverride)
+					if (DialogueStationInstanceOverride.NameOverride == NewNameOverride)
 					{
-						Data.SpeakerName.Name = NewNameOverride;
+						SameNameNum += 1;
 					}
-					for (FDialogueCharacterName& TargetName : Data.TargetNames)
+				}
+
+				if (NewNameOverride == NAME_None)
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("重名命对白角色名报错_命名为空", "角色名不得为空"));
+					CustomizationUtils::SetValue(NameOverridePropertyHandle, PreNameOverride, false);
+					return;
+				}
+				else if (SameNameNum > 1)
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("重名命对白角色名报错_重名", "角色名不得与其他人重名"));
+					CustomizationUtils::SetValue(NameOverridePropertyHandle, PreNameOverride, false);
+					return;
+				}
+				else
+				{
+					for (FDialogueSentenceEditData& Data : Config->DialogueSentenceEditDatas)
 					{
-						if (TargetName.Name == PreNameOverride)
+						if (Data.SpeakerName.Name == PreNameOverride)
 						{
-							TargetName.Name = NewNameOverride;
+							Data.SpeakerName.Name = NewNameOverride;
+						}
+						for (FDialogueCharacterName& TargetName : Data.TargetNames)
+						{
+							if (TargetName.Name == PreNameOverride)
+							{
+								TargetName.Name = NewNameOverride;
+							}
 						}
 					}
 				}

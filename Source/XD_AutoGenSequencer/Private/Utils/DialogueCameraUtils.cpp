@@ -3,7 +3,7 @@
 
 #include "DialogueCameraUtils.h"
 
-void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraPosition, FRotator& CameraRotation)
+void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraLocation, FRotator& CameraRotation, FVector& FocusCenterLocation)
 {
 	float Dis = FVector::Dist(BackTargetPosition, FrontTargetPosition);
 	float SinCenterAngle, CosCenterAngle;
@@ -25,6 +25,7 @@ void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float 
 	float FrontTargetProjector = Dis * (1.f - FocusInterval) * SinCenterAngle;
 
 	FVector LookCenter = BackTargetPosition * (1.f - FocusInterval) + FrontTargetPosition * FocusInterval;
-	CameraPosition = LookCenter + CenterInterval * FRotator(0.f, CameraYawAngle, 0.f).RotateVector((FrontTargetPosition - BackTargetPosition)).GetSafeNormal();
-	CameraRotation = (LookCenter - CameraPosition).Rotation();
+	CameraLocation = LookCenter + CenterInterval * FRotator(0.f, CameraYawAngle, 0.f).RotateVector((FrontTargetPosition - BackTargetPosition)).GetSafeNormal();
+	CameraRotation = (LookCenter - CameraLocation).Rotation();
+	FocusCenterLocation = LookCenter;
 }

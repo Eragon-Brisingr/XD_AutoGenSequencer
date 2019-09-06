@@ -18,6 +18,7 @@
 #include "ScopedTransaction.h"
 #include "Engine/Selection.h"
 #include "LevelEditorViewport.h"
+#include "MessageDialog.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -101,8 +102,15 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 							if (IsPreviewDialogueSequenceActived())
 							{
 								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
+								UAutoGenDialogueSequenceConfig* Config = PreviewDialogueSoundSequence->GetDialogueConfig();
+								if (!Config->IsConfigValid())
+								{
+									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
+									return;
+								}
+
 								GeneratePreviewCharacters();
-								FPreviewDialogueGenerator::Get().Generate(PreviewDialogueSoundSequence->GetDialogueConfig(), PreviewDialogueSoundSequence);
+								FPreviewDialogueGenerator::Get().Generate(Config, PreviewDialogueSoundSequence);
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
