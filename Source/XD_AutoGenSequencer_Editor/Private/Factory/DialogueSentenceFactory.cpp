@@ -2,9 +2,9 @@
 
 
 #include "DialogueSentenceFactory.h"
-#include "AssetTypeCategories.h"
 #include "DialogueSentence.h"
 #include "AutoGenDialogueSettings.h"
+#include "XD_AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -22,12 +22,12 @@ UObject* UDialogueSentenceFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 
 FText UDialogueSentenceFactory::GetDisplayName() const
 {
-	return LOCTEXT("创建对话语句", "对话语句");
+	return LOCTEXT("创建对白语句", "对白语句");
 }
 
 uint32 UDialogueSentenceFactory::GetMenuCategories() const
 {
-	return EAssetTypeCategories::Animation;
+	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

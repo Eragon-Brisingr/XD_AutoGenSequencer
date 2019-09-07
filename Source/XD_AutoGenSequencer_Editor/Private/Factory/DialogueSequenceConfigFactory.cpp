@@ -3,7 +3,7 @@
 
 #include "DialogueSequenceConfigFactory.h"
 #include "AutoGenDialogueSequenceConfig.h"
-#include "AssetTypeCategories.h"
+#include "XD_AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -21,12 +21,12 @@ UObject* UDialogueSequenceConfigFactory::FactoryCreateNew(UClass* InClass, UObje
 
 FText UDialogueSequenceConfigFactory::GetDisplayName() const
 {
-	return LOCTEXT("创建自动生成对话定序器配置", "生成对话定序器配置");
+	return LOCTEXT("创建自动生成对白定序器配置", "生成对白定序器配置");
 }
 
 uint32 UDialogueSequenceConfigFactory::GetMenuCategories() const
 {
-	return EAssetTypeCategories::Animation;
+	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }
 
 #undef LOCTEXT_NAMESPACE

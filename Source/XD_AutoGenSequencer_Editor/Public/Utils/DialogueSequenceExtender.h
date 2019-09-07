@@ -37,7 +37,7 @@ private:
 	TWeakObjectPtr<UAutoGenDialogueSequence> WeakAutoGenDialogueSequence;
 	UAutoGenDialogueSequence* GetAutoGenDialogueSequence() const;
 	UPreviewDialogueSoundSequence* GetPreviewDialogueSoundSequence() const;
-	UAutoGenDialogueSequenceConfig* GetAutoGenDialogueSequenceConfig() const;
+	UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const;
 
 	bool IsPreviewDialogueSequenceActived();
 	bool IsAutoGenDialogueSequenceActived();

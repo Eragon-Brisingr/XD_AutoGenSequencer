@@ -14,6 +14,8 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
+	static uint32 AutoGenDialogueSequence_AssetCategory;
+	FName AutoGenDialogueSequence_AssetCategoryKey = TEXT("XD_AutoGenSequencer");
 private:
 	FDelegateHandle DialogueSentenceTrackEditorHandle;
 	FDelegateHandle PreviewDialogueSentenceTrackEditorHandle;

@@ -26,10 +26,8 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	class UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence;
-
-	UPROPERTY()
-	class UAutoGenDialogueSequenceConfig* AutoGenDialogueSequenceConfig;
+	UObject* AutoGenDialogueSequenceConfig;
+	class UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const { return (UGenDialogueSequenceConfigBase*)AutoGenDialogueSequenceConfig; }
 
 	UPROPERTY()
 	TArray<UMovieSceneTrack*> AutoGenTracks;

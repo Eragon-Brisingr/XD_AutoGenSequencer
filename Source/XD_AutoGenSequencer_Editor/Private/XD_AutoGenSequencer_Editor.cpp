@@ -9,12 +9,23 @@
 #include "PropertyEditorModule.h"
 #include "DialogueSentenceCustomization.h"
 #include "TwoTargetCameraTrackingEditor.h"
+#include <ISettingsModule.h>
+#include <ISettingsSection.h>
+#include "AutoGenDialogueSettings.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
+
+uint32 FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 
 void FXD_AutoGenSequencer_EditorModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+
+	{
+		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(AutoGenDialogueSequence_AssetCategoryKey, LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
+	}
 
 	FAutoGenSequencerContentBrowserExtensions::RegisterExtender();
 
@@ -50,12 +61,30 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 				return MakeShareable(new FDialogueCharacterName_Customization());
 			}));
 	}
+
+	// register settings
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+	if (SettingsModule != nullptr)
+	{
+		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "XD_AutoGenSequencer",
+			LOCTEXT("AutoGenDialogueSettings", "AutoGenDialogueSettings"),
+			LOCTEXT("AutoGenDialogueSettingsDescription", "Configure the AutoGenDialogueSettings plug-in."),
+			GetMutableDefault<UAutoGenDialogueSettings>()
+		);
+	}
 }
 
 void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+
+	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	{
+		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(AutoGenDialogueSequence_AssetCategoryKey, LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
+	}
 
 	FAutoGenSequencerContentBrowserExtensions::UnregisterExtender();
 

@@ -28,7 +28,7 @@ public:
 
 #if WITH_EDITOR
 	virtual void WhenGenFromSoundWave(USoundWave* InSentenceWave) {}
+#endif
 
 	virtual TSubclassOf<UDialogueSentenceSection> GetSectionImplType() const;
-#endif
 };

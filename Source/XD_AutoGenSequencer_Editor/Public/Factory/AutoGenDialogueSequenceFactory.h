@@ -22,17 +22,3 @@ public:
 	FText GetDisplayName() const override;
 	uint32 GetMenuCategories() const override;
 };
-
-UCLASS()
-class XD_AUTOGENSEQUENCER_EDITOR_API UPreviewDialogueSequenceFactory : public UFactory
-{
-	GENERATED_BODY()
-public:
-	UPreviewDialogueSequenceFactory();
-
-	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
-	UObject* FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
-
-	FText GetDisplayName() const override;
-	uint32 GetMenuCategories() const override;
-};

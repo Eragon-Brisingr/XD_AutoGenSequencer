@@ -2,6 +2,7 @@
 
 
 #include "DialogueSentenceCustomization.h"
+#include "GenDialogueSequenceConfigBase.h"
 #include "AutoGenDialogueSequenceConfig.h"
 #include "DetailWidgetRow.h"
 #include "SBoxPanel.h"
@@ -81,11 +82,11 @@ namespace CustomizationUtils
 
 void FDialogueStationInstanceOverride_Customization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	TSharedPtr<IPropertyHandle> InstanceOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueStationInstanceOverride, InstanceOverride));
+	TSharedPtr<IPropertyHandle> InstanceOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, InstanceOverride));
 
 	InstanceOverridePropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([=]()
 		{
-			FDialogueStationInstanceOverride DialogueStationInstanceOverride = CustomizationUtils::GetValue<FDialogueStationInstanceOverride>(StructPropertyHandle);
+			FDialogueCharacterData DialogueStationInstanceOverride = CustomizationUtils::GetValue<FDialogueCharacterData>(StructPropertyHandle);
 			if (ACharacter* Character = DialogueStationInstanceOverride.InstanceOverride.Get())
 			{
 				DialogueStationInstanceOverride.TypeOverride = Character->GetClass();
@@ -115,11 +116,11 @@ void FDialogueStationInstanceOverride_Customization::CustomizeHeader(TSharedRef<
 
 void FDialogueStationInstanceOverride_Customization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	CustomizationUtils::StructBuilderDrawPropertys(StructBuilder, StructPropertyHandle, { GET_MEMBER_NAME_CHECKED(FDialogueStationInstanceOverride, InstanceOverride) });
+	CustomizationUtils::StructBuilderDrawPropertys(StructBuilder, StructPropertyHandle, { GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, InstanceOverride) });
 
 	if (UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle)))
 	{
-		TSharedPtr<IPropertyHandle> NameOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueStationInstanceOverride, NameOverride));
+		TSharedPtr<IPropertyHandle> NameOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, NameOverride));
 		NameOverridePropertyHandle->SetOnPropertyValuePreChange(FSimpleDelegate::CreateLambda([=]()
 			{
 				NameOverridePropertyHandle->GetValue(PreNameOverride);
@@ -130,7 +131,7 @@ void FDialogueStationInstanceOverride_Customization::CustomizeChildren(TSharedRe
 				NameOverridePropertyHandle->GetValue(NewNameOverride);
 				
 				int32 SameNameNum = 0;
-				for (FDialogueStationInstanceOverride& DialogueStationInstanceOverride : Config->DialogueStation.DialogueStationTemplateOverride)
+				for (FDialogueCharacterData& DialogueStationInstanceOverride : Config->DialogueStation.DialogueCharacterDatas)
 				{
 					if (DialogueStationInstanceOverride.NameOverride == NewNameOverride)
 					{
@@ -219,7 +220,7 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 									TargetNamesArrayPropertyHandle->DeleteItem(Idx);
 									return FReply::Handled();
 								})
-							.ToolTipText(LOCTEXT("移除对话目标按钮", "移除对话目标"))
+							.ToolTipText(LOCTEXT("移除对白目标按钮", "移除对白目标"))
 							[
 								SNew(SImage)
 								.Image(FEditorStyle::GetBrush(TEXT("LayerBrowser.Actor.RemoveFromLayer")))

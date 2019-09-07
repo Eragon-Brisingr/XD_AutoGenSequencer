@@ -2,16 +2,16 @@
 
 
 #include "DialogueSequenceExtender.h"
+
+#include "GenDialogueSequenceConfigBase.h"
+#include "AutoGenDialogueSequence.h"
+#include "PreviewDialogueSoundSequence.h"
+#include "DialogueStandPositionTemplate.h"
+
 #include "ISequencerModule.h"
 #include "AutoGenDialogueEditorStyle.h"
 #include "AssetEditorToolkit.h"
 #include "MultiBoxBuilder.h"
-#include "AutoGenDialogueSequence.h"
-#include "PreviewDialogueSoundSequence.h"
-#include "AutoGenDialogueSequenceConfig.h"
-#include "PreviewDialogueGenerator.h"
-#include "DialogueSequenceGenerator.h"
-#include "DialogueStandPositionTemplate.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "Components/ChildActorComponent.h"
@@ -54,15 +54,15 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 						{
 							return WeakAutoGenDialogueSequence.IsValid();
 						})), NAME_None,
-					LOCTEXT("打开对话配置", "打开对话配置"),
-					LOCTEXT("打开对话配置", "打开对话配置"),
+					LOCTEXT("打开对白配置", "打开对白配置"),
+					LOCTEXT("打开对白配置", "打开对白配置"),
 					FAutoGenDialogueEditorStyle::Get().GetConfigIcon());
 				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
 						{
-							if (UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence())
+							if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
 							{
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence->PreviewDialogueSoundSequence);
+								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
 							}
 						}),
 					FCanExecuteAction::CreateLambda([=]()
@@ -79,10 +79,10 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 					FAutoGenDialogueEditorStyle::Get().GetPreviewIcon());
 				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
 					{
-						if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
+						if (UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence())
 						{
 							TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-							FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence->GetAutoGenDialogueSequence(), EToolkitMode::WorldCentric);
+							FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence);
 						}
 					}),
 					FCanExecuteAction::CreateLambda([=]()
@@ -94,15 +94,15 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 						{
 							return WeakAutoGenDialogueSequence.IsValid();
 						})), NAME_None,
-					LOCTEXT("打开对话序列", "打开对话序列"),
-					LOCTEXT("打开对话序列", "打开对话序列"),
+					LOCTEXT("打开对白序列", "打开对白序列"),
+					LOCTEXT("打开对白序列", "打开对白序列"),
 					FAutoGenDialogueEditorStyle::Get().GetDialogueIcon());
 				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
 						{
 							if (IsPreviewDialogueSequenceActived())
 							{
 								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
-								UAutoGenDialogueSequenceConfig* Config = PreviewDialogueSoundSequence->GetDialogueConfig();
+								UGenDialogueSequenceConfigBase* Config = PreviewDialogueSoundSequence->GetDialogueConfig();
 								if (!Config->IsConfigValid())
 								{
 									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
@@ -110,11 +110,11 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 								}
 
 								GeneratePreviewCharacters();
-								FPreviewDialogueGenerator::Get().Generate(Config, PreviewDialogueSoundSequence);
+								Config->GeneratePreview();
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence->GetAutoGenDialogueSequence());
+								FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
 								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
 							}
 							else if (IsAutoGenDialogueSequenceActived())
@@ -125,12 +125,12 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 									GeneratePreviewCharacters();
 								}
 
-								FDialogueSequenceGenerator::Get().Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, 
-									*AutoGenDialogueSequence->AutoGenDialogueSequenceConfig, AutoGenDialogueSequence->PreviewDialogueSoundSequence, AutoGenDialogueSequence);
+								UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = AutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig();
+								GenDialogueSequenceConfig->Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, *AutoGenDialogueSequence);
 
 								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence->PreviewDialogueSoundSequence);
+								FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence);
 							}
 						}),
@@ -187,12 +187,12 @@ UAutoGenDialogueSequence* FDialogueSequenceExtender::GetAutoGenDialogueSequence(
 
 UPreviewDialogueSoundSequence* FDialogueSequenceExtender::GetPreviewDialogueSoundSequence() const
 {
-	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->PreviewDialogueSoundSequence : nullptr;
+	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig()->PreviewDialogueSoundSequence : nullptr;
 }
 
-UAutoGenDialogueSequenceConfig* FDialogueSequenceExtender::GetAutoGenDialogueSequenceConfig() const
+UGenDialogueSequenceConfigBase* FDialogueSequenceExtender::GetAutoGenDialogueSequenceConfig() const
 {
-	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->AutoGenDialogueSequenceConfig : nullptr;
+	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig() : nullptr;
 }
 
 bool FDialogueSequenceExtender::IsPreviewDialogueSequenceActived()
@@ -226,7 +226,7 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 			{
 				AutoGenDialogueSequence->bIsNewCreated = false;
 				TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-				FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence->PreviewDialogueSoundSequence);
+				FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 				FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 			}
 			else if (OldAutoGenDialogueSequence != AutoGenDialogueSequence)
@@ -283,8 +283,9 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 {
 	DestroyPreviewStandPositionTemplate();
 
-	UAutoGenDialogueSequenceConfig* DialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
+	UGenDialogueSequenceConfigBase* DialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
 	UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence();
+
 	if (TSubclassOf<ADialogueStandPositionTemplate> StandTemplateType = DialogueSequenceConfig->DialogueStation.DialogueStationTemplate)
 	{
 		FTransform SpawnTransform = AutoGenDialogueSequence->StandPositionPosition;
@@ -302,8 +303,10 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 			}
 		}
 
+		const TArray<FDialogueCharacterData>& DialogueCharacterDatas = DialogueSequenceConfig->DialogueStation.DialogueCharacterDatas;
 		ADialogueStandPositionTemplate* StandPositionTemplate = GetEditorWorld()->SpawnActorDeferred<ADialogueStandPositionTemplate>(StandTemplateType, SpawnTransform);
 		{
+			StandPositionTemplate->StandPositions.SetNumZeroed(DialogueCharacterDatas.Num());
 			StandPositionTemplate->bSpawnedPreviewCharacter = true;
 			StandPositionTemplate->FinishSpawning(AutoGenDialogueSequence->StandPositionPosition, true);
 			StandPositionTemplate->SetFlags(RF_Transient);
@@ -316,18 +319,18 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 		PreviewStandPositionTemplate = StandPositionTemplate;
 
 		TArray<FDialogueStandPosition>& StandPositions = StandPositionTemplate->StandPositions;
-		for (int32 Idx = 0; Idx < StandPositions.Num(); ++Idx)
+		for (int32 Idx = 0; Idx < StandPositions.Num() && Idx < DialogueCharacterDatas.Num(); ++Idx)
 		{
-			const FDialogueStationInstanceOverride& DialogueStationInstanceOverride = DialogueSequenceConfig->DialogueStation.DialogueStationTemplateOverride[Idx];
+			const FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDatas[Idx];
 			FDialogueStandPosition& StandPosition = StandPositions[Idx];
-			const FName& CharacterName = DialogueStationInstanceOverride.NameOverride;
+			const FName& CharacterName = DialogueCharacterData.NameOverride;
 			check(!CharacterNameInstanceMap.Contains(CharacterName));
 
 			UChildActorComponent* ChildActorComponent = StandPositionTemplate->CreateChildActorComponent();
 			StandPosition.PreviewCharacterInstance = ChildActorComponent;
 
 			ACharacter* PreviewCharacter = nullptr;
-			if (ACharacter* Character = DialogueStationInstanceOverride.InstanceOverride.Get())
+			if (ACharacter* Character = DialogueCharacterData.InstanceOverride.Get())
 			{
 				// UChildActorComponent::ChildActorTemplate
 				AActor*& ChildActorTemplate = *UChildActorComponent::StaticClass()->FindPropertyByName(TEXT("ChildActorTemplate"))->ContainerPtrToValuePtr<AActor*>(ChildActorComponent);
@@ -340,7 +343,7 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 			}
 			else
 			{
-				TSubclassOf<ACharacter> PreviewCharacterType = DialogueStationInstanceOverride.TypeOverride;
+				TSubclassOf<ACharacter> PreviewCharacterType = DialogueCharacterData.TypeOverride;
 				PreviewCharacterType = PreviewCharacterType ? PreviewCharacterType : StandPosition.PreviewCharacter;
 				PreviewCharacterType = PreviewCharacterType ? PreviewCharacterType : StandPositionTemplate->PreviewCharacter;
 
@@ -351,7 +354,6 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 				}
 			}
 
-			ChildActorComponent->SetRelativeTransform(DialogueStationInstanceOverride.PositionOverride);
 			if (PreviewCharacter)
 			{
 				PreviewCharacter->SetFlags(RF_Transient);
@@ -364,6 +366,8 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 
 				CharacterNameInstanceMap.Add(CharacterName, PreviewCharacter);
 			}
+			ChildActorComponent->SetRelativeTransform(DialogueCharacterData.PositionOverride);
+			StandPosition.StandPosition = DialogueCharacterData.PositionOverride;
 			SyncSequenceInstanceReference(GetAutoGenDialogueSequence(), CharacterNameInstanceMap);
 		}
 
@@ -390,7 +394,7 @@ void FDialogueSequenceExtender::SyncSequenceInstanceReference(UAutoGenDialogueSe
 void FDialogueSequenceExtender::WhenStandTemplateInstanceChanged()
 {
 	ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get();
-	UAutoGenDialogueSequenceConfig* AutoGenDialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
+	UGenDialogueSequenceConfigBase* AutoGenDialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
 	StandPositionTemplate->Modify();
 	AutoGenDialogueSequenceConfig->Modify();
 
