@@ -49,10 +49,10 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FDialogueStationInstance
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "站位模板"))
 	TSubclassOf<ADialogueStandPositionTemplate> DialogueStationTemplate;
 
-	UPROPERTY(EditAnywhere, EditFixedSize = true)
+	UPROPERTY(EditAnywhere, EditFixedSize = true, meta = (DisplayName = "对话角色"))
 	TArray<FDialogueCharacterData> DialogueCharacterDatas;
 	
 #if WITH_EDITORONLY_DATA
@@ -66,7 +66,7 @@ public:
 #endif
 };
 
-UCLASS()
+UCLASS(abstract)
 class XD_AUTOGENSEQUENCER_EDITOR_API UGenDialogueSequenceConfigBase : public UObject
 {
 	GENERATED_BODY()
@@ -77,7 +77,7 @@ public:
 	UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence;
 
 public:
-	UPROPERTY(EditAnywhere, Category = "站位模板")
+	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (ShowOnlyInnerProperties = true))
 	FDialogueStationInstance DialogueStation;
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

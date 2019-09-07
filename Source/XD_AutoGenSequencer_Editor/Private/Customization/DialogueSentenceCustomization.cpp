@@ -80,7 +80,7 @@ namespace CustomizationUtils
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
-void FDialogueStationInstanceOverride_Customization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FDialogueCharacterData_Customization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	TSharedPtr<IPropertyHandle> InstanceOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, InstanceOverride));
 
@@ -114,7 +114,7 @@ void FDialogueStationInstanceOverride_Customization::CustomizeHeader(TSharedRef<
 		];
 }
 
-void FDialogueStationInstanceOverride_Customization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FDialogueCharacterData_Customization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	CustomizationUtils::StructBuilderDrawPropertys(StructBuilder, StructPropertyHandle, { GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, InstanceOverride) });
 
@@ -172,7 +172,7 @@ void FDialogueStationInstanceOverride_Customization::CustomizeChildren(TSharedRe
 	}
 }
 
-FName FDialogueStationInstanceOverride_Customization::PreNameOverride;
+FName FDialogueCharacterData_Customization::PreNameOverride;
 
 FSlateBrush FDialogueSentenceEditData_Customization::ErrorBrush;
 FColor FDialogueSentenceEditData_Customization::ValidColor = FLinearColor(0.2f, 0.8f, 0.2f, 1.f).ToFColor(false);

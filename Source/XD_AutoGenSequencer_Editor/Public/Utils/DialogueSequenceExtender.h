@@ -9,7 +9,7 @@ class ISequencer;
 class ISequencerModule;
 class UAutoGenDialogueSequence;
 class UPreviewDialogueSoundSequence;
-class UAutoGenDialogueSequenceConfig;
+class UGenDialogueSequenceConfigBase;
 class ADialogueStandPositionTemplate;
 class UWorld;
 class ACharacter;
@@ -41,6 +41,8 @@ private:
 
 	bool IsPreviewDialogueSequenceActived();
 	bool IsAutoGenDialogueSequenceActived();
+	void OpenPreviewDialogueSoundSequence();
+	void OpenAutoGenDialogueSequence();
 
 	void OnSequenceCreated(TSharedRef<ISequencer> InSequencer);
 	void OnSequencerClosed(TSharedRef<ISequencer> InSequencer);

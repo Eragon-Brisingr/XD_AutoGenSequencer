@@ -60,6 +60,7 @@ AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTrac
 		CameraWeightsData.CameraLocation = CameraLocation;
 		CameraWeightsData.CameraRotation = CameraRotation;
 
+		// TODO：这个估值有问题，需要调整
 		float DistanceDialogueProgressWeights = FMath::Abs(0.5f - DialogueProgress) * 2.f;
 		float CameraDistance = (CameraLocation - FocusCenterLocation).Size();
 		float CharacterDistance = (SpeakerLocation - TargetLocation).Size();

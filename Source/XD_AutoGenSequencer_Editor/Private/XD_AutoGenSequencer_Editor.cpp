@@ -48,9 +48,9 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	{
-		PropertyModule.RegisterCustomPropertyTypeLayout(DialogueStationInstanceOverrideTypeName, FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]()
+		PropertyModule.RegisterCustomPropertyTypeLayout(DialogueCharacterDataTypeName, FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]()
 			{
-				return MakeShareable(new FDialogueStationInstanceOverride_Customization());
+				return MakeShareable(new FDialogueCharacterData_Customization());
 			}));
 		PropertyModule.RegisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName, FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]()
 			{
@@ -100,7 +100,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueStationInstanceOverrideTypeName);
+		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterDataTypeName);
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName);
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterName);
 	}

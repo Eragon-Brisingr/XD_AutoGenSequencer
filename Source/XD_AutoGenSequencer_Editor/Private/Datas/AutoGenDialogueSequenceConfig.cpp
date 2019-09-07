@@ -616,6 +616,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				FCameraWeightsData CameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueProgress);
 				if (CameraWeightsData.IsValid())
 				{
+					CameraWeightsData.Weights *= AutoGenDialogueCameraConfig.Weights;
 					CameraWeightsDatas.Add(CameraWeightsData);
 				}
 			}
@@ -802,41 +803,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		{
 			FCameraHandle MidCameraHandle = InvalidCameraHandle;
 
-			//假如为正反打镜头
-			if (CameraActorCreateData.CameraParams)
-			{
-				FCameraActorCreateData* ExistedCameraCreateData = CameraActorCreateDatas.FindByPredicate([&](const FCameraActorCreateData& E)
-					{
-						// 尝试从已有的镜头中找个合适的反打镜头
-						if (!E.CameraTemplate)
-						{
-							return false;
-						}
-						// 假如镜头使用次数超了就不用了（待考虑
-						if (E.UseNumber >= CameraMaxUseTimes)
-						{
-							return false;
-						}
-						ACharacter* Target = CameraActorCreateData.Speaker;
-						ACharacter* Speaker = CameraActorCreateData.Targets[0];
-						return E.Speaker == Speaker && E.Targets[0] == Target;
-					});
-				if (ExistedCameraCreateData)
-				{
-					ExistedCameraCreateData->UseNumber += 1;
-
-					MidCameraHandle = ExistedCameraCreateData->CameraHandle;
-				}
-			}
-
-			if (MidCameraHandle == InvalidCameraHandle)
-			{
-				ACharacter* Speaker = CameraActorCreateData.Speaker;
-
-				// 走通用镜头生成流程
-				float DialogueProgress = CameraCutCreateData.RelatedSentenceIdxs[CameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
-				MidCameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.SpeakerName, Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas);
-			}
+			float DialogueProgress = CameraCutCreateData.RelatedSentenceIdxs[CameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
+			MidCameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.SpeakerName, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas);
 
 			// TODO：分离镜头后维持RelatedSentenceIdxs
 			FCameraCutCreateData& LeftCameraCutCreateData = CameraCutCreateData;

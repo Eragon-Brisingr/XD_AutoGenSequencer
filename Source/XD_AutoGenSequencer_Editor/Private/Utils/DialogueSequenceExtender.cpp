@@ -42,13 +42,14 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 						{
 							if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
 							{
+								if (!IsPreviewDialogueSequenceActived())
+								{
+									OpenPreviewDialogueSoundSequence();
+								}
 								FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 							}
 						}),
-					FCanExecuteAction::CreateLambda([=]()
-						{
-							return IsPreviewDialogueSequenceActived();
-						}),
+					FCanExecuteAction(),
 					FIsActionChecked(),
 					FIsActionButtonVisible::CreateLambda([=]()
 						{
@@ -61,8 +62,7 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 						{
 							if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
 							{
-								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
+								OpenPreviewDialogueSoundSequence();
 							}
 						}),
 					FCanExecuteAction::CreateLambda([=]()
@@ -81,8 +81,8 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 					{
 						if (UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence())
 						{
-							TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-							FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence);
+							OpenAutoGenDialogueSequence();
+
 						}
 					}),
 					FCanExecuteAction::CreateLambda([=]()
@@ -213,6 +213,18 @@ bool FDialogueSequenceExtender::IsAutoGenDialogueSequenceActived()
 	return false;
 }
 
+void FDialogueSequenceExtender::OpenPreviewDialogueSoundSequence()
+{
+	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
+	FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+}
+
+void FDialogueSequenceExtender::OpenAutoGenDialogueSequence()
+{
+	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
+	FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+}
+
 void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSequencer)
 {
 	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch)
@@ -225,14 +237,22 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 			if (AutoGenDialogueSequence->bIsNewCreated)
 			{
 				AutoGenDialogueSequence->bIsNewCreated = false;
-				TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-				FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 				FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
+				// 直接开不行，延迟一帧
+				GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
+					{
+						OpenPreviewDialogueSoundSequence();
+					});
 			}
 			else if (OldAutoGenDialogueSequence != AutoGenDialogueSequence)
 			{
 				GeneratePreviewCharacters();
 			}
+		}
+		else
+		{
+			WeakAutoGenDialogueSequence = nullptr;
+			DestroyPreviewStandPositionTemplate();
 		}
 	}
 	if (WeakSequencer.IsValid())

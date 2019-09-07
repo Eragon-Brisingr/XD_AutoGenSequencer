@@ -54,17 +54,17 @@ public:
 	USoundBase* GetDefaultDialogueSound() const;
 };
 
-UCLASS()
+UCLASS(meta = (DisplayName = "默认生成配置"))
 class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueSequenceConfig : public UGenDialogueSequenceConfigBase
 {
 	GENERATED_BODY()
 public:
 	UAutoGenDialogueSequenceConfig(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(EditAnywhere, Category = "对白")
+	UPROPERTY(EditAnywhere, Category = "对白", meta = (DisplayName = "对白配置"))
 	TArray<FDialogueSentenceEditData> DialogueSentenceEditDatas;
 
-	UPROPERTY(EditAnywhere, Category = "镜头")
+	UPROPERTY(EditAnywhere, Category = "镜头", meta = (DisplayName = "默认镜头集"))
 	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
 #if WITH_EDITOR
@@ -76,19 +76,20 @@ public:
 	//生成预览
 public:
 	//对白间隔时间
-	UPROPERTY(EditAnywhere, Category = "生成预览配置")
+	UPROPERTY(EditAnywhere, Category = "生成预览配置", meta = (DisplayName = "对白间隔时间"))
 	float PaddingTime = 0.6f;
 
 	void GeneratePreview() const override;
 
 	//生成对白
 public:
-	UPROPERTY(EditAnywhere, Category = "生成对白配置")
-	int32 CameraMaxUseTimes = 3;
-	UPROPERTY(EditAnywhere, Category = "生成对白配置")
+	// TODO：不要用同一个镜头太久时间？
+// 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "镜头最大使用次数"))
+// 	int32 CameraMaxUseTimes = 3;
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最长单个镜头时间"))
 	float CameraMergeMaxTime = 2.5f;
 	// 必须大于CameraMergeMaxTime * 3
-	UPROPERTY(EditAnywhere, Category = "生成对白配置")
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间"))
 	float CameraSplitMinTime = 12.f;
 
 	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSequence& AutoGenDialogueSequence) const override;

@@ -8,7 +8,7 @@
 /**
  * 
  */
-class XD_AUTOGENSEQUENCER_EDITOR_API FDialogueStationInstanceOverride_Customization : public IPropertyTypeCustomization
+class XD_AUTOGENSEQUENCER_EDITOR_API FDialogueCharacterData_Customization : public IPropertyTypeCustomization
 {
 public:
 	void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;

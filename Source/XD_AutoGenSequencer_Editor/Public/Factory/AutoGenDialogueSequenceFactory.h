@@ -6,6 +6,8 @@
 #include "Factories/Factory.h"
 #include "AutoGenDialogueSequenceFactory.generated.h"
 
+class UAutoGenDialogueSequenceConfig;
+
 /**
  * 
  */
@@ -15,10 +17,13 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueSequenceFactory : public UF
 	GENERATED_BODY()
 public:
 	UAutoGenDialogueSequenceFactory();
+	
+	UPROPERTY()
+	TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass;
 
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
-	UObject* FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 
+	bool ConfigureProperties() override;
 	FText GetDisplayName() const override;
 	uint32 GetMenuCategories() const override;
 };
