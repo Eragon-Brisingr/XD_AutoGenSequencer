@@ -23,6 +23,7 @@
 #include "AutoGenDialogueCameraSet.h"
 
 #include "ScopedTransaction.h"
+#include "Transform.h"
 #include "GameFramework/Character.h"
 #include "MovieSceneCameraCutTrack.h"
 #include "Engine/World.h"
@@ -36,12 +37,13 @@
 #include "MovieSceneFloatTrack.h"
 #include "MovieSceneFloatSection.h"
 #include "Animation/AnimSequence.h"
-#include "MovieSceneObjectPropertyTrack.h"
-#include "MovieSceneObjectPropertySection.h"
 #include "MovieSceneSkeletalAnimationSection.h"
 #include "MovieSceneSpawnTrack.h"
 #include "MovieSceneBoolSection.h"
-#include "Transform.h"
+#include "MovieSceneActorReferenceSection.h"
+#include "MovieSceneActorReferenceTrack.h"
+#include "MovieSceneObjectPropertyTrack.h"
+#include "MovieSceneObjectPropertySection.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -141,7 +143,7 @@ namespace DialogueSequencerUtils
 	{
 		TrackType* Track = MovieScene.AddTrack<TrackType>(ObjectGuid);
 		Track->SetPropertyNameAndPath(PropertyName, PropertyPath);
-		SectionType* Section = Cast<SectionType>(Track->CreateNewSection());
+		SectionType* Section = CastChecked<SectionType>(Track->CreateNewSection());
 		Track->AddSection(*Section);
 		Section->SetRange(TRange<FFrameNumber>::All());
 		return Section;
@@ -397,6 +399,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 	};
 
+	// TODO：总结数据，最后才做生成
 	struct FAnimTrackData
 	{
 		struct FAnimSectionData
@@ -407,27 +410,36 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		};
 
 		UMovieSceneSkeletalAnimationTrack* Track;
+		UMovieSceneActorReferenceSection* LookAtTargetSection;
 		TArray<FAnimSectionData> TalkAnimSections;
 	};
 	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap;
+	for (const TPair<ACharacter*, FMovieSceneObjectBindingID>& Pair : InstanceBindingIdMap)
+	{
+		ACharacter* Speaker = Pair.Key;
+		FGuid SpeakerBindingGuid = Pair.Value.GetGuid();
+		FAnimTrackData& AnimationTrackData = AnimationTrackDataMap.Add(Speaker);
+		AnimationTrackData.Track = MovieScene.AddTrack<UMovieSceneSkeletalAnimationTrack>(SpeakerBindingGuid);
+		AutoGenTracks.Add(AnimationTrackData.Track);
+		const FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
+
+		// TODO：这种生成的导轨没添加进自动生成导轨集中
+		AnimationTrackData.LookAtTargetSection = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneActorReferenceTrack, UMovieSceneActorReferenceSection>(MovieScene, SpeakerBindingGuid, DialogueCharacterData.LookAtTargetPropertyName, DialogueCharacterData.LookAtTargetPropertyName.ToString());
+	}
+
 	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
 	{
 		FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
 		ACharacter* Speaker = GenDialogueData.SpeakerInstance;
+		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
 		FGuid SpeakerBindingGuid = InstanceBindingIdMap[Speaker].GetGuid();
 		const UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection = GenDialogueData.PreviewDialogueSentenceSection;
 		TRange<FFrameNumber> SectionRange = PreviewDialogueSentenceSection->GetRange();
 		FFrameNumber StartFrameNumber = SectionRange.GetLowerBoundValue();
 		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
 
-		FAnimTrackData& AnimationTrackData = AnimationTrackDataMap.FindOrAdd(Speaker);
-		UMovieSceneSkeletalAnimationTrack*& AnimTrack = AnimationTrackData.Track;
-
-		if (!AnimTrack)
-		{
-			AnimTrack = MovieScene.AddTrack<UMovieSceneSkeletalAnimationTrack>(SpeakerBindingGuid);
-			AutoGenTracks.Add(AnimTrack);
-		}
+		FAnimTrackData& AnimationTrackData = AnimationTrackDataMap[Speaker];
+		UMovieSceneSkeletalAnimationTrack* AnimTrack = AnimationTrackData.Track;
 
 		const FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
 		UAutoGenDialogueAnimSet* DialogueAnimSet = DialogueCharacterData.DialogueAnimSet;
@@ -459,6 +471,26 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				AnimSectionData.BlendOutTime = BlendTime;
 				AnimSectionData.Section = TalkAnimSection;
 				AnimationTrackData.TalkAnimSections.Add(AnimSectionData);
+			}
+		}
+
+		// LookAt
+		for (const TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
+		{
+			ACharacter* Character = Pair.Key;
+			const FAnimTrackData& AnimTrackData = Pair.Value;
+			TMovieSceneChannelData<FMovieSceneActorReferenceKey> LookAtTargetChannel = const_cast<FMovieSceneActorReferenceData&>(AnimTrackData.LookAtTargetSection->GetActorReferenceData()).GetData();
+			if (Character == Speaker)
+			{
+				if (Targets.Num() > 0)
+				{
+					// 说话者看向第一个对话目标
+					LookAtTargetChannel.UpdateOrAddKey(StartFrameNumber, FMovieSceneActorReferenceKey(InstanceBindingIdMap[Targets[0]]));
+				}
+			}
+			else
+			{
+				LookAtTargetChannel.UpdateOrAddKey(StartFrameNumber, FMovieSceneActorReferenceKey(InstanceBindingIdMap[Speaker]));
 			}
 		}
 	}
@@ -880,10 +912,10 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 					// 景深目标为说话者
 					CineCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
 					// TODO: 现在用字符串记录路径，可以考虑使用FPropertyPath，或者编译期通过一种方式做检查
-					UMovieSceneObjectPropertySection* ActorToTrackSection = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneObjectPropertyTrack, UMovieSceneObjectPropertySection>(MovieScene, CineCameraComponentGuid,
+					UMovieSceneActorReferenceSection* ActorToTrackSection = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneActorReferenceTrack, UMovieSceneActorReferenceSection>(MovieScene, CineCameraComponentGuid,
 						GET_MEMBER_NAME_CHECKED(FCameraTrackingFocusSettings, ActorToTrack), TEXT("FocusSettings.TrackingFocusSettings.ActorToTrack"));
-					FMovieSceneObjectPathChannel& ObjectChannel = ActorToTrackSection->ObjectChannel;
-					ObjectChannel.SetDefault(Speaker);
+					TMovieSceneChannelData<FMovieSceneActorReferenceKey> ActorToTrackSectionChannel = const_cast<FMovieSceneActorReferenceData&>(ActorToTrackSection->GetActorReferenceData()).GetData();
+					ActorToTrackSectionChannel.UpdateOrAddKey(SequenceStartFrameNumber, FMovieSceneActorReferenceKey(InstanceBindingIdMap[Speaker]));
 				}
 			}
 		}

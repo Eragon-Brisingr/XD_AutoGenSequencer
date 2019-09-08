@@ -3,10 +3,16 @@
 
 #include "DialogueSentence.h"
 #include "DialogueSentenceSection.h"
+#include "Sound/SoundWave.h"
 
 UDialogueSentence::UDialogueSentence()
 {
 	
+}
+
+float UDialogueSentence::GetDuration() const
+{
+	return SentenceWave->GetDuration();
 }
 
 TSubclassOf<UDialogueSentenceSection> UDialogueSentence::GetSectionImplType() const

@@ -32,10 +32,12 @@ FName IDialogueInterface::GetDialogueCharacterName(const UObject* Obj)
 
 void IDialogueInterface::BeginSpeak(UObject* Obj, UDialogueSentence* Sentence)
 {
+	FEditorScriptExecutionGuard ScriptGuard;
 	return IDialogueInterface::Execute_BeginSpeak(Obj, Sentence);
 }
 
 void IDialogueInterface::EndSpeak(UObject* Obj)
 {
+	FEditorScriptExecutionGuard ScriptGuard;
 	return IDialogueInterface::Execute_EndSpeak(Obj);
 }

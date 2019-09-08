@@ -66,6 +66,8 @@ public:
 
 	DECLARE_DELEGATE(FOnInstanceChanged);
 	FOnInstanceChanged OnInstanceChanged;
+
+	bool IsInEditorMode() const;
 #endif
 };
 

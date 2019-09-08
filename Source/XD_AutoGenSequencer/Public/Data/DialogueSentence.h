@@ -26,6 +26,8 @@ public:
 
 	FORCEINLINE FText GetSubTitle() const { return SubTitle; }
 
+	float GetDuration() const;
+
 #if WITH_EDITOR
 	virtual void WhenGenFromSoundWave(USoundWave* InSentenceWave) {}
 #endif

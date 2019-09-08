@@ -95,6 +95,8 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 			const ADialogueStandPositionTemplate* DialogueStandPositionTemplate = DialogueStation.DialogueStationTemplate.GetDefaultObject();
 			DialogueStation.DialogueCharacterDatas.SetNumZeroed(DialogueStandPositionTemplate->StandPositions.Num());
 			DialogueStation.SyncInstanceData(DialogueStandPositionTemplate);
+
+			FDialogueCharacterData DefaultDialogueCharacterData;
 			for (int32 Idx = 0; Idx < DialogueStation.DialogueCharacterDatas.Num(); ++Idx)
 			{
 				const FDialogueStandPosition& DialogueStandPosition = DialogueStandPositionTemplate->StandPositions[Idx];
@@ -109,7 +111,11 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 				}
 				if (DialogueCharacterData.TalkAnimSlotName.IsNone())
 				{
-					DialogueCharacterData.TalkAnimSlotName = TEXT("DefaultSlot");
+					DialogueCharacterData.TalkAnimSlotName = DefaultDialogueCharacterData.TalkAnimSlotName;
+				}
+				if (DialogueCharacterData.LookAtTargetPropertyName.IsNone())
+				{
+					DialogueCharacterData.LookAtTargetPropertyName = DefaultDialogueCharacterData.LookAtTargetPropertyName;
 				}
 				if (DialogueCharacterData.DialogueAnimSet == nullptr)
 				{

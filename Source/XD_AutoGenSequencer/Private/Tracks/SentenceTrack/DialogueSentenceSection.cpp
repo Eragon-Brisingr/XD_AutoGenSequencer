@@ -79,7 +79,7 @@ void FCachedDialogueSentenceTrackData::StopSentencesOnSection(TObjectKey<const U
 
 void FCachedDialogueSentenceTrackData::StopSentence(UAudioComponent* AudioComponent)
 {
-	AudioComponent->Stop();
+	AudioComponent->SetSound(nullptr);
 	AActor* Actor = AudioComponent->GetOwner();
 	if (Actor->Implements<UDialogueInterface>())
 	{
@@ -221,10 +221,9 @@ void FDialogueSentenceSectionTemplate::TearDown(FPersistentEvaluationData& Persi
 
 TOptional<TRange<FFrameNumber>> UDialogueSentenceSection::GetAutoSizeRange() const
 {
-	USoundBase* SentenceSound = GetDefualtSentenceSound();
-	if (SentenceSound)
+	if (DialogueSentence && DialogueSentence->SentenceWave)
 	{
-		float SoundDuration = MovieSceneHelpers::GetSoundDuration(SentenceSound);
+		float SoundDuration = DialogueSentence->GetDuration();
 
 		FFrameRate FrameRate = GetTypedOuter<UMovieScene>()->GetTickResolution();
 
@@ -279,11 +278,6 @@ TOptional<FFrameTime> UDialogueSentenceSection::GetOffsetTime() const
 FMovieSceneEvalTemplatePtr UDialogueSentenceSection::GenerateTemplate() const
 {
 	return FDialogueSentenceSectionTemplate(*this);
-}
-
-USoundBase* UDialogueSentenceSection::GetDefualtSentenceSound() const
-{
-	return DialogueSentence->SentenceWave;
 }
 
 FFrameNumber UDialogueSentenceSection::GetStartOffsetAtTrimTime(FQualifiedFrameTime TrimTime, FFrameNumber StartOffset, FFrameNumber StartFrame)

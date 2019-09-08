@@ -36,8 +36,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Dialogue)
 	TArray<FMovieSceneObjectBindingID> Targets;
-
-	USoundBase* GetDefualtSentenceSound() const;
 private:
 	static FFrameNumber GetStartOffsetAtTrimTime(FQualifiedFrameTime TrimTime, FFrameNumber StartOffset, FFrameNumber StartFrame);
 };

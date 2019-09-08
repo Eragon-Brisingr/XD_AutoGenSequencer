@@ -9,18 +9,19 @@
 #include "XD_AutoGenSequencer_Editor.h"
 #include "KismetCompilerModule.h"
 #include "KismetEditorUtilities.h"
+#include "Engine/Blueprint.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 {
-#if WITH_EDITOR
 	bIsEditorOnlyActor = true;
 	bHidden = false;
 
-	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));
-	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
-#endif
+//	数组有BUG，设置默认值之后编辑器Diff到到超出默认长度后的元素直接溢出了
+// 	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));
+// 	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
 
 	PreviewCharacter = ACharacter::StaticClass();
 }
@@ -41,7 +42,7 @@ void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEven
 				CreateAllTemplatePreviewCharacter();
 			}
 		}
-		if (!IsTemplate() && PropertyName != TEXT("ActorLabel"))
+		if (PropertyName != TEXT("ActorLabel"))
 		{
 			ApplyStandPositionsToDefault();
 		}
@@ -128,16 +129,28 @@ void ADialogueStandPositionTemplate::ClearInvalidPreviewCharacter()
 
 void ADialogueStandPositionTemplate::ApplyStandPositionsToDefault()
 {
-	if (!IsTemplate())
+	if (IsInEditorMode())
 	{
-		// TODO:这么做会导致这Actor还存在在关卡里的话引起关卡保存报错，需查明原因
-		if (UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(GetClass()))
+		if (UBlueprint * Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy))
 		{
-			BlueprintGeneratedClass->Modify(true);
 			ADialogueStandPositionTemplate* Default = GetClass()->GetDefaultObject<ADialogueStandPositionTemplate>();
+			Default->PreviewCharacter = PreviewCharacter;
 			Default->StandPositions = StandPositions;
+
+			for (FDialogueStandPosition& StandPos : Default->StandPositions)
+			{
+				StandPos.PreviewCharacterInstance = nullptr;
+			}
+
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
+}
+
+bool ADialogueStandPositionTemplate::IsInEditorMode() const
+{
+	UWorld* World = GetWorld();
+	return World && World->WorldType == EWorldType::Editor;
 }
 
 UDialogueStandPositionTemplateFactory::UDialogueStandPositionTemplateFactory()
