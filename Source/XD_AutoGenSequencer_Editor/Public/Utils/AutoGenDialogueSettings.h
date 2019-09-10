@@ -8,7 +8,7 @@
 
 class UDialogueSentence;
 class UDialogueSentenceSection;
-class UAutoGenDialogueAnimSet;
+class UAutoGenDialogueAnimSetBase;
 class UAutoGenDialogueCameraSet;
 
 /**
@@ -26,7 +26,7 @@ public:
 	static TSubclassOf<UDialogueSentence> GetDialogueSentenceType();
 
 	UPROPERTY(EditAnywhere, Category = "Settings", Config)
-	TSoftObjectPtr<UAutoGenDialogueAnimSet> DefaultAutoGenDialogueAnimSet;
+	TSoftObjectPtr<UAutoGenDialogueAnimSetBase> DefaultAutoGenDialogueAnimSet;
 
 	UPROPERTY(EditAnywhere, Category = "Settings", Config)
 	TSoftObjectPtr<UAutoGenDialogueCameraSet> DefaultAutoGenDialogueCameraSet;

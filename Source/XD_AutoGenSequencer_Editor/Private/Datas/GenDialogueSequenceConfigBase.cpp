@@ -5,32 +5,19 @@
 #include "DialogueStandPositionTemplate.h"
 #include "AutoGenDialogueSettings.h"
 #include "PreviewDialogueSoundSequence.h"
+#include "AutoGenDialogueAnimSet.h"
 
 FDialogueCharacterData::FDialogueCharacterData()
 {
 	
 }
 
-#if WITH_EDITORONLY_DATA
 void FDialogueStationInstance::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
 {
 	for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
 	{
 		DialogueCharacterDatas[Idx].PositionOverride = Instance->StandPositions[Idx].StandPosition;
 	}
-}
-
-bool FDialogueStationInstance::IsValid() const
-{
-	if (DialogueStationTemplate == nullptr)
-	{
-		return false;
-	}
-	if (DialogueCharacterDatas.ContainsByPredicate([](const FDialogueCharacterData& E) {return E.DialogueAnimSet == nullptr; }))
-	{
-		return false;
-	}
-	return true;
 }
 
 TArray<FName> FDialogueStationInstance::GetCharacterNames() const
@@ -136,11 +123,24 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 
 bool UGenDialogueSequenceConfigBase::IsConfigValid() const
 {
-	if (!DialogueStation.IsValid())
+	if (DialogueStation.DialogueStationTemplate == nullptr)
+	{
+		return false;
+	}
+	TSubclassOf<UAutoGenDialogueAnimSetBase> AnimSetType = GetAnimSetType();
+	if (AnimSetType == nullptr)
+	{
+		return false;
+	}
+	if (DialogueStation.DialogueCharacterDatas.ContainsByPredicate([&](const FDialogueCharacterData& E) {return E.DialogueAnimSet == nullptr || !E.DialogueAnimSet->IsA(AnimSetType); }))
 	{
 		return false;
 	}
 	return true;
 }
 
-#endif
+TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnimSetType() const
+{
+	return nullptr;
+}
+

@@ -6,6 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "SoftObjectPtr.h"
 #include "SubclassOf.h"
+#include "MovieSceneObjectBindingID.h"
 #include "GenDialogueSequenceConfigBase.generated.h"
 
 class ISequencer;
@@ -13,7 +14,7 @@ class ACharacter;
 class UPreviewDialogueSoundSequence;
 class UAutoGenDialogueSequence;
 class ADialogueStandPositionTemplate;
-class UAutoGenDialogueAnimSet;
+class UAutoGenDialogueAnimSetBase;
 
 /**
  *
@@ -46,7 +47,18 @@ public:
 	FName LookAtTargetPropertyName = TEXT("CineLookAtTarget");
 
 	UPROPERTY(EditAnywhere)
-	UAutoGenDialogueAnimSet* DialogueAnimSet;
+	UAutoGenDialogueAnimSetBase* DialogueAnimSet;
+};
+
+// 生成期间的角色数据信息
+struct XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueCharacterData : public FDialogueCharacterData
+{
+	FGenDialogueCharacterData(const FDialogueCharacterData& DialogueCharacterData)
+		:FDialogueCharacterData(DialogueCharacterData)
+	{}
+
+	int32 CharacterIdx;
+	FMovieSceneObjectBindingID BindingID;
 };
 
 USTRUCT()
@@ -60,15 +72,12 @@ public:
 	UPROPERTY(EditAnywhere, EditFixedSize = true, meta = (DisplayName = "对话角色"))
 	TArray<FDialogueCharacterData> DialogueCharacterDatas;
 	
-#if WITH_EDITORONLY_DATA
 	void SyncInstanceData(const ADialogueStandPositionTemplate* Instance);
-	bool IsValid() const;
 	TArray<FName> GetCharacterNames() const;
 
 	TArray<TSharedPtr<FString>> DialogueNameList;
 	TArray<TSharedPtr<FString>>& GetDialogueNameList();
 	void ReinitDialogueNameList();
-#endif
 };
 
 UCLASS(abstract)
@@ -87,6 +96,7 @@ public:
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool IsConfigValid() const;
+	virtual TSubclassOf<UAutoGenDialogueAnimSetBase> GetAnimSetType() const;
 public:
 	virtual void GeneratePreview() const {}
 

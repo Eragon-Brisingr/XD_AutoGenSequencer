@@ -26,5 +26,5 @@ public:
 
 	FCameraWeightsData EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const override;
 
-	void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FMovieSceneObjectBindingID>& InstanceBindingIdMap, const TMap<ACharacter*, int32>& InstanceIdxMap) const override;
+	void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const override;
 };

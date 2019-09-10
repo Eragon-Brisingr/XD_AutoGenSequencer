@@ -9,6 +9,7 @@
 #include "DialogueStandPositionTemplate.h"
 #include "GameFramework/Character.h"
 #include "CineCameraComponent.h"
+#include "GenDialogueSequenceConfigBase.h"
 
 void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
 {
@@ -71,14 +72,17 @@ AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTrac
 	return CameraWeightsData;
 }
 
-void ADialogueCamera_TwoTargetTracking::GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FMovieSceneObjectBindingID>& InstanceBindingIdMap, const TMap<ACharacter*, int32>& InstanceIdxMap) const
+void ADialogueCamera_TwoTargetTracking::GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
 {
 	check(Targets.Num() > 0);
 	ACharacter* Target = Targets[0];
 
-	bool InvertCameraPos = InstanceIdxMap[Speaker] - InstanceIdxMap[Target] > 0;
+	const FGenDialogueCharacterData& SpeakCharacterData = DialogueCharacterDataMap[Speaker];
+	const FGenDialogueCharacterData& TargetCharacterData = DialogueCharacterDataMap[Target];
+
+	bool InvertCameraPos = SpeakCharacterData.CharacterIdx - TargetCharacterData.CharacterIdx > 0;
 	UTwoTargetCameraTrackingTrack* TwoTargetCameraTrackingTrack = MovieScene.AddTrack<UTwoTargetCameraTrackingTrack>(CineCameraComponentGuid);
-	UTwoTargetCameraTrackingSection* TwoTargetCameraTrackingSection = TwoTargetCameraTrackingTrack->AddNewSentenceOnRow(InstanceBindingIdMap[Target], InstanceBindingIdMap[Speaker]);
+	UTwoTargetCameraTrackingSection* TwoTargetCameraTrackingSection = TwoTargetCameraTrackingTrack->AddNewSentenceOnRow(TargetCharacterData.BindingID, SpeakCharacterData.BindingID);
 	TwoTargetCameraTrackingSection->CameraYaw.SetDefault(!InvertCameraPos ? CameraYawAngle : -CameraYawAngle);
 	TwoTargetCameraTrackingSection->FrontTargetRate.SetDefault(FrontTargetRate);
 	TwoTargetCameraTrackingSection->BackTargetRate.SetDefault(BackTargetRate);

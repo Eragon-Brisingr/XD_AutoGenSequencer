@@ -13,6 +13,7 @@ class ADialogueStandPositionTemplate;
 class UCineCameraComponent;
 class UMovieScene;
 class ACharacter;
+struct FGenDialogueCharacterData;
 
 UCLASS(Transient, abstract, NotBlueprintable, NotBlueprintType, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking))
 class XD_AUTOGENSEQUENCER_EDITOR_API AAutoGenDialogueCameraTemplate : public AActor
@@ -50,7 +51,7 @@ public:
 	// 用于评估该镜头所处的对话环境中的分数
 	virtual FCameraWeightsData EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const { return FCameraWeightsData(); }
 	// 用于生成该镜头对应的轨道
-	virtual void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FMovieSceneObjectBindingID>& InstanceBindingIdMap, const TMap<ACharacter*, int32>& InstanceIdxMap) const {}
+	virtual void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const {}
 };
 
 UCLASS()

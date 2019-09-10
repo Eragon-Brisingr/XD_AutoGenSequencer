@@ -14,6 +14,8 @@ class UAnimSequence;
 class UDialogueSentence;
 class AAutoGenDialogueCameraTemplate;
 class UAutoGenDialogueCameraSet;
+class UPreviewDialogueSentenceSection;
+struct FMovieSceneObjectBindingID;
 
 /**
  *
@@ -67,11 +69,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "镜头", meta = (DisplayName = "默认镜头集"))
 	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
-#if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	bool IsConfigValid() const override;
+	TSubclassOf<UAutoGenDialogueAnimSetBase> GetAnimSetType() const override;
 	bool IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList) const;
-#endif
 
 	//生成预览
 public:
@@ -92,5 +93,41 @@ public:
 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间"))
 	float CameraSplitMinTime = 12.f;
 
+	struct XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueData
+	{
+		UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection;
+		FName SpeakerName;
+		ACharacter* SpeakerInstance;
+		TArray<ACharacter*> Targets;
+
+		const FDialogueSentenceEditData& GetDialogueSentenceEditData() const;
+	};
+
 	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSequence& AutoGenDialogueSequence) const override;
+
+	struct XD_AUTOGENSEQUENCER_EDITOR_API FAnimTrackData
+	{
+		struct XD_AUTOGENSEQUENCER_EDITOR_API FAnimSectionVirtualData
+		{
+			UAnimSequence* AnimSequence;
+			TRange<FFrameNumber> AnimRange;
+			float BlendInTime;
+			float BlendOutTime;
+
+			// 动画所持有的对话数据（可能为空
+			const FGenDialogueData* GenDialogueData = nullptr;
+			bool IsSpeaking() const { return GenDialogueData ? true : false; }
+		};
+		TArray<FAnimSectionVirtualData> AnimSectionVirtualDatas;
+	};
+	using FAnimSectionVirtualData = FAnimTrackData::FAnimSectionVirtualData;
+	virtual TMap<ACharacter*, FAnimTrackData> EvaluateAnimations(
+		const FFrameNumber SequenceStartFrameNumber,
+		const FFrameNumber SequenceEndFrameNumber,
+		const FFrameRate FrameRate,
+		const TArray<FGenDialogueData>& SortedDialogueDatas,
+		const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const;
+
+	virtual UAnimSequence* EvaluateTalkAnimation(const FGenDialogueCharacterData& GenDialogueCharacterData, const FGenDialogueData& GenDialogueData) const;
+	virtual UAnimSequence* EvaluateIdleAnimation(const FGenDialogueCharacterData& GenDialogueCharacterData) const;
 };

@@ -99,10 +99,12 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 					FAutoGenDialogueEditorStyle::Get().GetDialogueIcon());
 				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
 						{
+							UGenDialogueSequenceConfigBase* Config = GetAutoGenDialogueSequenceConfig();
 							if (IsPreviewDialogueSequenceActived())
 							{
 								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
-								UGenDialogueSequenceConfigBase* Config = PreviewDialogueSoundSequence->GetDialogueConfig();
+
+								// TODO：报告详细错误
 								if (!Config->IsConfigValid())
 								{
 									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
@@ -119,6 +121,13 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 							}
 							else if (IsAutoGenDialogueSequenceActived())
 							{
+								// TODO：报告详细错误
+								if (!Config->IsConfigValid())
+								{
+									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
+									return;
+								}
+
 								UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence();
 								if (!PreviewStandPositionTemplate.IsValid())
 								{
