@@ -21,6 +21,7 @@
 #include "AutoGenDialogueAnimSet.h"
 #include "AutoGenDialogueSettings.h"
 #include "AutoGenDialogueCameraSet.h"
+#include "GenAnimTrackUtils.h"
 
 #include "ScopedTransaction.h"
 #include "Transform.h"
@@ -214,34 +215,6 @@ void UAutoGenDialogueSequenceConfig::GeneratePreview() const
 	MovieScene.SetViewRange(0.f, EndFrameNumber / FrameRate);
 }
 
-namespace AnimTrackUtils
-{
-	FFrameNumber SecondToFrameNumber(float Second, const FFrameRate FrameRate)
-	{
-		return (Second * FrameRate).GetFrame();
-	}
-
-	void SetBlendInValue(FMovieSceneFloatChannel& AnimWeight, const FFrameRate FrameRate, FFrameNumber StartFrameNumber, float BlendTime, float StartWeight, float EndWeight)
-	{
-		const FFrameNumber BlendFrameNumber = SecondToFrameNumber(BlendTime, FrameRate);
-		AnimWeight.AddCubicKey(StartFrameNumber, StartWeight);
-		AnimWeight.AddCubicKey(StartFrameNumber + BlendFrameNumber, EndWeight);
-	}
-
-	void SetBlendOutValue(FMovieSceneFloatChannel& AnimWeight, const FFrameRate FrameRate, FFrameNumber EndFrameNumber, float BlendTime, float StartWeight, float EndWeight)
-	{
-		const FFrameNumber BlendFrameNumber = SecondToFrameNumber(BlendTime, FrameRate);
-		AnimWeight.AddCubicKey(EndFrameNumber - BlendFrameNumber, StartWeight);
-		AnimWeight.AddCubicKey(EndFrameNumber, EndWeight);
-	}
-
-	void SetBlendInOutValue(FMovieSceneFloatChannel& AnimWeight, const FFrameRate FrameRate, FFrameNumber StartFrameNumber, float StartBlendTime, FFrameNumber EndFrameNumber, float EndBlendTime)
-	{
-		SetBlendInValue(AnimWeight, FrameRate, StartFrameNumber, StartBlendTime, 0.f, 1.f);
-		SetBlendOutValue(AnimWeight, FrameRate, EndFrameNumber, StartBlendTime, 1.f, 0.f);
-	}
-};
-
 void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSequence& AutoGenDialogueSequence) const
 {
 	const FScopedTransaction Transaction(LOCTEXT("生成对白序列描述", "生成对白序列"));
@@ -398,6 +371,28 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 	// -- 动作
 	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, DialogueCharacterDataMap);
+	// 合并相同的动画
+	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
+	{
+		FAnimTrackData& AnimationTrackData = Pair.Value;
+		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimationTrackData.AnimSectionVirtualDatas;
+		AnimSectionVirtualDatas.Sort([](const FAnimSectionVirtualData& LHS, const FAnimSectionVirtualData& RHS) {return LHS.AnimRange.GetLowerBoundValue() < RHS.AnimRange.GetLowerBoundValue(); });
+		for (int32 Idx = 1; Idx < AnimSectionVirtualDatas.Num();)
+		{
+			FAnimSectionVirtualData& LeftAnimSectionVirtualData = AnimSectionVirtualDatas[Idx - 1];
+			FAnimSectionVirtualData& RightAnimSectionVirtualData = AnimSectionVirtualDatas[Idx];
+			if (LeftAnimSectionVirtualData.AnimSequence == RightAnimSectionVirtualData.AnimSequence)
+			{
+				LeftAnimSectionVirtualData.AnimRange.SetUpperBoundValue(RightAnimSectionVirtualData.AnimRange.GetUpperBoundValue());
+				LeftAnimSectionVirtualData.BlendOutTime = RightAnimSectionVirtualData.BlendOutTime;
+				AnimSectionVirtualDatas.RemoveAt(Idx);
+			}
+			else
+			{
+				++Idx;
+			}
+		}
+	}
 	// 生成动画轨道
 	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
 	{
@@ -416,9 +411,10 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			TalkAnimSection->SetRange(AnimSectionVirtualData.AnimRange);
 
 			TalkAnimSection->Params.SlotName = DialogueCharacterData.TalkAnimSlotName;
-			AnimTrackUtils::SetBlendInOutValue(TalkAnimSection->Params.Weight, FrameRate, AnimStartFrameNumber, AnimSectionVirtualData.BlendInTime, AnimEndFrameNumber, AnimSectionVirtualData.BlendOutTime);
+			GenAnimTrackUtils::SetBlendInOutValue(TalkAnimSection->Params.Weight, FrameRate, AnimStartFrameNumber, AnimSectionVirtualData.BlendInTime, AnimEndFrameNumber, AnimSectionVirtualData.BlendOutTime);
 		}
 	}
+
 	// LookAt
 	TMap<ACharacter*, UMovieSceneActorReferenceSection*> LookAtTrackMap;
 	for (const TPair<ACharacter*, FGenDialogueCharacterData>& Pair : DialogueCharacterDataMap)
@@ -880,48 +876,39 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 
 		if (DialogueCharacterData.DialogueAnimSet)
 		{
-			bool bIsSameSpeaker = Idx > 0 && SortedDialogueDatas[Idx - 1].SpeakerInstance == Speaker;
-			// 假如是上一个对白者和现在相同则会合并动画
-			if (!bIsSameSpeaker)
+			const float BlendTime = 0.25f;
+
+			FFrameNumber AnimStartFrameNumber = StartFrameNumber;
+			FFrameNumber AnimEndFrameNumber = EndFrameNumber;
+			// 动作应该早于说话，且晚于结束
+			const float AnimStartEarlyTime = 0.5f;
+			const float AnimEndDelayTime = 0.5f;
+
+			if (AnimSectionVirtualDatas.Num() > Idx + 1)
 			{
-				const float BlendTime = 0.25f;
-
-				FFrameNumber AnimStartFrameNumber = StartFrameNumber;
-				FFrameNumber AnimEndFrameNumber = EndFrameNumber;
-				for (int32 NextIdx = Idx + 1; NextIdx < SortedDialogueDatas.Num() && SortedDialogueDatas[NextIdx].SpeakerInstance == Speaker; ++NextIdx)
-				{
-					AnimEndFrameNumber = SortedDialogueDatas[NextIdx].PreviewDialogueSentenceSection->GetRange().GetUpperBoundValue();
-				}
-				// 动作应该早于说话，且晚于结束
-				const float AnimStartEarlyTime = 0.5f;
-				const float AnimEndDelayTime = 0.5f;
-
-				if (AnimSectionVirtualDatas.Num() > Idx + 1)
-				{
-					// 防止插到前一个对话动画里
-					const FAnimSectionVirtualData& PreAnimSectionVirtualData = AnimSectionVirtualDatas[Idx - 1];
-					AnimStartFrameNumber = FMath::Max(PreAnimSectionVirtualData.AnimRange.GetUpperBoundValue() - AnimTrackUtils::SecondToFrameNumber(PreAnimSectionVirtualData.BlendOutTime, FrameRate),
-						AnimStartFrameNumber - AnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
-				}
-				else
-				{
-					AnimStartFrameNumber = FMath::Max(SequenceStartFrameNumber, AnimStartFrameNumber - AnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
-				}
-				if (Idx == AnimSectionVirtualDatas.Num() - 1)
-				{
-					AnimEndFrameNumber = FMath::Min(SequenceEndFrameNumber, AnimEndFrameNumber + AnimTrackUtils::SecondToFrameNumber(AnimEndDelayTime, FrameRate));
-				}
-
-				// TODO：增加动作选择策略
-				UAnimSequence* SelectedAnimSequence = EvaluateTalkAnimation(DialogueCharacterData, GenDialogueData);
-
-				FAnimSectionVirtualData& AnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
-				AnimSectionVirtualData.AnimSequence = SelectedAnimSequence;
-				AnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
-				AnimSectionVirtualData.BlendInTime = BlendTime;
-				AnimSectionVirtualData.BlendOutTime = BlendTime;
-				AnimSectionVirtualData.GenDialogueData = &GenDialogueData;
+				// 防止插到前一个对话动画里
+				const FAnimSectionVirtualData& PreAnimSectionVirtualData = AnimSectionVirtualDatas[Idx - 1];
+				AnimStartFrameNumber = FMath::Max(PreAnimSectionVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(PreAnimSectionVirtualData.BlendOutTime, FrameRate),
+					AnimStartFrameNumber - GenAnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
 			}
+			else
+			{
+				AnimStartFrameNumber = FMath::Max(SequenceStartFrameNumber, AnimStartFrameNumber - GenAnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
+			}
+			if (Idx == AnimSectionVirtualDatas.Num() - 1)
+			{
+				AnimEndFrameNumber = FMath::Min(SequenceEndFrameNumber, AnimEndFrameNumber + GenAnimTrackUtils::SecondToFrameNumber(AnimEndDelayTime, FrameRate));
+			}
+
+			// TODO：增加动作选择策略
+			UAnimSequence* SelectedAnimSequence = EvaluateTalkAnimation(DialogueCharacterData, GenDialogueData);
+
+			FAnimSectionVirtualData& AnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
+			AnimSectionVirtualData.AnimSequence = SelectedAnimSequence;
+			AnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
+			AnimSectionVirtualData.BlendInTime = BlendTime;
+			AnimSectionVirtualData.BlendOutTime = BlendTime;
+			AnimSectionVirtualData.GenDialogueData = &GenDialogueData;
 		}
 	}
 	// 没动画的地方补上Idle动画
@@ -949,7 +936,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 					IdleAnimSectionVirtualData.BlendInTime = StartBlendInTime;
 					IdleAnimSectionVirtualData.BlendOutTime = FirstVirtualData.BlendInTime;
 					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(SequenceStartFrameNumber
-						, FirstVirtualData.AnimRange.GetLowerBoundValue() + AnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
+						, FirstVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
 				}
 			}
 
@@ -964,8 +951,8 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 					IdleAnimSectionVirtualData.AnimSequence = SelectedIdleAnim;
 					IdleAnimSectionVirtualData.BlendInTime = LeftVirtualData.BlendOutTime;
 					IdleAnimSectionVirtualData.BlendOutTime = RightVirtualData.BlendInTime;
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue() - AnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
-						RightVirtualData.AnimRange.GetLowerBoundValue() + AnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
+					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
+						RightVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
 				}
 			}
 
@@ -977,7 +964,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 					IdleAnimSectionVirtualData.AnimSequence = SelectedIdleAnim;
 					IdleAnimSectionVirtualData.BlendInTime = LastVirtualData.BlendInTime;
 					IdleAnimSectionVirtualData.BlendOutTime = EndBlendInTime;
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue() - AnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
+					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
 						SequenceEndFrameNumber);
 				}
 			}
