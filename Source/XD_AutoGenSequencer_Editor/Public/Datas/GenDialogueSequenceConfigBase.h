@@ -26,7 +26,7 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FDialogueCharacterData
 public:
 	FDialogueCharacterData();
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "角色名"))
 	FName NameOverride;
 
 	UPROPERTY(EditAnywhere)
@@ -46,7 +46,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	FName LookAtTargetPropertyName = TEXT("CineLookAtTarget");
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白动画集"))
 	UAutoGenDialogueAnimSetBase* DialogueAnimSet;
 };
 
@@ -95,7 +95,9 @@ public:
 	FDialogueStationInstance DialogueStation;
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual bool IsConfigValid() const;
+	// 检测对白配置的有效性
+	virtual bool IsConfigValid(TArray<FText>& ErrorMessages) const;
+	// 允许的AnimSet类型
 	virtual TSubclassOf<UAutoGenDialogueAnimSetBase> GetAnimSetType() const;
 public:
 	virtual void GeneratePreview() const {}

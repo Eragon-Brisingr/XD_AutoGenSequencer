@@ -20,6 +20,8 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FAutoGenDialogueCameraConfig
 public:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AAutoGenDialogueCameraTemplate> CameraTemplate;
+
+	// TODO：使用权重！
 	UPROPERTY(EditAnywhere)
 	float Weights = 1.f;
 };
@@ -29,10 +31,10 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueCameraSet : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "镜头模板"))
 	TArray<FAutoGenDialogueCameraConfig> CameraTemplates;
 
-	bool IsValid() const;
+	virtual bool IsValid(TArray<FText>& ErrorMessages) const;
 };
 
 UCLASS()

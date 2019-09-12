@@ -70,7 +70,7 @@ public:
 	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	bool IsConfigValid() const override;
+	bool IsConfigValid(TArray<FText>& ErrorMessages) const override;
 	TSubclassOf<UAutoGenDialogueAnimSetBase> GetAnimSetType() const override;
 	bool IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList) const;
 

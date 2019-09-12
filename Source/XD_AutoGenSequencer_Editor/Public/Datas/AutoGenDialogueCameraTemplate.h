@@ -61,7 +61,7 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueCameraTemplateFactory : pub
 public:
 	UAutoGenDialogueCameraTemplateFactory();
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Settings")
 	TSubclassOf<AAutoGenDialogueCameraTemplate> CameraTemplateClass;
 
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;

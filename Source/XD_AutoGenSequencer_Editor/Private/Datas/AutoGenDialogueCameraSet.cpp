@@ -6,9 +6,27 @@
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
-bool UAutoGenDialogueCameraSet::IsValid() const
+bool UAutoGenDialogueCameraSet::IsValid(TArray<FText>& ErrorMessages) const
 {
-	return CameraTemplates.Num() != 0;
+	bool bIsSucceed = true;
+	if (CameraTemplates.Num() == 0)
+	{
+		ErrorMessages.Add(LOCTEXT("镜头模板数量为空", "镜头模板数量为空，请添加镜头"));
+		bIsSucceed &= false;
+	}
+	else
+	{
+		for (const FAutoGenDialogueCameraConfig& CameraConfig : CameraTemplates)
+		{
+			if (CameraConfig.CameraTemplate == nullptr)
+			{
+				ErrorMessages.Add(LOCTEXT("镜头模板存在空的配置", "镜头模板存在空的配置，请设置"));
+				bIsSucceed &= false;
+				break;
+			}
+		}
+	}
+	return bIsSucceed;
 }
 
 UAutoGenDialogueCameraSetFactory::UAutoGenDialogueCameraSetFactory()

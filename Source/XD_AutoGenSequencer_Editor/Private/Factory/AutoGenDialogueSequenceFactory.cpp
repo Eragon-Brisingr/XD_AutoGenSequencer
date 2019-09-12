@@ -33,6 +33,7 @@ UObject* UAutoGenDialogueSequenceFactory::FactoryCreateNew(UClass* Class, UObjec
 	NewLevelSequence->GetMovieScene()->SetPlaybackRange((ProjectSettings->DefaultStartTime*TickResolution).FloorToFrame(), (ProjectSettings->DefaultDuration*TickResolution).FloorToFrame().Value);
 
 	NewLevelSequence->AutoGenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(NewLevelSequence, AutoGenDialogueSequenceConfigClass,  GET_MEMBER_NAME_CHECKED(UAutoGenDialogueSequence, AutoGenDialogueSequenceConfig), Flags | RF_Transactional);
+	AutoGenDialogueSequenceConfigClass = nullptr;
 
 	NewLevelSequence->bIsNewCreated = true;
 	NewLevelSequence->bIsNotSetStandPosition = true;

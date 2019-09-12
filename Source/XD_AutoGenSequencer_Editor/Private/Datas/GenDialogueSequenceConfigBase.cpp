@@ -6,6 +6,9 @@
 #include "AutoGenDialogueSettings.h"
 #include "PreviewDialogueSoundSequence.h"
 #include "AutoGenDialogueAnimSet.h"
+#include "DialogueInterface.h"
+
+#define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 FDialogueCharacterData::FDialogueCharacterData()
 {
@@ -121,22 +124,62 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 	}
 }
 
-bool UGenDialogueSequenceConfigBase::IsConfigValid() const
+bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages) const
 {
+	bool bIsSucceed = true;
 	if (DialogueStation.DialogueStationTemplate == nullptr)
 	{
-		return false;
+		ErrorMessages.Add(LOCTEXT("对话模板为空", "对话模板为空"));
+		bIsSucceed &= false;
 	}
 	TSubclassOf<UAutoGenDialogueAnimSetBase> AnimSetType = GetAnimSetType();
 	if (AnimSetType == nullptr)
 	{
-		return false;
+		ErrorMessages.Add(LOCTEXT("允许的AnimSet类型未设置", "允许的AnimSet类型未设置"));
+		bIsSucceed &= false;
 	}
-	if (DialogueStation.DialogueCharacterDatas.ContainsByPredicate([&](const FDialogueCharacterData& E) {return E.DialogueAnimSet == nullptr || !E.DialogueAnimSet->IsA(AnimSetType); }))
+	TArray<FName> VisitedName;
+	TArray<UAutoGenDialogueAnimSetBase*> VisitedAnimSets;
+	for (const FDialogueCharacterData& E : DialogueStation.DialogueCharacterDatas)
 	{
-		return false;
+		if (E.DialogueAnimSet == nullptr || !E.DialogueAnimSet->IsA(AnimSetType))
+		{
+			ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet类型错误", "角色[{0}] 对白动画集类型错误，应该为 [{1}]"), FText::FromString(E.NameOverride.ToString()), AnimSetType->GetDisplayNameText()));
+			bIsSucceed &= false;
+		}
+		else if (!VisitedAnimSets.Contains(E.DialogueAnimSet))
+		{
+			VisitedAnimSets.Add(E.DialogueAnimSet);
+			TArray<FText> AnimSetErrorMessages;
+			bool bIsAnimSetValid = E.DialogueAnimSet->IsAnimSetValid(AnimSetErrorMessages);
+			if (bIsAnimSetValid == false)
+			{
+				ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet配置错误", "角色[{0}] 对白动画集[{1}] 配置错误："), FText::FromString(E.NameOverride.ToString()), FText::FromString(E.DialogueAnimSet->GetName())));
+				ErrorMessages.Append(AnimSetErrorMessages);
+				bIsSucceed &= false;
+			}
+		}
+		if (!VisitedName.Contains(E.NameOverride))
+		{
+			VisitedName.Add(E.NameOverride);
+			if (DialogueStation.DialogueCharacterDatas.FilterByPredicate([&](const FDialogueCharacterData& E2) {return E2.NameOverride == E.NameOverride; }).Num() >= 2)
+			{
+				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色名[{0}]重复"), FText::FromString(E.NameOverride.ToString())));
+				bIsSucceed &= false;
+			}
+		}
+		if (E.TypeOverride == nullptr)
+		{
+			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色[{0}] 类型未配置"), FText::FromString(E.NameOverride.ToString())));
+			bIsSucceed &= false;
+		}
+		else if (!E.TypeOverride->ImplementsInterface(UDialogueInterface::StaticClass()))
+		{
+			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色[{0}] 类型未实现DialogueInterface接口"), FText::FromString(E.NameOverride.ToString())));
+			bIsSucceed &= false;
+		}
 	}
-	return true;
+	return bIsSucceed;
 }
 
 TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnimSetType() const
@@ -144,3 +187,4 @@ TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnim
 	return nullptr;
 }
 
+#undef LOCTEXT_NAMESPACE

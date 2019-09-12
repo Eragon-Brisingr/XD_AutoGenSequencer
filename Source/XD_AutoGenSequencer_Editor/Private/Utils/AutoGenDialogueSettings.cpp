@@ -4,6 +4,7 @@
 #include "AutoGenDialogueSettings.h"
 #include "DialogueSentence.h"
 #include "DialogueSentenceSection.h"
+#include "AutoGenDialogueSequenceConfig.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -14,7 +15,7 @@ UAutoGenDialogueSettings::UAutoGenDialogueSettings()
 
 TSubclassOf<UDialogueSentence> UAutoGenDialogueSettings::GetDialogueSentenceType()
 {
-	if (TSubclassOf<UDialogueSentence> DialogueSentence = Get().DialogueSentenceType.Get())
+	if (TSubclassOf<UDialogueSentence> DialogueSentence = Get().DialogueSentenceType.LoadSynchronous())
 	{
 		return DialogueSentence;
 	}

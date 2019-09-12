@@ -80,16 +80,18 @@ void UAutoGenDialogueSequenceConfig::PostEditChangeProperty(FPropertyChangedEven
 	}
 }
 
-bool UAutoGenDialogueSequenceConfig::IsConfigValid() const
+bool UAutoGenDialogueSequenceConfig::IsConfigValid(TArray<FText>& ErrorMessages) const
 {
-	if (!Super::IsConfigValid())
-	{
-		return false;
-	}
+	bool bIsSucceed = Super::IsConfigValid(ErrorMessages);
 
-	if (AutoGenDialogueCameraSet == nullptr || !AutoGenDialogueCameraSet->IsValid())
+	if (AutoGenDialogueCameraSet == nullptr)
 	{
-		return false;
+		ErrorMessages.Add(LOCTEXT("默认镜头集未配置", "默认镜头集未配置"));
+		bIsSucceed &= false;
+	}
+	else
+	{
+		bIsSucceed &= AutoGenDialogueCameraSet->IsValid(ErrorMessages);
 	}
 
 	TArray<FName> ValidNameList = DialogueStation.GetCharacterNames();
@@ -97,10 +99,13 @@ bool UAutoGenDialogueSequenceConfig::IsConfigValid() const
 	{
 		if (!IsDialogueSentenceEditDataValid(Data, ValidNameList))
 		{
-			return false;
+			// TODO：详细描述错误
+			ErrorMessages.Add(LOCTEXT("对白中存在问题", "对白中存在问题"));
+			bIsSucceed &= false;
+			break;
 		}
 	}
-	return true;
+	return bIsSucceed;
 }
 
 TSubclassOf<UAutoGenDialogueAnimSetBase> UAutoGenDialogueSequenceConfig::GetAnimSetType() const

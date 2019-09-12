@@ -10,6 +10,7 @@ class UDialogueSentence;
 class UDialogueSentenceSection;
 class UAutoGenDialogueAnimSetBase;
 class UAutoGenDialogueCameraSet;
+class UGenDialogueSequenceConfigBase;
 
 /**
  *

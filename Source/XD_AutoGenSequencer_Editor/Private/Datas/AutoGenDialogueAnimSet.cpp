@@ -11,6 +11,45 @@
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
+bool UAutoGenDialogueAnimSetBase::IsAnimSetValid(TArray<FText>& ErrorMessages) const
+{
+	return false;
+}
+
+bool UAutoGenDialogueAnimSet::IsAnimSetValid(TArray<FText>& ErrorMessages) const
+{
+	bool bIsSucceed = true;
+	if (IdleAnims.Num() == 0)
+	{
+		ErrorMessages.Add(LOCTEXT("站立动画集为空", "站立动画集为空"));
+		bIsSucceed &= false;
+	}
+	else
+	{
+		if (IdleAnims.Contains(nullptr))
+		{
+			ErrorMessages.Add(LOCTEXT("站立动画集中存在空动画", "站立动画集中存在空动画，请修改"));
+			bIsSucceed &= false;
+		}
+	}
+
+	if (TalkAnims.Num() == 0)
+	{
+		ErrorMessages.Add(LOCTEXT("对白动画集为空", "对白动画集为空"));
+		bIsSucceed &= false;
+	}
+	else
+	{
+		if (TalkAnims.Contains(nullptr))
+		{
+			ErrorMessages.Add(LOCTEXT("对白动画集中存在空动画", "对白动画集中存在空动画，请修改"));
+			bIsSucceed &= false;
+		}
+	}
+
+	return bIsSucceed;
+}
+
 UAutoGenDialogueAnimSetFactory::UAutoGenDialogueAnimSetFactory()
 {
 	SupportedClass = UAutoGenDialogueAnimSet::StaticClass();
@@ -20,7 +59,9 @@ UAutoGenDialogueAnimSetFactory::UAutoGenDialogueAnimSetFactory()
 
 UObject* UAutoGenDialogueAnimSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	return NewObject<UAutoGenDialogueAnimSetBase>(InParent, AutoGenDialogueAnimSetClass, Name, Flags);
+	UAutoGenDialogueAnimSetBase* AutoGenDialogueAnimSet = NewObject<UAutoGenDialogueAnimSetBase>(InParent, AutoGenDialogueAnimSetClass, Name, Flags);
+	AutoGenDialogueAnimSetClass = nullptr;
+	return AutoGenDialogueAnimSet;
 }
 
 bool UAutoGenDialogueAnimSetFactory::ConfigureProperties()

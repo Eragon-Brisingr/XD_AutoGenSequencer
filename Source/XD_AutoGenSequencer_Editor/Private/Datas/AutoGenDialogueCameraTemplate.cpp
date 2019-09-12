@@ -73,8 +73,9 @@ UObject* UAutoGenDialogueCameraTemplateFactory::FactoryCreateNew(UClass* Class, 
 
 	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
 	KismetCompilerModule.GetBlueprintTypesForClass(CameraTemplateClass, BlueprintClass, BlueprintGeneratedClass);
-
-	return FKismetEditorUtilities::CreateBlueprint(CameraTemplateClass, InParent, Name, EBlueprintType::BPTYPE_Normal, BlueprintClass, BlueprintGeneratedClass);
+	UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(CameraTemplateClass, InParent, Name, EBlueprintType::BPTYPE_Normal, BlueprintClass, BlueprintGeneratedClass);
+	CameraTemplateClass = nullptr;
+	return Blueprint;
 }
 
 bool UAutoGenDialogueCameraTemplateFactory::ConfigureProperties()

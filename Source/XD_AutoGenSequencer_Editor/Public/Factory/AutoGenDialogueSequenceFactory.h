@@ -18,7 +18,7 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueSequenceFactory : public UF
 public:
 	UAutoGenDialogueSequenceFactory();
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Settings")
 	TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass;
 
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;

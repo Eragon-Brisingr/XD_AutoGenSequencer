@@ -17,7 +17,7 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueAnimSetBase : public UObjec
 {
 	GENERATED_BODY()
 public:
-
+	virtual bool IsAnimSetValid(TArray<FText>& ErrorMessages) const;
 };
 
 UCLASS(meta = (DisplayName = "对话动作集"))
@@ -25,11 +25,13 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueAnimSet : public UAutoGenDi
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白动画集"))
 	TArray<UAnimSequence*> TalkAnims;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "站立动画集"))
 	TArray<UAnimSequence*> IdleAnims;
+
+	bool IsAnimSetValid(TArray<FText>& ErrorMessages) const override;
 };
 
 UCLASS()
@@ -39,7 +41,7 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueAnimSetFactory : public UFa
 public:
 	UAutoGenDialogueAnimSetFactory();
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Settings")
 	TSubclassOf<UAutoGenDialogueAnimSetBase> AutoGenDialogueAnimSetClass;
 
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;

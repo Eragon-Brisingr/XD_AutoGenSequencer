@@ -104,10 +104,15 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 							{
 								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
 
-								// TODO：报告详细错误
-								if (!Config->IsConfigValid())
+								TArray<FText> ErrorMessages;
+								if (!Config->IsConfigValid(ErrorMessages))
 								{
-									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
+									FText ErrorMessage = FText::GetEmpty();
+									for (const FText& Error : ErrorMessages)
+									{
+										ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
+									}
+									FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
 									return;
 								}
 
@@ -121,10 +126,15 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 							}
 							else if (IsAutoGenDialogueSequenceActived())
 							{
-								// TODO：报告详细错误
-								if (!Config->IsConfigValid())
+								TArray<FText> ErrorMessages;
+								if (!Config->IsConfigValid(ErrorMessages))
 								{
-									FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成"));
+									FText ErrorMessage = FText::GetEmpty();
+									for (const FText& Error : ErrorMessages)
+									{
+										ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
+									}
+									FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
 									return;
 								}
 
