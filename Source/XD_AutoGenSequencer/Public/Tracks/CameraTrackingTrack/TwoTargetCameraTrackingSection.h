@@ -32,6 +32,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FMovieSceneObjectBindingID BackTarget;
 
+	// TODO：只会在解算开始执行一次
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	uint8 bOnlyInitializeEvaluate : 1;
+
+	// TODO：保持初始化时传入目标的位置
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	uint8 bKeepInitializeTargetLocation : 1;
+
 	UPROPERTY()
 	FMovieSceneFloatChannel CameraYaw;
 	UPROPERTY()
@@ -54,9 +62,15 @@ public:
 	const UTwoTargetCameraTrackingSection* CameraTrackingSection;
 
 private:
-	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
-	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-	virtual void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag); }
-	virtual void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+	UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
+
+	// TODO：确认这个的执行时机，貌似不是Section触发时执行
+	//void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+
+	void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
+	void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag/* | EOverrideMask::RequiresInitializeFlag*/); }
+	void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
+
+private:
 };
 

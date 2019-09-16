@@ -2,6 +2,7 @@
 
 
 #include "AutoGenDialogueSettings.h"
+#include "Engine/EngineTypes.h"
 #include "DialogueSentence.h"
 #include "DialogueSentenceSection.h"
 #include "AutoGenDialogueSequenceConfig.h"

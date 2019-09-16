@@ -561,7 +561,6 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			}
 		}
 
-		// TODO：添加镜头选择策略
 		using FCameraWeightsData = AAutoGenDialogueCameraTemplate::FCameraWeightsData;
 		static TArray<FCameraWeightsData> EvaluateAllCameraTemplate(const UAutoGenDialogueCameraSet& AutoGenDialogueCameraSet, ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress)
 		{

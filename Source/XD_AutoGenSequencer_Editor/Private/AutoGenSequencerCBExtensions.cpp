@@ -69,8 +69,11 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 
 									FString SequenceName = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.AssetName.ToString());
 									FString DialogueSentencePath = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.PackageName.ToString());
+
+									// TODO：避免已存在的资源
 									UPackage* DialogueSentencePackage = CreatePackage(nullptr, *DialogueSentencePath);
-									UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, UAutoGenDialogueSettings::GetDialogueSentenceType(), *SequenceName, RF_Public | RF_Standalone);
+									TSubclassOf<UDialogueSentence> DialogueSentenceType = UAutoGenDialogueSettings::GetDialogueSentenceType();
+									UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, DialogueSentenceType, *SequenceName, RF_Public | RF_Standalone);
 									DialogueSentence->SentenceWave = SoundWave;
 									DialogueSentence->SubTitle = FText::FromString(SoundWave->SpokenText);
 									DialogueSentence->WhenGenFromSoundWave(SoundWave);

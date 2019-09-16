@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Modules/ModuleManager.h"
+#include "ISettingsSection.h"
 
 class UPreviewDialogueSoundSequence;
 
@@ -24,4 +25,7 @@ private:
 	FName DialogueCharacterDataTypeName = TEXT("DialogueCharacterData");
 	FName DialogueSentenceEditDataTypeName = TEXT("DialogueSentenceEditData");
 	FName DialogueCharacterName = TEXT("DialogueCharacterName");
+
+	ISettingsSectionPtr RuntimeSettingsSection;
+	ISettingsSectionPtr SettingsSection;
 };

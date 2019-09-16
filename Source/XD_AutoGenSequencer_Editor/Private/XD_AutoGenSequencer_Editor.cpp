@@ -13,6 +13,8 @@
 #include <ISettingsSection.h>
 #include "AutoGenDialogueSettings.h"
 #include "AssetToolsModule.h"
+#include "AutoGenDialogueRuntimeSettings.h"
+#include "ISettingsCategory.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -67,7 +69,12 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 	if (SettingsModule != nullptr)
 	{
-		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "XD_AutoGenSequencer",
+		RuntimeSettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "XD_AutoGenSequencer_Runtime",
+			LOCTEXT("AutoGenDialogueRuntimeSettings", "AutoGenDialogueRuntimeSettings"),
+			LOCTEXT("AutoGenDialogueRuntimeSettingsDescription", "Configure the AutoGenDialogueRuntimeSettings plug-in."),
+			GetMutableDefault<UAutoGenDialogueRuntimeSettings>()
+		);
+		SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "XD_AutoGenSequencer",
 			LOCTEXT("AutoGenDialogueSettings", "AutoGenDialogueSettings"),
 			LOCTEXT("AutoGenDialogueSettingsDescription", "Configure the AutoGenDialogueSettings plug-in."),
 			GetMutableDefault<UAutoGenDialogueSettings>()
@@ -103,6 +110,21 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterDataTypeName);
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName);
 		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterName);
+	}
+
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if (SettingsModule != nullptr)
+	{
+		if (RuntimeSettingsSection)
+		{
+			ISettingsCategory* Category = RuntimeSettingsSection->GetCategory().Pin().Get();
+			SettingsModule->UnregisterSettings("Project", Category->GetName(), RuntimeSettingsSection->GetName());
+		}
+		if (SettingsSection)
+		{
+			ISettingsCategory* Category = SettingsSection->GetCategory().Pin().Get();
+			SettingsModule->UnregisterSettings("Project", Category->GetName(), SettingsSection->GetName());
+		}
 	}
 }
 

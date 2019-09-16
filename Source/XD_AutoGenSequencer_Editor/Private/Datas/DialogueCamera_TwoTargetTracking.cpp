@@ -6,10 +6,13 @@
 #include "TwoTargetCameraTrackingSection.h"
 #include "DialogueCameraUtils.h"
 #include "CineCameraActor.h"
+#include "Editor.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "DialogueStandPositionTemplate.h"
 #include "GameFramework/Character.h"
 #include "CineCameraComponent.h"
 #include "GenDialogueSequenceConfigBase.h"
+#include "AutoGenDialogueRuntimeSettings.h"
 
 void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
 {
@@ -68,6 +71,15 @@ AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTrac
 		float DistanceWeights = FMath::Clamp(CameraDistance / (CharacterDistance * 2.f), 0.f, 1.f);
 
 		CameraWeightsData.Weights = 1.f - FMath::Abs(DistanceWeights - DistanceDialogueProgressWeights);
+
+		// 避免穿入碰撞内部
+		// TODO：考虑覆盖屏幕百分比
+		FHitResult CameraHitResult;
+		if (UKismetSystemLibrary::BoxTraceSingle(GEditor->GetEditorWorldContext().World(), CameraLocation, FocusCenterLocation, FVector(0.1f, 20.f, 20.f), (FocusCenterLocation - CameraLocation).Rotation(), GetDefault<UAutoGenDialogueRuntimeSettings>()->CameraEvaluateTraceChannel, false, {}, EDrawDebugTrace::None, CameraHitResult, false))
+		{
+			float DistanceToCameraLocation = (CameraLocation - CameraHitResult.ImpactPoint).Size();
+			CameraWeightsData.Weights *= DistanceToCameraLocation / CameraDistance;
+		}
 	}
 	return CameraWeightsData;
 }
