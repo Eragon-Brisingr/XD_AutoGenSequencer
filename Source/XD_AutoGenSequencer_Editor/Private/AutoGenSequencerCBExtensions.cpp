@@ -11,6 +11,9 @@
 #include "DialogueSentence.h"
 #include "AssetRegistryModule.h"
 #include "AutoGenDialogueSettings.h"
+#include "LevelSequence.h"
+#include "AutoGenDialogueSequenceFactory.h"
+#include "AutoGenDialogueSystemData.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -38,51 +41,97 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 {
 	TSharedRef<FExtender> Extender(new FExtender());
 
-	bool bAnySoundWave = false;
-
-	TArray<FAssetData> SelectedSoundWaves;
-	for (const FAssetData& Asset : SelectedAssets)
+	// 音频转换成对话资源
 	{
-		if (Asset.AssetClass == USoundWave::StaticClass()->GetFName())
+		TArray<FAssetData> SelectedSoundWaves;
+		for (const FAssetData& Asset : SelectedAssets)
 		{
-			SelectedSoundWaves.Add(Asset);
+			if (Asset.AssetClass == USoundWave::StaticClass()->GetFName())
+			{
+				SelectedSoundWaves.Add(Asset);
+			}
+		}
+		if (SelectedSoundWaves.Num() > 0)
+		{
+			Extender->AddMenuExtension(
+				"GetAssetActions",
+				EExtensionHook::After,
+				nullptr,
+				FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
+					{
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("CreateDialogueSentence_Menu", "生成对白语句"),
+							LOCTEXT("CreateDialogueSentence_Tooltip", "生成对白语句"),
+							FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
+								{
+									for (const FAssetData& SoundWaveAsset : SelectedSoundWaves)
+									{
+										USoundWave* SoundWave = CastChecked<USoundWave>(SoundWaveAsset.GetAsset());
+
+										FString SequenceName = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.AssetName.ToString());
+										FString DialogueSentencePath = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.PackageName.ToString());
+
+										// TODO：避免已存在的资源
+										UPackage* DialogueSentencePackage = CreatePackage(nullptr, *DialogueSentencePath);
+										TSubclassOf<UDialogueSentence> DialogueSentenceType = UAutoGenDialogueSettings::GetDialogueSentenceType();
+										UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, DialogueSentenceType, *SequenceName, RF_Public | RF_Standalone);
+										DialogueSentence->SentenceWave = SoundWave;
+										DialogueSentence->SubTitle = FText::FromString(SoundWave->SpokenText);
+										DialogueSentence->WhenGenFromSoundWave(SoundWave);
+
+										FAssetRegistryModule::AssetCreated(DialogueSentence);
+										DialogueSentence->MarkPackageDirty();
+									}
+								})));
+					}));
 		}
 	}
 
-	if (SelectedSoundWaves.Num() > 0)
+	// LevelSequence添加自动生成对话功能
 	{
-		Extender->AddMenuExtension(
-			"GetAssetActions",
-			EExtensionHook::After,
-			nullptr,
-			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
-				{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("CreateDialogueSentence_Menu", "生成对白语句"),
-						LOCTEXT("CreateDialogueSentence_Tooltip",
-							"生成对白语句"),
-						FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
-							{
-								for (const FAssetData& SoundWaveAsset : SelectedSoundWaves)
+		TArray<FAssetData> SelectedLevelSequences;
+		for (const FAssetData& Asset : SelectedAssets)
+		{
+			if (Asset.AssetClass == ULevelSequence::StaticClass()->GetFName())
+			{
+				SelectedLevelSequences.Add(Asset);
+			}
+		}
+		if (SelectedLevelSequences.Num() > 0)
+		{
+			Extender->AddMenuExtension(
+				"CommonAssetActions",
+				EExtensionHook::After,
+				nullptr,
+				FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
+					{
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("AddAutoGenDialogueSystem_Menu", "添加自动生成对白系统"),
+							LOCTEXT("AddAutoGenDialogueSystem_Tooltip", "添加自动生成对白系统"),
+							FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
 								{
-									USoundWave* SoundWave = CastChecked<USoundWave>(SoundWaveAsset.GetAsset());
-
-									FString SequenceName = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.AssetName.ToString());
-									FString DialogueSentencePath = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.PackageName.ToString());
-
-									// TODO：避免已存在的资源
-									UPackage* DialogueSentencePackage = CreatePackage(nullptr, *DialogueSentencePath);
-									TSubclassOf<UDialogueSentence> DialogueSentenceType = UAutoGenDialogueSettings::GetDialogueSentenceType();
-									UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, DialogueSentenceType, *SequenceName, RF_Public | RF_Standalone);
-									DialogueSentence->SentenceWave = SoundWave;
-									DialogueSentence->SubTitle = FText::FromString(SoundWave->SpokenText);
-									DialogueSentence->WhenGenFromSoundWave(SoundWave);
-
-									FAssetRegistryModule::AssetCreated(DialogueSentence);
-									DialogueSentence->MarkPackageDirty();
-								}
-							})));
-				}));
+									UClass* ChoseClass = nullptr;
+									const bool bIsPressedOk = UAutoGenDialogueSequenceFactory::ShowPickConfigClassViewer(ChoseClass);
+									if (bIsPressedOk && ChoseClass)
+									{
+										for (const FAssetData& LevelSequenceAsset : SelectedLevelSequences)
+										{
+											ULevelSequence* LevelSequence = CastChecked<ULevelSequence>(LevelSequenceAsset.GetAsset());
+											UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindMetaData<UAutoGenDialogueSystemData>();
+											if (AutoGenDialogueSystemData && !AutoGenDialogueSystemData->AutoGenDialogueSequenceConfig->IsA(ChoseClass))
+											{
+												LevelSequence->RemoveMetaData<UAutoGenDialogueSystemData>();
+												AutoGenDialogueSystemData = nullptr;
+											}
+											if (AutoGenDialogueSystemData == nullptr)
+											{
+												UAutoGenDialogueSequenceFactory::AddAutoGenDialogueSystemData(LevelSequence, ChoseClass);
+											}
+										}
+									}
+								})));
+					}));
+		}
 	}
 
 	return Extender;

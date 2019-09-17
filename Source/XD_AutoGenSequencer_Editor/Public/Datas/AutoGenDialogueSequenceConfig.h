@@ -103,7 +103,7 @@ public:
 		const FDialogueSentenceEditData& GetDialogueSentenceEditData() const;
 	};
 
-	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSequence& AutoGenDialogueSequence) const override;
+	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSystemData& AutoGenDialogueSystemData) const override;
 
 	struct XD_AUTOGENSEQUENCER_EDITOR_API FAnimTrackData
 	{

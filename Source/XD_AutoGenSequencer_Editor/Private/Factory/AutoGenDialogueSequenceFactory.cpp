@@ -5,7 +5,8 @@
 #include "MovieSceneToolsProjectSettings.h"
 #include "FrameRate.h"
 #include "PreviewDialogueSoundSequence.h"
-#include "AutoGenDialogueSequence.h"
+#include "LevelSequence.h"
+#include "AutoGenDialogueSystemData.h"
 #include "PreviewDialogueSentenceTrack.h"
 #include "AutoGenDialogueSequenceConfig.h"
 #include "XD_AutoGenSequencer_Editor.h"
@@ -17,14 +18,14 @@
 
 UAutoGenDialogueSequenceFactory::UAutoGenDialogueSequenceFactory()
 {
-	SupportedClass = UAutoGenDialogueSequence::StaticClass();
+	SupportedClass = ULevelSequence::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
 }
 
 UObject* UAutoGenDialogueSequenceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	UAutoGenDialogueSequence* NewLevelSequence = NewObject<UAutoGenDialogueSequence>(InParent, Name, Flags | RF_Transactional);
+	ULevelSequence* NewLevelSequence = NewObject<ULevelSequence>(InParent, Name, Flags | RF_Transactional);
 	NewLevelSequence->Initialize();
 
 	// Set up some sensible defaults
@@ -32,11 +33,8 @@ UObject* UAutoGenDialogueSequenceFactory::FactoryCreateNew(UClass* Class, UObjec
 	FFrameRate TickResolution = NewLevelSequence->GetMovieScene()->GetTickResolution();
 	NewLevelSequence->GetMovieScene()->SetPlaybackRange((ProjectSettings->DefaultStartTime*TickResolution).FloorToFrame(), (ProjectSettings->DefaultDuration*TickResolution).FloorToFrame().Value);
 
-	NewLevelSequence->AutoGenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(NewLevelSequence, AutoGenDialogueSequenceConfigClass,  GET_MEMBER_NAME_CHECKED(UAutoGenDialogueSequence, AutoGenDialogueSequenceConfig), Flags | RF_Transactional);
+	AddAutoGenDialogueSystemData(NewLevelSequence, AutoGenDialogueSequenceConfigClass);
 	AutoGenDialogueSequenceConfigClass = nullptr;
-
-	NewLevelSequence->bIsNewCreated = true;
-	NewLevelSequence->bIsNotSetStandPosition = true;
 
 	return NewLevelSequence;
 }
@@ -45,6 +43,30 @@ bool UAutoGenDialogueSequenceFactory::ConfigureProperties()
 {
 	AutoGenDialogueSequenceConfigClass = nullptr;
 
+	UClass* ChosenClass = nullptr;
+	const bool bPressedOk = ShowPickConfigClassViewer(ChosenClass);
+
+	if (bPressedOk)
+	{
+		check(ChosenClass);
+		AutoGenDialogueSequenceConfigClass = ChosenClass;
+	}
+
+	return bPressedOk; 
+}
+
+void UAutoGenDialogueSequenceFactory::AddAutoGenDialogueSystemData(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass)
+{
+	const EObjectFlags Flags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone | EObjectFlags::RF_Transactional;
+	UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindOrAddMetaData<UAutoGenDialogueSystemData>();
+	AutoGenDialogueSystemData->SetFlags(Flags);
+	AutoGenDialogueSystemData->AutoGenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(LevelSequence, AutoGenDialogueSequenceConfigClass, GET_MEMBER_NAME_CHECKED(UAutoGenDialogueSystemData, AutoGenDialogueSequenceConfig), Flags);
+	AutoGenDialogueSystemData->bIsNewCreated = true;
+	AutoGenDialogueSystemData->bIsNotSetStandPosition = true;
+}
+
+bool UAutoGenDialogueSequenceFactory::ShowPickConfigClassViewer(UClass*& ChosenClass)
+{
 	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
 	FClassViewerInitializationOptions Options;
 
@@ -69,16 +91,7 @@ bool UAutoGenDialogueSequenceFactory::ConfigureProperties()
 	Options.NameTypeToDisplay = EClassViewerNameTypeToDisplay::Dynamic;
 
 	const FText TitleText = LOCTEXT("选择生成对白配置", "选择生成对白配置");
-	UClass* ChosenClass = nullptr;
-	const bool bPressedOk = SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UGenDialogueSequenceConfigBase::StaticClass());
-
-	if (bPressedOk)
-	{
-		check(ChosenClass);
-		AutoGenDialogueSequenceConfigClass = ChosenClass;
-	}
-
-	return bPressedOk; 
+	return SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UGenDialogueSequenceConfigBase::StaticClass());
 }
 
 FText UAutoGenDialogueSequenceFactory::GetDisplayName() const

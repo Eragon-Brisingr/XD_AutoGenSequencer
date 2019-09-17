@@ -7,7 +7,7 @@
 class FExtender;
 class ISequencer;
 class ISequencerModule;
-class UAutoGenDialogueSequence;
+class UAutoGenDialogueSystemData;
 class UPreviewDialogueSoundSequence;
 class UGenDialogueSequenceConfigBase;
 class ADialogueStandPositionTemplate;
@@ -22,6 +22,8 @@ class XD_AUTOGENSEQUENCER_EDITOR_API FDialogueSequenceExtender
 public:	
 	void Register(ISequencerModule& SequencerModule);
 
+	void BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuilder);
+
 	void Unregister(ISequencerModule& SequencerModule);
 
 	static FDialogueSequenceExtender& Get()
@@ -34,8 +36,9 @@ private:
 	TSharedPtr<FExtender> SequencerToolbarExtender;
 	TWeakPtr<ISequencer> WeakSequencer;
 
-	TWeakObjectPtr<UAutoGenDialogueSequence> WeakAutoGenDialogueSequence;
-	UAutoGenDialogueSequence* GetAutoGenDialogueSequence() const;
+	TWeakObjectPtr<UAutoGenDialogueSystemData> WeakAutoGenDialogueSystemData;
+	UAutoGenDialogueSystemData* GetAutoGenDialogueSystemData() const;
+	ULevelSequence* GetAutoGenDialogueSequence() const;
 	UPreviewDialogueSoundSequence* GetPreviewDialogueSoundSequence() const;
 	UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const;
 
@@ -54,7 +57,7 @@ private:
 	void DestroyPreviewStandPositionTemplate();
 	void GeneratePreviewCharacters();
 	//将生成的预览实例和定序器中的同步
-	static void SyncSequenceInstanceReference(UAutoGenDialogueSequence* AutoGenDialogueSequence, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
+	static void SyncSequenceInstanceReference(UAutoGenDialogueSystemData* AutoGenDialogueSystemData, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
 
 	void WhenStandTemplateInstanceChanged();
 };

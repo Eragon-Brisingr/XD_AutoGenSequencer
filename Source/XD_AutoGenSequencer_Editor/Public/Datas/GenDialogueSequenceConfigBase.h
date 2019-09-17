@@ -12,7 +12,7 @@
 class ISequencer;
 class ACharacter;
 class UPreviewDialogueSoundSequence;
-class UAutoGenDialogueSequence;
+class UAutoGenDialogueSystemData;
 class ADialogueStandPositionTemplate;
 class UAutoGenDialogueAnimSetBase;
 
@@ -102,5 +102,5 @@ public:
 public:
 	virtual void GeneratePreview() const {}
 
-	virtual void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSequence& AutoGenDialogueSequence) const {}
+	virtual void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSystemData& AutoGenDialogueSequence) const {}
 };

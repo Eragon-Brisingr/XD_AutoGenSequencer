@@ -4,7 +4,8 @@
 #include "DialogueSequenceExtender.h"
 
 #include "GenDialogueSequenceConfigBase.h"
-#include "AutoGenDialogueSequence.h"
+#include "LevelSequence.h"
+#include "AutoGenDialogueSystemData.h"
 #include "PreviewDialogueSoundSequence.h"
 #include "DialogueStandPositionTemplate.h"
 
@@ -33,164 +34,162 @@ void FDialogueSequenceExtender::Register(ISequencerModule& SequencerModule)
 
 	SequencerToolbarExtender = MakeShareable(new FExtender());
 	SequencerToolbarExtender->AddToolBarExtension(
-		"Level Sequence Separator",
-		EExtensionHook::After,
+		"Base Commands",
+		EExtensionHook::Before,
 		nullptr,
-		FToolBarExtensionDelegate::CreateLambda([=](FToolBarBuilder& ToolBarBuilder)
-			{
-				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-						{
-							if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
-							{
-								if (!IsPreviewDialogueSequenceActived())
-								{
-									OpenPreviewDialogueSoundSequence();
-								}
-								FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
-							}
-						}),
-					FCanExecuteAction(),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateLambda([=]()
-						{
-							return WeakAutoGenDialogueSequence.IsValid();
-						})), NAME_None,
-					LOCTEXT("打开对白配置", "打开对白配置"),
-					LOCTEXT("打开对白配置", "打开对白配置"),
-					FAutoGenDialogueEditorStyle::Get().GetConfigIcon());
-				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-						{
-							if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
-							{
-								OpenPreviewDialogueSoundSequence();
-							}
-						}),
-					FCanExecuteAction::CreateLambda([=]()
-						{
-							return IsAutoGenDialogueSequenceActived();
-						}),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateLambda([=]()
-						{
-							return WeakAutoGenDialogueSequence.IsValid();
-						})), NAME_None,
-					LOCTEXT("打开预览序列", "打开预览序列"),
-					LOCTEXT("打开预览序列", "打开预览序列"),
-					FAutoGenDialogueEditorStyle::Get().GetPreviewIcon());
-				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-					{
-						if (UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence())
-						{
-							OpenAutoGenDialogueSequence();
-
-						}
-					}),
-					FCanExecuteAction::CreateLambda([=]()
-						{
-							return IsPreviewDialogueSequenceActived();
-						}),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateLambda([=]()
-						{
-							return WeakAutoGenDialogueSequence.IsValid();
-						})), NAME_None,
-					LOCTEXT("打开对白序列", "打开对白序列"),
-					LOCTEXT("打开对白序列", "打开对白序列"),
-					FAutoGenDialogueEditorStyle::Get().GetDialogueIcon());
-				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-						{
-							UGenDialogueSequenceConfigBase* Config = GetAutoGenDialogueSequenceConfig();
-							if (IsPreviewDialogueSequenceActived())
-							{
-								UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
-
-								TArray<FText> ErrorMessages;
-								if (!Config->IsConfigValid(ErrorMessages))
-								{
-									FText ErrorMessage = FText::GetEmpty();
-									for (const FText& Error : ErrorMessages)
-									{
-										ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
-									}
-									FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
-									return;
-								}
-
-								GeneratePreviewCharacters();
-								Config->GeneratePreview();
-
-								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-								FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
-								FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
-							}
-							else if (IsAutoGenDialogueSequenceActived())
-							{
-								TArray<FText> ErrorMessages;
-								if (!Config->IsConfigValid(ErrorMessages))
-								{
-									FText ErrorMessage = FText::GetEmpty();
-									for (const FText& Error : ErrorMessages)
-									{
-										ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
-									}
-									FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
-									return;
-								}
-
-								UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence();
-								if (!PreviewStandPositionTemplate.IsValid())
-								{
-									GeneratePreviewCharacters();
-								}
-
-								UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = AutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig();
-								GenDialogueSequenceConfig->Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, *AutoGenDialogueSequence);
-
-								TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-								//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-								FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
-								FAssetEditorManager::Get().OpenEditorForAsset(AutoGenDialogueSequence);
-							}
-						}),
-					FCanExecuteAction::CreateLambda([]()
-						{
-							return true;
-						}),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateLambda([=]()
-						{
-							return WeakAutoGenDialogueSequence.IsValid();
-						})), NAME_None,
-					LOCTEXT("生成", "生成"),
-					LOCTEXT("生成", "生成"),
-					FAutoGenDialogueEditorStyle::Get().GetGenerateIcon());
-
-				ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-						{
-							if (PreviewStandPositionTemplate.IsValid())
-							{
-								DestroyPreviewStandPositionTemplate();
-							}
-							GeneratePreviewCharacters();
-						}),
-					FCanExecuteAction::CreateLambda([]()
-						{
-							return true;
-						}),
-					FIsActionChecked(),
-					FIsActionButtonVisible::CreateLambda([=]()
-						{
-							return WeakAutoGenDialogueSequence.IsValid();
-						}), EUIActionRepeatMode::RepeatEnabled), NAME_None,
-					LOCTEXT("刷新模板显示", "刷新模板显示"),
-					LOCTEXT("刷新模板显示", "刷新模板显示"),
-					FAutoGenDialogueEditorStyle::Get().GetStandpositionIcon());
-
-				ToolBarBuilder.AddSeparator("Auto Gen Dialogue");
-			}));
+		FToolBarExtensionDelegate::CreateRaw(this, &FDialogueSequenceExtender::BuildAutoGenToolbar));
 
 	SequencerModule.GetToolBarExtensibilityManager()->AddExtender(SequencerToolbarExtender);
+}
+
+void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuilder)
+{
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+			{
+				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
+				{
+					if (!IsPreviewDialogueSequenceActived())
+					{
+						OpenPreviewDialogueSoundSequence();
+					}
+					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
+				}
+			}),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			})), NAME_None,
+		LOCTEXT("打开对白配置", "打开对白配置"),
+		LOCTEXT("打开对白配置", "打开对白配置"),
+		FAutoGenDialogueEditorStyle::Get().GetConfigIcon());
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+			{
+				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
+				{
+					OpenPreviewDialogueSoundSequence();
+				}
+			}),
+		FCanExecuteAction::CreateLambda([=]()
+			{
+				return IsAutoGenDialogueSequenceActived();
+			}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			})), NAME_None,
+		LOCTEXT("打开预览序列", "打开预览序列"),
+		LOCTEXT("打开预览序列", "打开预览序列"),
+		FAutoGenDialogueEditorStyle::Get().GetPreviewIcon());
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+		{
+			OpenAutoGenDialogueSequence();
+		}),
+		FCanExecuteAction::CreateLambda([=]()
+			{
+				return IsPreviewDialogueSequenceActived();
+			}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			})), NAME_None,
+		LOCTEXT("打开对白序列", "打开对白序列"),
+		LOCTEXT("打开对白序列", "打开对白序列"),
+		FAutoGenDialogueEditorStyle::Get().GetDialogueIcon());
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+			{
+				UGenDialogueSequenceConfigBase* Config = GetAutoGenDialogueSequenceConfig();
+				if (IsPreviewDialogueSequenceActived())
+				{
+					UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence();
+
+					TArray<FText> ErrorMessages;
+					if (!Config->IsConfigValid(ErrorMessages))
+					{
+						FText ErrorMessage = FText::GetEmpty();
+						for (const FText& Error : ErrorMessages)
+						{
+							ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
+						}
+						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
+						return;
+					}
+
+					GeneratePreviewCharacters();
+					Config->GeneratePreview();
+
+					TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
+					//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
+					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+					FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
+				}
+				else if (IsAutoGenDialogueSequenceActived())
+				{
+					TArray<FText> ErrorMessages;
+					if (!Config->IsConfigValid(ErrorMessages))
+					{
+						FText ErrorMessage = FText::GetEmpty();
+						for (const FText& Error : ErrorMessages)
+						{
+							ErrorMessage = FText::Format(LOCTEXT("Error Append", "{0}\n{1}"), ErrorMessage, Error);
+						}
+						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("预览导轨生成报错", "配置中存在问题，无法生成{0}"), ErrorMessage));
+						return;
+					}
+
+					UAutoGenDialogueSystemData* AutoGenDialogueSystemData = GetAutoGenDialogueSystemData();
+					if (!PreviewStandPositionTemplate.IsValid())
+					{
+						GeneratePreviewCharacters();
+					}
+
+					UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = AutoGenDialogueSystemData->GetAutoGenDialogueSequenceConfig();
+					GenDialogueSequenceConfig->Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), CharacterNameInstanceMap, *AutoGenDialogueSystemData);
+
+					TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
+					//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
+					FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+				}
+			}),
+		FCanExecuteAction::CreateLambda([]()
+			{
+				return true;
+			}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			})), NAME_None,
+		LOCTEXT("生成", "生成"),
+		LOCTEXT("生成", "生成"),
+		FAutoGenDialogueEditorStyle::Get().GetGenerateIcon());
+
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+			{
+				if (PreviewStandPositionTemplate.IsValid())
+				{
+					DestroyPreviewStandPositionTemplate();
+				}
+				GeneratePreviewCharacters();
+			}),
+		FCanExecuteAction::CreateLambda([]()
+			{
+				return true;
+			}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			}), EUIActionRepeatMode::RepeatEnabled), NAME_None,
+		LOCTEXT("刷新模板显示", "刷新模板显示"),
+		LOCTEXT("刷新模板显示", "刷新模板显示"),
+		FAutoGenDialogueEditorStyle::Get().GetStandpositionIcon());
+
+	ToolBarBuilder.AddSeparator("Auto Gen Dialogue");
 }
 
 void FDialogueSequenceExtender::Unregister(ISequencerModule& SequencerModule)
@@ -199,37 +198,34 @@ void FDialogueSequenceExtender::Unregister(ISequencerModule& SequencerModule)
 	SequencerModule.GetToolBarExtensibilityManager()->RemoveExtender(SequencerToolbarExtender);
 }
 
-UAutoGenDialogueSequence* FDialogueSequenceExtender::GetAutoGenDialogueSequence() const
+UAutoGenDialogueSystemData* FDialogueSequenceExtender::GetAutoGenDialogueSystemData() const
 {
-	return WeakAutoGenDialogueSequence.Get();
+	return WeakAutoGenDialogueSystemData.Get();
+}
+
+ULevelSequence* FDialogueSequenceExtender::GetAutoGenDialogueSequence() const
+{
+	return WeakAutoGenDialogueSystemData->GetOwingLevelSequence();
 }
 
 UPreviewDialogueSoundSequence* FDialogueSequenceExtender::GetPreviewDialogueSoundSequence() const
 {
-	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig()->PreviewDialogueSoundSequence : nullptr;
+	return WeakAutoGenDialogueSystemData.IsValid() ? WeakAutoGenDialogueSystemData->GetAutoGenDialogueSequenceConfig()->PreviewDialogueSoundSequence : nullptr;
 }
 
 UGenDialogueSequenceConfigBase* FDialogueSequenceExtender::GetAutoGenDialogueSequenceConfig() const
 {
-	return WeakAutoGenDialogueSequence.IsValid() ? WeakAutoGenDialogueSequence->GetAutoGenDialogueSequenceConfig() : nullptr;
+	return WeakAutoGenDialogueSystemData.IsValid() ? WeakAutoGenDialogueSystemData->GetAutoGenDialogueSequenceConfig() : nullptr;
 }
 
 bool FDialogueSequenceExtender::IsPreviewDialogueSequenceActived()
 {
-	if (WeakSequencer.IsValid())
-	{
-		return Cast<UPreviewDialogueSoundSequence>(WeakSequencer.Pin()->GetFocusedMovieSceneSequence()) ? true : false;
-	}
-	return false;
+	return WeakSequencer.Pin()->GetFocusedMovieSceneSequence() == GetPreviewDialogueSoundSequence();
 }
 
 bool FDialogueSequenceExtender::IsAutoGenDialogueSequenceActived()
 {
-	if (WeakSequencer.IsValid())
-	{
-		return Cast<UAutoGenDialogueSequence>(WeakSequencer.Pin()->GetFocusedMovieSceneSequence()) ? true : false;
-	}
-	return false;
+	return WeakSequencer.Pin()->GetFocusedMovieSceneSequence() == GetAutoGenDialogueSequence();
 }
 
 void FDialogueSequenceExtender::OpenPreviewDialogueSoundSequence()
@@ -248,14 +244,20 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 {
 	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch)
 	{
-		if (UAutoGenDialogueSequence* AutoGenDialogueSequence = Cast<UAutoGenDialogueSequence>(InSequencer->GetFocusedMovieSceneSequence()))
+		ULevelSequence* LevelSequence = Cast<ULevelSequence>(InSequencer->GetFocusedMovieSceneSequence());
+		if (!LevelSequence)
 		{
-			UAutoGenDialogueSequence* OldAutoGenDialogueSequence = WeakAutoGenDialogueSequence.Get();
-			WeakAutoGenDialogueSequence = AutoGenDialogueSequence;
+			return;
+		}
 
-			if (AutoGenDialogueSequence->bIsNewCreated)
+		if (UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindMetaData<UAutoGenDialogueSystemData>())
+		{
+			UAutoGenDialogueSystemData* OldAutoGenDialogueSequence = WeakAutoGenDialogueSystemData.Get();
+			WeakAutoGenDialogueSystemData = AutoGenDialogueSystemData;
+
+			if (AutoGenDialogueSystemData->bIsNewCreated)
 			{
-				AutoGenDialogueSequence->bIsNewCreated = false;
+				AutoGenDialogueSystemData->bIsNewCreated = false;
 				FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 				// 直接开不行，延迟一帧
 				GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
@@ -263,14 +265,14 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 						OpenPreviewDialogueSoundSequence();
 					});
 			}
-			else if (OldAutoGenDialogueSequence != AutoGenDialogueSequence)
+			else if (OldAutoGenDialogueSequence != AutoGenDialogueSystemData)
 			{
 				GeneratePreviewCharacters();
 			}
 		}
 		else
 		{
-			WeakAutoGenDialogueSequence = nullptr;
+			WeakAutoGenDialogueSystemData = nullptr;
 			DestroyPreviewStandPositionTemplate();
 		}
 	}
@@ -287,7 +289,7 @@ void FDialogueSequenceExtender::OnSequencerClosed(TSharedRef<ISequencer> InSeque
 	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch)
 	{
 		WeakSequencer = nullptr;
-		WeakAutoGenDialogueSequence = nullptr;
+		WeakAutoGenDialogueSystemData = nullptr;
 		if (PreviewStandPositionTemplate.IsValid())
 		{
 			DestroyPreviewStandPositionTemplate();
@@ -323,7 +325,7 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 	DestroyPreviewStandPositionTemplate();
 
 	UGenDialogueSequenceConfigBase* DialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();
-	UAutoGenDialogueSequence* AutoGenDialogueSequence = GetAutoGenDialogueSequence();
+	UAutoGenDialogueSystemData* AutoGenDialogueSequence = GetAutoGenDialogueSystemData();
 
 	if (TSubclassOf<ADialogueStandPositionTemplate> StandTemplateType = DialogueSequenceConfig->DialogueStation.DialogueStationTemplate)
 	{
@@ -407,16 +409,17 @@ void FDialogueSequenceExtender::GeneratePreviewCharacters()
 			}
 			ChildActorComponent->SetRelativeTransform(DialogueCharacterData.PositionOverride);
 			StandPosition.StandPosition = DialogueCharacterData.PositionOverride;
-			SyncSequenceInstanceReference(GetAutoGenDialogueSequence(), CharacterNameInstanceMap);
+			SyncSequenceInstanceReference(GetAutoGenDialogueSystemData(), CharacterNameInstanceMap);
 		}
 
 		StandPositionTemplate->OnInstanceChanged.BindRaw(this, &FDialogueSequenceExtender::WhenStandTemplateInstanceChanged);
 	}
 }
 
-void FDialogueSequenceExtender::SyncSequenceInstanceReference(UAutoGenDialogueSequence* AutoGenDialogueSequence, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap)
+void FDialogueSequenceExtender::SyncSequenceInstanceReference(UAutoGenDialogueSystemData* AutoGenDialogueSystemData, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap)
 {
-	UMovieScene* MovieScene = AutoGenDialogueSequence->GetMovieScene();
+	ULevelSequence* LevelSeqeunce = AutoGenDialogueSystemData->GetOwingLevelSequence();
+	UMovieScene* MovieScene = LevelSeqeunce->GetMovieScene();
 	for (const TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
 	{
 		if (FMovieScenePossessable* MovieScenePossessable = MovieScene->FindPossessable([=](const FMovieScenePossessable& E) {return E.GetName() == Pair.Key.ToString(); }))
@@ -424,8 +427,8 @@ void FDialogueSequenceExtender::SyncSequenceInstanceReference(UAutoGenDialogueSe
 			ACharacter* SpeakerInstance = Pair.Value.Get();
 			check(SpeakerInstance);
 			FGuid BindingGuid = MovieScenePossessable->GetGuid();
-			AutoGenDialogueSequence->UnbindPossessableObjects(BindingGuid);
-			AutoGenDialogueSequence->BindPossessableObject(MovieScenePossessable->GetGuid(), *SpeakerInstance, SpeakerInstance);
+			LevelSeqeunce->UnbindPossessableObjects(BindingGuid);
+			LevelSeqeunce->BindPossessableObject(MovieScenePossessable->GetGuid(), *SpeakerInstance, SpeakerInstance);
 		}
 	}
 }
@@ -438,7 +441,7 @@ void FDialogueSequenceExtender::WhenStandTemplateInstanceChanged()
 	AutoGenDialogueSequenceConfig->Modify();
 
 	AutoGenDialogueSequenceConfig->DialogueStation.SyncInstanceData(StandPositionTemplate);
-	GetAutoGenDialogueSequence()->StandPositionPosition = StandPositionTemplate->GetActorTransform();
+	GetAutoGenDialogueSystemData()->StandPositionPosition = StandPositionTemplate->GetActorTransform();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -7,7 +7,7 @@
 #include "PreviewDialogueSoundSequence.generated.h"
 
 class UPreviewDialogueSentenceTrack;
-class UAutoGenDialogueSequence;
+class UAutoGenDialogueSystemData;
 class UAutoGenDialogueSequenceConfig;
 
 /**
