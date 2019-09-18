@@ -322,6 +322,8 @@ void FDialogueSequenceExtender::DestroyPreviewStandPositionTemplate()
 
 void FDialogueSequenceExtender::GeneratePreviewCharacters()
 {
+	FEditorScriptExecutionGuard EditorScriptExecutionGuard;
+
 	DestroyPreviewStandPositionTemplate();
 
 	UGenDialogueSequenceConfigBase* DialogueSequenceConfig = GetAutoGenDialogueSequenceConfig();

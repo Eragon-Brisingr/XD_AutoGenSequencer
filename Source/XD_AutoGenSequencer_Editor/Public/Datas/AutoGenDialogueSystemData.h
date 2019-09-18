@@ -46,13 +46,15 @@ public:
 	uint8 bIsNotSetStandPosition : 1;
 public:
 
+	// TODO：补全资源标签
+
 	/**
 	 * Extend the default ULevelSequence asset registry tags
 	 */
-	virtual void ExtendAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override {}
+	void ExtendAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override {}
 
 	/**
 	 * Extend the default ULevelSequence asset registry tag meta-data
 	 */
-	virtual void ExtendAssetRegistryTagMetaData(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override {}
+	void ExtendAssetRegistryTagMetaData(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override {}
 };
