@@ -30,7 +30,7 @@ public:
 	{}
 
 	UPROPERTY(EditAnywhere)
-	FName Name;
+		FName Name;
 
 	friend bool operator==(const FDialogueCharacterName& LHS, const FDialogueCharacterName& RHS) { return LHS.Name == RHS.Name; }
 	friend uint32 GetTypeHash(const FDialogueCharacterName& DialogueCharacterName) { return GetTypeHash(DialogueCharacterName.Name); }
@@ -87,10 +87,15 @@ public:
 	// TODO：不要用同一个镜头太久时间？
 // 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "镜头最大使用次数"))
 // 	int32 CameraMaxUseTimes = 3;
-	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最长单个镜头时间"))
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "启用合并过短镜头"))
+	uint8 bEnableMergeCamera : 1;
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最长单个镜头时间", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraMergeMaxTime = 2.5f;
+
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "启用分割过长镜头"))
+	uint8 bEnableSplitCamera : 1;
 	// 必须大于CameraMergeMaxTime * 3
-	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间"))
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraSplitMinTime = 12.f;
 
 	struct XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueData
@@ -114,9 +119,9 @@ public:
 			float BlendInTime;
 			float BlendOutTime;
 
-			// 动画所持有的对话数据（可能为空
-			const FGenDialogueData* GenDialogueData = nullptr;
-			bool IsSpeaking() const { return GenDialogueData ? true : false; }
+			// 动画所持有的对话数据，考虑合并带来的多份数据
+			TArray<const FGenDialogueData*> GenDialogueDatas;
+			bool IsContainSpeakingData() const { return GenDialogueDatas.Num() > 0; }
 		};
 		TArray<FAnimSectionVirtualData> AnimSectionVirtualDatas;
 	};

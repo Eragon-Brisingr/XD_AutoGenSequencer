@@ -34,6 +34,8 @@ public:
 	TArray<FGuid> AutoGenCameraGuids;
 	UPROPERTY()
 	TArray<FGuid> AutoGenCameraComponentGuids;
+	UPROPERTY()
+	TArray<FGuid> AutoGenSupplementLightGuids;
 
 	FGuid FindOrAddPossessable(UObject* ObjectToPossess);
 	FGuid CreateSpawnable(UObject* ObjectToSpawn);
