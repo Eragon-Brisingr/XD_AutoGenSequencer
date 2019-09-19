@@ -75,8 +75,9 @@ public:
 	void SyncInstanceData(const ADialogueStandPositionTemplate* Instance);
 	TArray<FName> GetCharacterNames() const;
 
-	TArray<TSharedPtr<FString>> DialogueNameList;
-	TArray<TSharedPtr<FString>>& GetDialogueNameList();
+	TArray<TSharedPtr<FName>> DialogueNameList;
+	static TSharedPtr<FName> InvalidDialogueName;
+	TArray<TSharedPtr<FName>>& GetDialogueNameList();
 	void ReinitDialogueNameList();
 };
 

@@ -33,13 +33,15 @@ TArray<FName> FDialogueStationInstance::GetCharacterNames() const
 	return ValidNameList;
 }
 
-TArray<TSharedPtr<FString>>& FDialogueStationInstance::GetDialogueNameList()
+TSharedPtr<FName> FDialogueStationInstance::InvalidDialogueName = MakeShareable(new FName(TEXT("无效的角色名")));
+
+TArray<TSharedPtr<FName>>& FDialogueStationInstance::GetDialogueNameList()
 {
 	if (DialogueNameList.Num() == 0)
 	{
 		for (const FDialogueCharacterData& Override : DialogueCharacterDatas)
 		{
-			DialogueNameList.Add(MakeShareable(new FString(Override.NameOverride.ToString())));
+			DialogueNameList.Add(MakeShareable(new FName(Override.NameOverride)));
 		}
 	}
 	return DialogueNameList;
@@ -52,11 +54,11 @@ void FDialogueStationInstance::ReinitDialogueNameList()
 	{
 		if (DialogueNameList[Idx].IsValid())
 		{
-			*(DialogueNameList[Idx].Get()) = DialogueCharacterDatas[Idx].NameOverride.ToString();
+			*(DialogueNameList[Idx].Get()) = DialogueCharacterDatas[Idx].NameOverride;
 		}
 		else
 		{
-			DialogueNameList[Idx] = MakeShareable(new FString(DialogueCharacterDatas[Idx].NameOverride.ToString()));
+			DialogueNameList[Idx] = MakeShareable(new FName(DialogueCharacterDatas[Idx].NameOverride));
 		}
 	}
 }

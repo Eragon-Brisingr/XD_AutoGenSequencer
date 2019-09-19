@@ -37,5 +37,5 @@ public:
 	void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	void CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override{}
 
-	static TSharedRef<SWidget> CreateValueWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle, TArray<TSharedPtr<FString>>& DialogueNameList);
+	static TSharedRef<SWidget> CreateValueWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle, TArray<TSharedPtr<FName>>& DialogueNameList);
 };

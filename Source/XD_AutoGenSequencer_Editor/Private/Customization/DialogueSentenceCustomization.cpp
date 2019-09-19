@@ -9,7 +9,6 @@
 #include "GameFramework/Character.h"
 #include "DialogueInterface.h"
 #include "IDetailChildrenBuilder.h"
-#include "STextComboBox.h"
 #include "Editor.h"
 #include "Editor/EditorEngine.h"
 #include "TimerManager.h"
@@ -17,6 +16,8 @@
 #include "EditorStyleSet.h"
 #include "SImage.h"
 #include "MessageDialog.h"
+#include "SNameComboBox.h"
+#include "AutoGenSequence_Log.h"
 
 namespace CustomizationUtils
 {
@@ -333,34 +334,36 @@ void FDialogueCharacterName_Customization::CustomizeHeader(TSharedRef<IPropertyH
 		];
 }
 
-TSharedRef<SWidget> FDialogueCharacterName_Customization::CreateValueWidget(TSharedRef<IPropertyHandle> StructPropertyHandle, TArray<TSharedPtr<FString>>& DialogueNameList)
+TSharedRef<SWidget> FDialogueCharacterName_Customization::CreateValueWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle, TArray<TSharedPtr<FName>>& DialogueNameList)
 {
 	UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle));
 	TSharedPtr<IPropertyHandle> NamePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterName, Name));
 
-	TSharedPtr<FString> SelectedNameRef;
-	FName SelectedName = CustomizationUtils::GetValue<FName>(NamePropertyHandle);
-	for (const TSharedPtr<FString>& NameRef : Config->DialogueStation.GetDialogueNameList())
-	{
-		if (SelectedName.ToString() == *NameRef.Get())
-		{
-			SelectedNameRef = NameRef;
-		}
-	}
-	if (!SelectedNameRef.IsValid())
-	{
-		SelectedNameRef = MakeShareable(new FString(TEXT("无效的角色名")));
-	}
-	return SNew(STextComboBox)			
+	return SNew(SNameComboBox)
 			.OptionsSource(&DialogueNameList)
-			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo)
+			.InitiallySelectedItem([&]
+			{
+				FName SelectedName = CustomizationUtils::GetValue<FName>(NamePropertyHandle);
+				for (const TSharedPtr<FName>& NameRef : Config->DialogueStation.GetDialogueNameList())
+				{
+					if (SelectedName == *NameRef.Get())
+					{
+						return NameRef;
+					}
+				}
+				return FDialogueStationInstance::InvalidDialogueName;
+			}())
+			.OnSelectionChanged_Lambda([=](TSharedPtr<FName> Selection, ESelectInfo::Type SelectInfo)
 			{
 				if (SelectInfo == ESelectInfo::OnMouseClick)
 				{
-					NamePropertyHandle->SetValue(FName(**Selection.Get()));
+					NamePropertyHandle->SetValue(*Selection.Get());
 				}
 			})
-			.InitiallySelectedItem(SelectedNameRef)
+			.OnComboBoxOpening_Lambda([]()
+			{
+				// TODO：打开时的处理，可以尝试修正InitiallySelectedItem的问题
+			})
 			.IsEnabled(!StructPropertyHandle->IsEditConst());
 }
 

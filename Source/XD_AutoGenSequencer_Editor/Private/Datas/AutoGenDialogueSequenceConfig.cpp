@@ -310,13 +310,15 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			MovieScene.RemovePossessable(CameraComponentGuid);
 		}
 		AutoGenDialogueSystemData.AutoGenCameraComponentGuids.Empty();
+		CameraCutTrack->RemoveAllAnimationData();
 		for (const FGuid& CameraGuid : AutoGenDialogueSystemData.AutoGenCameraGuids)
 		{
-			int32 Idx = CameraCutTrack->GetAllSections().IndexOfByPredicate([&](UMovieSceneSection* E) { return CastChecked<UMovieSceneCameraCutSection>(E)->GetCameraBindingID().GetGuid() == CameraGuid; });
-			if (Idx != INDEX_NONE)
-			{
-				CameraCutTrack->RemoveSectionAt(Idx);
-			}
+			// TODO：之后假如有锁定导轨的逻辑需要再处理，现在先全删了
+// 			int32 Idx = CameraCutTrack->GetAllSections().IndexOfByPredicate([&](UMovieSceneSection* E) { return CastChecked<UMovieSceneCameraCutSection>(E)->GetCameraBindingID().GetGuid() == CameraGuid; });
+// 			if (Idx != INDEX_NONE)
+// 			{
+// 				CameraCutTrack->RemoveSectionAt(Idx);
+// 			}
 			MovieScene.RemoveSpawnable(CameraGuid);
 
 			AutoGenCameraFolder->RemoveChildObjectBinding(CameraGuid);
@@ -598,11 +600,16 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 
 		using FCameraWeightsData = AAutoGenDialogueCameraTemplate::FCameraWeightsData;
-		static TArray<FCameraWeightsData> EvaluateAllCameraTemplate(const UAutoGenDialogueCameraSet& AutoGenDialogueCameraSet, ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress)
+		static TArray<FCameraWeightsData> EvaluateAllCameraTemplate(const UAutoGenDialogueCameraSet& AutoGenDialogueCameraSet, ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress, const TArray<const AAutoGenDialogueCameraTemplate*>& ExcludeCameraTemplates = {})
 		{
 			TArray<FCameraWeightsData> CameraWeightsDatas;
 			for (const FAutoGenDialogueCameraConfig& AutoGenDialogueCameraConfig : AutoGenDialogueCameraSet.CameraTemplates)
 			{
+				if (ExcludeCameraTemplates.Contains(AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject()))
+				{
+					continue;
+				}
+
 				AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject();
 				FCameraWeightsData CameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueProgress);
 				if (CameraWeightsData.IsValid())
@@ -615,9 +622,15 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			return CameraWeightsDatas;
 		}
 
-		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, const FName& SpeakerName, ACharacter* Speaker, const TArray<ACharacter*>& Targets, TArray<FCameraActorCreateData>& CameraActorCreateDatas)
+		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, const FName& SpeakerName, ACharacter* Speaker, const TArray<ACharacter*>& Targets, TArray<FCameraActorCreateData>& CameraActorCreateDatas, const TArray<FCameraHandle>& ExcludeCamreaHandles)
 		{
-			TArray<FCameraWeightsData> CameraWeightsDatas = FCameraGenerateUtils::EvaluateAllCameraTemplate(*GenConfig.AutoGenDialogueCameraSet, Speaker, Targets, DialogueProgress);
+			TArray<const AAutoGenDialogueCameraTemplate*> ExcludeCameraTemplates;
+			for (const FCameraHandle CameraHandle : ExcludeCamreaHandles)
+			{
+				ExcludeCameraTemplates.Add(CameraActorCreateDatas[CameraHandle].CameraTemplate);
+			}
+
+			TArray<FCameraWeightsData> CameraWeightsDatas = FCameraGenerateUtils::EvaluateAllCameraTemplate(*GenConfig.AutoGenDialogueCameraSet, Speaker, Targets, DialogueProgress, ExcludeCameraTemplates);
 
 			// 现在直接选择最优的
 			check(CameraWeightsDatas.Num() > 0);
@@ -673,7 +686,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 		FCameraHandle CameraHandle = InvalidCameraHandle;
 
-		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, SpeakerName, Speaker, Targets, CameraActorCreateDatas);
+		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, SpeakerName, Speaker, Targets, CameraActorCreateDatas, {});
 
 		FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas.AddDefaulted_GetRef();
 		CameraCutCreateData.CameraHandle = CameraHandle;
@@ -839,9 +852,9 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 
 				float DialogueProgress = MidCameraCutCreateData.RelatedSentenceIdxs[MidCameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
-				// TODO：保证MidCamera和前一个是不同的
-				MidCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.SpeakerName, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas);
-				//check(MidCameraCutCreateData.CameraHandle != LeftCameraCutCreateData.CameraHandle);
+				// 保证MidCamera和前一个是不同的
+				MidCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.SpeakerName, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas, { LeftCameraCutCreateData.CameraHandle });
+				check(MidCameraCutCreateData.CameraHandle != LeftCameraCutCreateData.CameraHandle);
 			}
 		}
 		FCameraGenerateUtils::TryMergeAllSameCut(CameraCutCreateDatas, CameraActorCreateDatas);
@@ -956,7 +969,8 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 
 		if (DialogueCharacterData.DialogueAnimSet)
 		{
-			const float BlendTime = 0.25f;
+			// TODO：根据动作的相似程度确认混合时间
+			const float BlendTime = 0.7f;
 
 			FFrameNumber AnimStartFrameNumber = StartFrameNumber;
 			FFrameNumber AnimEndFrameNumber = EndFrameNumber;

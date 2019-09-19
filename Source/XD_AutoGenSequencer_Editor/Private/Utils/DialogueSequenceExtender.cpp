@@ -48,10 +48,11 @@ void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuil
 			{
 				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
 				{
-					if (!IsPreviewDialogueSequenceActived())
-					{
-						OpenPreviewDialogueSoundSequence();
-					}
+					// TODO：考虑下修改配置的时候是否要强制生成预览导轨
+// 					if (!IsPreviewDialogueSequenceActived())
+// 					{
+// 						OpenPreviewDialogueSoundSequence();
+// 					}
 					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 				}
 			}),
