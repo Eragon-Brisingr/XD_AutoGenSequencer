@@ -98,6 +98,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraSplitMinTime = 12.f;
 
+	// 补光使用LightChannel2，角色想受光需要开启
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "生成补光组"))
+	uint8 bGenerateSupplementLightGroup : 1;
+
 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "输出生成日志"))
 	uint8 bShowGenerateLog : 1;
 

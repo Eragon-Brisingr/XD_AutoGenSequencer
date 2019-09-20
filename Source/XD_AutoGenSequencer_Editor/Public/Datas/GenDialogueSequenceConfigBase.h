@@ -42,7 +42,6 @@ public:
 	FName TalkAnimSlotName = TEXT("DefaultSlot");
 
 	// 对应的角色蓝图中必须存在该命名的Character类型变量
-	// TODO：做检查
 	UPROPERTY(EditAnywhere)
 	FName LookAtTargetPropertyName = TEXT("CineLookAtTarget");
 

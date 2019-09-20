@@ -46,6 +46,9 @@
 #include "MovieSceneObjectPropertyTrack.h"
 #include "MovieSceneObjectPropertySection.h"
 #include "AutoGenSequence_Log.h"
+#include "Engine/RectLight.h"
+#include "Components/RectLightComponent.h"
+#include "MovieScene3DAttachTrack.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -58,6 +61,7 @@ UAutoGenDialogueSequenceConfig::UAutoGenDialogueSequenceConfig(const FObjectInit
 	:Super(ObjectInitializer),
 	bEnableMergeCamera(true),
 	bEnableSplitCamera(true),
+	bGenerateSupplementLightGroup(true),
 	bShowGenerateLog(true)
 {
 	AutoGenDialogueCameraSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueCameraSet.LoadSynchronous();
@@ -282,7 +286,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 	}
 
-	UMovieSceneFolder* SupplementLightFolder;
+	UMovieSceneFolder* SupplementLightFolder = nullptr;
+	if (bGenerateSupplementLightGroup)
 	{
 		const FName SupplementLightFolderName = TEXT("自动补光组");
 		if (UMovieSceneFolder** P_SupplementLightFolder = MovieScene.GetRootFolders().FindByPredicate([&](UMovieSceneFolder* Folder) {return Folder->GetFolderName() == SupplementLightFolderName; }))
@@ -307,6 +312,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			}
 		}
 		AutoGenTracks.Empty();
+
+		// 镜头
 		for (const FGuid& CameraComponentGuid : AutoGenDialogueSystemData.AutoGenCameraComponentGuids)
 		{
 			MovieScene.RemovePossessable(CameraComponentGuid);
@@ -326,12 +333,17 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			AutoGenCameraFolder->RemoveChildObjectBinding(CameraGuid);
 		}
 		AutoGenDialogueSystemData.AutoGenCameraGuids.Empty();
-		for (const FGuid& SupplementLightGuid : AutoGenDialogueSystemData.AutoGenSupplementLightGuids)
+
+		// 补光
+		if (bGenerateSupplementLightGroup)
 		{
-			MovieScene.RemoveSpawnable(SupplementLightGuid);
-			SupplementLightFolder->RemoveChildObjectBinding(SupplementLightGuid);
+			for (const FGuid& SupplementLightGuid : AutoGenDialogueSystemData.AutoGenSupplementLightGuids)
+			{
+				MovieScene.RemoveSpawnable(SupplementLightGuid);
+				SupplementLightFolder->RemoveChildObjectBinding(SupplementLightGuid);
+			}
+			AutoGenDialogueSystemData.AutoGenSupplementLightGuids.Empty();
 		}
-		AutoGenDialogueSystemData.AutoGenSupplementLightGuids.Empty();
 	}
 
 	// 整理数据
@@ -547,7 +559,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		ACineCameraActor* CameraParams;
 		const AAutoGenDialogueCameraTemplate* CameraTemplate;
 		ACharacter* Speaker;
-		FName SpeakerName;
+		FString GetSpeakerName() const { return Speaker->GetActorLabel(); }
 		TArray<ACharacter*> Targets;
 	};
 	TArray<FCameraCutCreateData> CameraCutCreateDatas;
@@ -954,9 +966,9 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			SpawnParams.ObjectFlags &= ~RF_Transactional;
 			SpawnParams.Template = CameraActorCreateData.CameraParams;
 			ACineCameraActor* AutoGenCamera = World->SpawnActor<ACineCameraActor>(CameraActorCreateData.CameraLocation, CameraActorCreateData.CameraRotation, SpawnParams);
-			AutoGenCamera->SetActorLabel(FString::Printf(TEXT("%s_Camera"), *CameraActorCreateData.SpeakerName.ToString()));
-			World->EditorDestroyActor(AutoGenCamera, false);
+			AutoGenCamera->SetActorLabel(FString::Printf(TEXT("%s_Camera"), *CameraActorCreateData.GetSpeakerName()));
 			CameraGuid = AutoGenDialogueSystemData.CreateSpawnable(AutoGenCamera);
+			World->EditorDestroyActor(AutoGenCamera, false);
 
 			AutoGenCameraFolder->AddChildObjectBinding(CameraGuid);
 			AutoGenCamera = Cast<ACineCameraActor>(MovieScene.FindSpawnable(CameraGuid)->GetObjectTemplate());
@@ -975,8 +987,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				CameraActorCreateData.CameraTemplate->GenerateCameraTrackData(Speaker, Targets, MovieScene, CineCameraComponentGuid, DialogueCharacterDataMap);
 
 				// 生成景深导轨
+				// TODO：这个是否也可以移至GenerateCameraTrackData？
 				{
-					// TODO：这个是否也可以移至GenerateCameraTrackData？
 					// 景深目标为说话者
 					CineCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
 					// TODO: 现在用字符串记录路径，可以考虑使用FPropertyPath，或者编译期通过一种方式做检查
@@ -1000,6 +1012,59 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			FFrameNumber SentenceStartTime = GenDialogueData.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue();
 			FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
 			ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
+		}
+
+		// 补光
+		if (bGenerateSupplementLightGroup)
+		{
+			TArray<ACharacter*> VisitedCharacters;
+			for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
+			{
+				FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
+
+				ACharacter* Speaker = GenDialogueData.SpeakerInstance;
+				if (!VisitedCharacters.Contains(Speaker))
+				{
+					VisitedCharacters.Add(Speaker);
+					FActorSpawnParameters SpawnParams;
+					SpawnParams.ObjectFlags &= ~RF_Transactional;
+					// 现在的补光是Butterfly Lighting模式
+					// TODO：结合上下文丰富补光模式
+					ARectLight* AutoGenSupplementLight = World->SpawnActor<ARectLight>(FVector::ForwardVector * 100.f, FRotator(0.f, 180.f, 0.f), SpawnParams);
+					AutoGenSupplementLight->SetActorLabel(FString::Printf(TEXT("%s_SupplementLight"), *CameraActorCreateData.GetSpeakerName()));
+					{
+						AutoGenSupplementLight->SetMobility(EComponentMobility::Movable);
+						URectLightComponent* RectLight = AutoGenSupplementLight->RectLightComponent;
+						// TODO：根据环境控制强度，可以考虑生成器使用使用者定义的类，使用者自己类型中控制强度。
+						RectLight->SetIntensityUnits(ELightUnits::Candelas);
+						RectLight->SetIntensity(1.f);
+
+						// TODO：现在先就按一直方式写，之后使用使用者定义的类，就使用那边类的配置，这边就不用了
+						RectLight->SetCastShadows(false);
+						// 设置光照通道，只影响角色
+						RectLight->LightingChannels.bChannel0 = false;
+						RectLight->LightingChannels.bChannel2 = true;
+					}
+					FGuid SupplementLightGuid = AutoGenDialogueSystemData.CreateSpawnable(AutoGenSupplementLight);
+					World->EditorDestroyActor(AutoGenSupplementLight, false);
+					SupplementLightFolder->AddChildObjectBinding(SupplementLightGuid);
+					AutoGenDialogueSystemData.AutoGenSupplementLightGuids.Add(SupplementLightGuid);
+
+					FFrameNumber SupplementLightStartTime = CameraCutCreateData.CameraCutRange.GetLowerBoundValue();
+					FFrameNumber SupplementLightEndTime = CameraCutCreateData.CameraCutRange.GetUpperBoundValue();
+
+					TMovieSceneChannelData<bool> SpawnChannel = FCameraCutUtils::GetSpawnChannel(MovieScene, SupplementLightGuid);
+					SpawnChannel.AddKey(SequenceStartFrameNumber, false);
+					SpawnChannel.AddKey(SupplementLightStartTime, true);
+					SpawnChannel.AddKey(SupplementLightEndTime, false);
+
+					// 吸附至角色上
+					UMovieScene3DAttachTrack* MovieScene3DAttachTrack = MovieScene.AddTrack<UMovieScene3DAttachTrack>(SupplementLightGuid);
+					{
+						MovieScene3DAttachTrack->AddConstraint(SupplementLightStartTime, CameraCutCreateData.CameraCutRange.Size<FFrameNumber>().Value, NAME_None, Speaker->GetRootComponent()->GetFName(), DialogueCharacterDataMap[Speaker].BindingID);
+					}
+				}
+			}
 		}
 	}
 

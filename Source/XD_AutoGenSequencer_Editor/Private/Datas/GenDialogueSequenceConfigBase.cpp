@@ -172,13 +172,30 @@ bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages)
 		}
 		if (E.TypeOverride == nullptr)
 		{
-			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色[{0}] 类型未配置"), FText::FromString(E.NameOverride.ToString())));
+			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色类型未配置", "角色[{0}] 类型未配置"), FText::FromString(E.NameOverride.ToString())));
 			bIsSucceed &= false;
 		}
-		else if (!E.TypeOverride->ImplementsInterface(UDialogueInterface::StaticClass()))
+		else
 		{
-			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色[{0}] 类型未实现DialogueInterface接口"), FText::FromString(E.NameOverride.ToString())));
-			bIsSucceed &= false;
+			if (!E.TypeOverride->ImplementsInterface(UDialogueInterface::StaticClass()))
+			{
+				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色类型未实现DialogueInterface接口", "角色[{0}] 类型未实现DialogueInterface接口"), FText::FromString(E.NameOverride.ToString())));
+				bIsSucceed &= false;
+			}
+
+			if (UProperty* LookAtTargetProperty = E.TypeOverride->FindPropertyByName(E.LookAtTargetPropertyName))
+			{
+				if (!LookAtTargetProperty->IsA<USoftObjectProperty>())
+				{
+					ErrorMessages.Add(FText::Format(LOCTEXT("对白角色LookAtTargetProperty属性错误", "角色[{0}] 类型[{1}]属性类型需要为SoftObject"), FText::FromString(E.NameOverride.ToString()), FText::FromName(E.LookAtTargetPropertyName)));
+					bIsSucceed &= false;
+				}
+			}
+			else
+			{
+				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色未添加LookAtTargetProperty属性", "角色[{0}] 类型未添加[{1}]属性"), FText::FromString(E.NameOverride.ToString()), FText::FromName(E.LookAtTargetPropertyName)));
+				bIsSucceed &= false;
+			}
 		}
 	}
 	return bIsSucceed;
