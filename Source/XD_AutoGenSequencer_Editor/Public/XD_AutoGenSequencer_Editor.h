@@ -6,6 +6,7 @@
 #include "ISettingsSection.h"
 
 class UPreviewDialogueSoundSequence;
+class FAssetTypeActions_DialogueSentence;
 
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
@@ -28,4 +29,6 @@ private:
 
 	ISettingsSectionPtr RuntimeSettingsSection;
 	ISettingsSectionPtr SettingsSection;
+
+	TSharedPtr<FAssetTypeActions_DialogueSentence> AssetTypeActions_DialogueSentence;
 };

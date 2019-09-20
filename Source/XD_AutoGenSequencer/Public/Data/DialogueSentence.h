@@ -33,4 +33,11 @@ public:
 #endif
 
 	virtual TSubclassOf<UDialogueSentenceSection> GetSectionImplType() const;
+
+public:
+#if WITH_EDITOR
+	static FName AssetRegistryTag_SubTitle;
+	void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
+	void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+#endif
 };

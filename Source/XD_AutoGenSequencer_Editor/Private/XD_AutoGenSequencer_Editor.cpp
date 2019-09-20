@@ -15,6 +15,7 @@
 #include "AssetToolsModule.h"
 #include "AutoGenDialogueRuntimeSettings.h"
 #include "ISettingsCategory.h"
+#include "DialogueSentenceFactory.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -27,6 +28,9 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(AutoGenDialogueSequence_AssetCategoryKey, LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
+
+		AssetTypeActions_DialogueSentence = MakeShareable(new FAssetTypeActions_DialogueSentence());
+		AssetTools.RegisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::RegisterExtender();
@@ -90,7 +94,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(AutoGenDialogueSequence_AssetCategoryKey, LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
+		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::UnregisterExtender();

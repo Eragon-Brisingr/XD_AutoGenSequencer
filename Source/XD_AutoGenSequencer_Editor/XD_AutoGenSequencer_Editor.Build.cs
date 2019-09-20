@@ -40,6 +40,7 @@ public class XD_AutoGenSequencer_Editor : ModuleRules
 				"SlateCore",
                 "UnrealEd",
                 "GraphEditor",
+                "AssetTools",
 
                 "Sequencer",
                 "MovieScene",

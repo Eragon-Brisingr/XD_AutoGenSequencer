@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Factories/Factory.h"
+#include "AssetTypeActions_Base.h"
 #include "DialogueSentenceFactory.generated.h"
 
 /**
@@ -20,4 +21,16 @@ public:
 
 	FText GetDisplayName() const override;
 	uint32 GetMenuCategories() const override;
+};
+
+class FAssetTypeActions_DialogueSentence : public FAssetTypeActions_Base
+{
+	using Super = FAssetTypeActions_Base;
+
+	// Inherited via FAssetTypeActions_Base
+	virtual FText GetName() const override;
+	virtual UClass* GetSupportedClass() const override;
+	virtual FColor GetTypeColor() const override;
+	virtual uint32 GetCategories() override;
+	FText GetDisplayNameFromAssetData(const FAssetData& AssetData) const override;
 };
