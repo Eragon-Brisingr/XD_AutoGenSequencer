@@ -45,6 +45,7 @@
 #include "MovieSceneActorReferenceTrack.h"
 #include "MovieSceneObjectPropertyTrack.h"
 #include "MovieSceneObjectPropertySection.h"
+#include "AutoGenSequence_Log.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -56,7 +57,8 @@ USoundBase* FDialogueSentenceEditData::GetDefaultDialogueSound() const
 UAutoGenDialogueSequenceConfig::UAutoGenDialogueSequenceConfig(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer),
 	bEnableMergeCamera(true),
-	bEnableSplitCamera(true)
+	bEnableSplitCamera(true),
+	bShowGenerateLog(true)
 {
 	AutoGenDialogueCameraSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueCameraSet.LoadSynchronous();
 }
@@ -497,7 +499,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 	}
 
-	// -- 相机
+	// -- 镜头
 	struct FCameraCutUtils
 	{
 		static UMovieSceneCameraCutSection* AddCameraCut(UMovieScene& MovieScene, FGuid CameraGuid, UMovieSceneCameraCutTrack& CameraCutTrack, FFrameNumber CameraCutStartFrame, FFrameNumber CameraCutEndFrame)
@@ -600,10 +602,18 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 
 		using FCameraWeightsData = AAutoGenDialogueCameraTemplate::FCameraWeightsData;
-		static TArray<FCameraWeightsData> EvaluateAllCameraTemplate(const UAutoGenDialogueCameraSet& AutoGenDialogueCameraSet, ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress, const TArray<const AAutoGenDialogueCameraTemplate*>& ExcludeCameraTemplates = {})
+
+		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, ACharacter* Speaker, const TArray<ACharacter*>& Targets, TArray<FCameraActorCreateData>& CameraActorCreateDatas, const TArray<FCameraHandle>& ExcludeCamreaHandles)
 		{
+			TArray<const AAutoGenDialogueCameraTemplate*> ExcludeCameraTemplates;
+			for (const FCameraHandle CameraHandle : ExcludeCamreaHandles)
+			{
+				ExcludeCameraTemplates.Add(CameraActorCreateDatas[CameraHandle].CameraTemplate);
+			}
+
+			// 遍历镜头集获取权重
 			TArray<FCameraWeightsData> CameraWeightsDatas;
-			for (const FAutoGenDialogueCameraConfig& AutoGenDialogueCameraConfig : AutoGenDialogueCameraSet.CameraTemplates)
+			for (const FAutoGenDialogueCameraConfig& AutoGenDialogueCameraConfig : GenConfig.AutoGenDialogueCameraSet->CameraTemplates)
 			{
 				if (ExcludeCameraTemplates.Contains(AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject()))
 				{
@@ -619,22 +629,34 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 			}
 			CameraWeightsDatas.Sort([](const FCameraWeightsData& LHS, const FCameraWeightsData& RHS) {return LHS.Weights > RHS.Weights; });
-			return CameraWeightsDatas;
-		}
-
-		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, const FName& SpeakerName, ACharacter* Speaker, const TArray<ACharacter*>& Targets, TArray<FCameraActorCreateData>& CameraActorCreateDatas, const TArray<FCameraHandle>& ExcludeCamreaHandles)
-		{
-			TArray<const AAutoGenDialogueCameraTemplate*> ExcludeCameraTemplates;
-			for (const FCameraHandle CameraHandle : ExcludeCamreaHandles)
-			{
-				ExcludeCameraTemplates.Add(CameraActorCreateDatas[CameraHandle].CameraTemplate);
-			}
-
-			TArray<FCameraWeightsData> CameraWeightsDatas = FCameraGenerateUtils::EvaluateAllCameraTemplate(*GenConfig.AutoGenDialogueCameraSet, Speaker, Targets, DialogueProgress, ExcludeCameraTemplates);
 
 			// 现在直接选择最优的
 			check(CameraWeightsDatas.Num() > 0);
 			const FCameraWeightsData& SelectedData = CameraWeightsDatas[0];
+
+			// Log
+			if (GenConfig.bShowGenerateLog)
+			{
+				FString TargetNames;
+				if (Targets.Num() > 0)
+				{
+					const FString Padding = TEXT("，");
+					for (ACharacter* Target : Targets)
+					{
+						TargetNames += Target->GetActorLabel() + Padding;
+					}
+					TargetNames.RemoveFromEnd(Padding);
+				}
+				else
+				{
+					TargetNames = TEXT("空");
+				}
+				AutoGenSequence_Display_Log("    进度[%f]，说话者[%s]，对话目标[%s]选择结果：", DialogueProgress, *Speaker->GetActorLabel(), *TargetNames);
+				for (const FCameraWeightsData& E : CameraWeightsDatas)
+				{
+					AutoGenSequence_Display_Log("      [%s] %f", *E.CameraTemplate->GetClass()->GetDisplayNameText().ToString(), E.Weights);
+				}
+			}
 
 			// 若镜头存在则直接使用
 			FCameraActorCreateData* ExistedCameraData = CameraActorCreateDatas.FindByPredicate([&](const FCameraActorCreateData& E)
@@ -671,6 +693,12 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 	};
 
+	if (bShowGenerateLog)
+	{
+		AutoGenSequence_Display_Log("镜头生成开始：");
+		AutoGenSequence_Display_Log("  选择镜头：");
+	}
+
 	const float DialogueCount = SortedDialogueDatas.Num();
 	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
 	{
@@ -686,7 +714,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 		FCameraHandle CameraHandle = InvalidCameraHandle;
 
-		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, SpeakerName, Speaker, Targets, CameraActorCreateDatas, {});
+		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, Speaker, Targets, CameraActorCreateDatas, {});
 
 		FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas.AddDefaulted_GetRef();
 		CameraCutCreateData.CameraHandle = CameraHandle;
@@ -699,6 +727,11 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	// 太短的镜头做合并
 	if (bEnableMergeCamera)
 	{
+		if (bShowGenerateLog)
+		{
+			AutoGenSequence_Display_Log("  合并长度小于[%f 秒]的镜头：", CameraMergeMaxTime);
+		}
+
 		for (int32 Idx = 0; Idx < CameraCutCreateDatas.Num(); ++Idx)
 		{
 			FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas[Idx];
@@ -784,6 +817,14 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 					FCameraCutCreateData& LeftCameraCutCreateData = CameraCutCreateDatas[Idx - 1];
 					FCameraGenerateUtils::AppendRelatedSentenceIdxs(LeftCameraCutCreateData.RelatedSentenceIdxs, CameraCutCreateData.RelatedSentenceIdxs);
 					LeftCameraCutCreateData.CameraCutRange.SetUpperBoundValue(CameraCutCreateData.CameraCutRange.GetUpperBoundValue());
+
+					if (bShowGenerateLog)
+					{
+						const TRange<double> CameraCutCreateDataTimeRange = CameraCutCreateData.CameraCutRange / FrameRate;
+						const TRange<double> LeftCameraCutCreateDataTimeRange = LeftCameraCutCreateData.CameraCutRange / FrameRate;
+						AutoGenSequence_Display_Log("    左侧镜头[%f 秒]被合并：[%f - %f] 的镜头被合并至 [%f - %f]", MidDuration, CameraCutCreateDataTimeRange.GetLowerBoundValue(), CameraCutCreateDataTimeRange.GetUpperBoundValue(),
+							LeftCameraCutCreateDataTimeRange.GetLowerBoundValue(), LeftCameraCutCreateDataTimeRange.GetUpperBoundValue());
+					}
 				}
 				break;
 				case ECameraMergeMode::RightToLeft:
@@ -791,6 +832,14 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 					FCameraCutCreateData& RightCameraCutCreateData = CameraCutCreateDatas[Idx + 1];
 					FCameraGenerateUtils::AppendRelatedSentenceIdxs(RightCameraCutCreateData.RelatedSentenceIdxs, CameraCutCreateData.RelatedSentenceIdxs);
 					RightCameraCutCreateData.CameraCutRange.SetLowerBoundValue(CameraCutCreateData.CameraCutRange.GetLowerBoundValue());
+
+					if (bShowGenerateLog)
+					{
+						const TRange<double> CameraCutCreateDataTimeRange = CameraCutCreateData.CameraCutRange / FrameRate;
+						const TRange<double> RightCameraCutCreateDataTimeRange = RightCameraCutCreateData.CameraCutRange / FrameRate;
+						AutoGenSequence_Display_Log("    右侧镜头[%f 秒]被合并：[%f - %f] 的镜头被合并至 [%f - %f]", MidDuration, CameraCutCreateDataTimeRange.GetLowerBoundValue(), CameraCutCreateDataTimeRange.GetUpperBoundValue(),
+							RightCameraCutCreateDataTimeRange.GetLowerBoundValue(), RightCameraCutCreateDataTimeRange.GetUpperBoundValue());
+					}
 				}
 				break;
 				}
@@ -805,11 +854,17 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	// 太长的镜头拆开来
 	if (bEnableSplitCamera)
 	{
+		if (bShowGenerateLog)
+		{
+			AutoGenSequence_Display_Log("  拆分长度大于[%f 秒]的镜头：", CameraSplitMinTime);
+		}
+
 		for (int32 Idx = 0; Idx < CameraCutCreateDatas.Num(); ++Idx)
 		{
 			FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas[Idx];
 			FCameraActorCreateData& CameraActorCreateData = CameraActorCreateDatas[CameraCutCreateData.CameraHandle];
-			if (CameraCutCreateData.GetDuration(FrameRate) > CameraSplitMinTime)
+			float CameraDuration = CameraCutCreateData.GetDuration(FrameRate);
+			if (CameraDuration > CameraSplitMinTime)
 			{
 				FCameraCutCreateData& LeftCameraCutCreateData = CameraCutCreateData;
 				TArray<int32> AllRelatedSentenceIdxs = CameraCutCreateData.RelatedSentenceIdxs;
@@ -853,8 +908,19 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 				float DialogueProgress = MidCameraCutCreateData.RelatedSentenceIdxs[MidCameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
 				// 保证MidCamera和前一个是不同的
-				MidCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.SpeakerName, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas, { LeftCameraCutCreateData.CameraHandle });
+				MidCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas, { LeftCameraCutCreateData.CameraHandle });
 				check(MidCameraCutCreateData.CameraHandle != LeftCameraCutCreateData.CameraHandle);
+
+				if (bShowGenerateLog)
+				{
+					TRange<double> LeftTimeRange = LeftCameraCutCreateData.CameraCutRange / FrameRate;
+					TRange<double> MidTimeRange = MidCameraCutCreateData.CameraCutRange / FrameRate;
+					TRange<double> RightTimeRange = RightCameraCutCreateData.CameraCutRange / FrameRate;
+					AutoGenSequence_Display_Log("  将[%f 秒]的镜头拆分为 [%f - %f]，[%f - %f]，[%f - %f]三个镜头：", CameraDuration,
+						LeftTimeRange.GetLowerBoundValue(), LeftTimeRange.GetUpperBoundValue(),
+						MidTimeRange.GetLowerBoundValue(), MidTimeRange.GetUpperBoundValue(),
+						RightTimeRange.GetLowerBoundValue(), RightTimeRange.GetUpperBoundValue());
+				}
 			}
 		}
 		FCameraGenerateUtils::TryMergeAllSameCut(CameraCutCreateDatas, CameraActorCreateDatas);

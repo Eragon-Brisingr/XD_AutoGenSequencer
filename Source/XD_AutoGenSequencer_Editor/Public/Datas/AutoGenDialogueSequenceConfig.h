@@ -98,6 +98,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "最短镜头分割时间", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraSplitMinTime = 12.f;
 
+	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "输出生成日志"))
+	uint8 bShowGenerateLog : 1;
+
 	struct XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueData
 	{
 		UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection;

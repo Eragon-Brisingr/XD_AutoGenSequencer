@@ -72,14 +72,14 @@ AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTrac
 
 		CameraWeightsData.Weights = 1.f - FMath::Abs(DistanceWeights - DistanceDialogueProgressWeights);
 
-		// 避免穿入碰撞内部
+		// TODO：避免穿入碰撞内部
 		// TODO：考虑覆盖屏幕百分比
-		FHitResult CameraHitResult;
-		if (UKismetSystemLibrary::BoxTraceSingle(GEditor->GetEditorWorldContext().World(), CameraLocation, FocusCenterLocation, FVector(0.1f, 20.f, 20.f), (FocusCenterLocation - CameraLocation).Rotation(), GetDefault<UAutoGenDialogueRuntimeSettings>()->CameraEvaluateTraceChannel, false, {}, EDrawDebugTrace::None, CameraHitResult, false))
-		{
-			float DistanceToCameraLocation = (CameraLocation - CameraHitResult.ImpactPoint).Size();
-			CameraWeightsData.Weights *= DistanceToCameraLocation / CameraDistance;
-		}
+// 		FHitResult CameraHitResult;
+// 		if (UKismetSystemLibrary::BoxTraceSingle(GEditor->GetEditorWorldContext().World(), CameraLocation, FocusCenterLocation, FVector(0.1f, 20.f, 20.f), (FocusCenterLocation - CameraLocation).Rotation(), GetDefault<UAutoGenDialogueRuntimeSettings>()->CameraEvaluateTraceChannel, false, {}, EDrawDebugTrace::None, CameraHitResult, false))
+// 		{
+// 			float DistanceToCameraLocation = (CameraLocation - CameraHitResult.ImpactPoint).Size();
+// 			CameraWeightsData.Weights *= DistanceToCameraLocation / CameraDistance;
+// 		}
 	}
 	return CameraWeightsData;
 }
