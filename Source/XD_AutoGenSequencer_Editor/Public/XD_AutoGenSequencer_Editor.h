@@ -7,6 +7,8 @@
 
 class UPreviewDialogueSoundSequence;
 class FAssetTypeActions_DialogueSentence;
+class FAssetTypeActions_AutoGenDialogueAnimSet;
+class FAssetTypeActions_AutoGenDialogueCameraSet;
 
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
@@ -31,4 +33,6 @@ private:
 	ISettingsSectionPtr SettingsSection;
 
 	TSharedPtr<FAssetTypeActions_DialogueSentence> AssetTypeActions_DialogueSentence;
+	TSharedPtr<FAssetTypeActions_AutoGenDialogueAnimSet> AssetTypeActions_AutoGenDialogueAnimSet;
+	TSharedPtr<FAssetTypeActions_AutoGenDialogueCameraSet> AssetTypeActions_AutoGenDialogueCameraSet;
 };

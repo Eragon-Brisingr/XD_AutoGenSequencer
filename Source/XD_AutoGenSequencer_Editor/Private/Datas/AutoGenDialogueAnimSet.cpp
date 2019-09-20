@@ -52,7 +52,7 @@ bool UAutoGenDialogueAnimSet::IsAnimSetValid(TArray<FText>& ErrorMessages) const
 
 UAutoGenDialogueAnimSetFactory::UAutoGenDialogueAnimSetFactory()
 {
-	SupportedClass = UAutoGenDialogueAnimSet::StaticClass();
+	SupportedClass = UAutoGenDialogueAnimSetBase::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
 }
@@ -110,6 +110,26 @@ FText UAutoGenDialogueAnimSetFactory::GetDisplayName() const
 }
 
 uint32 UAutoGenDialogueAnimSetFactory::GetMenuCategories() const
+{
+	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
+}
+
+FText FAssetTypeActions_AutoGenDialogueAnimSet::GetName() const
+{
+	return LOCTEXT("对白动作集", "对白动作集");
+}
+
+UClass* FAssetTypeActions_AutoGenDialogueAnimSet::GetSupportedClass() const
+{
+	return UAutoGenDialogueAnimSetBase::StaticClass();
+}
+
+FColor FAssetTypeActions_AutoGenDialogueAnimSet::GetTypeColor() const
+{
+	return FColor::Black;
+}
+
+uint32 FAssetTypeActions_AutoGenDialogueAnimSet::GetCategories()
 {
 	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "Factories/Factory.h"
+#include "AssetTypeActions_Base.h"
 #include "AutoGenDialogueAnimSet.generated.h"
 
 class UAnimSequence;
@@ -51,3 +52,13 @@ public:
 	uint32 GetMenuCategories() const override;
 };
 
+class FAssetTypeActions_AutoGenDialogueAnimSet : public FAssetTypeActions_Base
+{
+	using Super = FAssetTypeActions_Base;
+
+	// Inherited via FAssetTypeActions_Base
+	virtual FText GetName() const override;
+	virtual UClass* GetSupportedClass() const override;
+	virtual FColor GetTypeColor() const override;
+	virtual uint32 GetCategories() override;
+};

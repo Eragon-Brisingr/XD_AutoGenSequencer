@@ -16,6 +16,8 @@
 #include "AutoGenDialogueRuntimeSettings.h"
 #include "ISettingsCategory.h"
 #include "DialogueSentenceFactory.h"
+#include "AutoGenDialogueAnimSet.h"
+#include "AutoGenDialogueCameraSet.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -31,6 +33,12 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 		AssetTypeActions_DialogueSentence = MakeShareable(new FAssetTypeActions_DialogueSentence());
 		AssetTools.RegisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
+
+		AssetTypeActions_AutoGenDialogueAnimSet = MakeShareable(new FAssetTypeActions_AutoGenDialogueAnimSet());
+		AssetTools.RegisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
+
+		AssetTypeActions_AutoGenDialogueCameraSet = MakeShareable(new FAssetTypeActions_AutoGenDialogueCameraSet());
+		AssetTools.RegisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::RegisterExtender();
@@ -95,6 +103,8 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
+		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
+		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::UnregisterExtender();

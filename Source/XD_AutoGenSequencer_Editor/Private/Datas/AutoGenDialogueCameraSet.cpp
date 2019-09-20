@@ -51,4 +51,24 @@ uint32 UAutoGenDialogueCameraSetFactory::GetMenuCategories() const
 	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }
 
+FText FAssetTypeActions_AutoGenDialogueCameraSet::GetName() const
+{
+	return LOCTEXT("对白镜头集", "对白镜头集");
+}
+
+UClass* FAssetTypeActions_AutoGenDialogueCameraSet::GetSupportedClass() const
+{
+	return UAutoGenDialogueCameraSet::StaticClass();
+}
+
+FColor FAssetTypeActions_AutoGenDialogueCameraSet::GetTypeColor() const
+{
+	return FColor::Black;
+}
+
+uint32 FAssetTypeActions_AutoGenDialogueCameraSet::GetCategories()
+{
+	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
+}
+
 #undef LOCTEXT_NAMESPACE
