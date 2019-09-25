@@ -3,6 +3,8 @@
 
 #include "AutoGenDialogueSystemData.h"
 #include "LevelSequence.h"
+#include "GenDialogueSequenceConfigBase.h"
+#include "PreviewDialogueSoundSequence.h"
 
 class ULevelSequenceUtils : public ULevelSequence
 {
@@ -31,4 +33,9 @@ FGuid UAutoGenDialogueSystemData::CreateSpawnable(UObject* ObjectToSpawn)
 ULevelSequence* UAutoGenDialogueSystemData::GetOwingLevelSequence() const
 {
 	return GetTypedOuter<ULevelSequence>();
+}
+
+bool UAutoGenDialogueSystemData::HasPreviewData() const
+{
+	return AutoGenDialogueSequenceConfig->PreviewDialogueSoundSequence->HasPreviewData();
 }

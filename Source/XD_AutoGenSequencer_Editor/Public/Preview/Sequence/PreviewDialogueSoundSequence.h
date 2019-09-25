@@ -23,5 +23,7 @@ public:
 	TArray<UPreviewDialogueSentenceTrack*> PreviewDialogueSentenceTracks;
 
 	UGenDialogueSequenceConfigBase* GetDialogueConfig() const;
+
+	bool HasPreviewData() const;
 #endif
 };

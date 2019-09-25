@@ -9,11 +9,12 @@
 
 class UMovieSceneTrack;
 class ULevelSequence;
+class UGenDialogueSequenceConfigBase;
 
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueSystemData : public UObject, public ILevelSequenceMetaData
 {
 	GENERATED_BODY()
@@ -24,9 +25,9 @@ public:
 
 	FTransform GetStandPositionPosition() const { return StandPositionPosition; }
 
-	UPROPERTY()
-	UObject* AutoGenDialogueSequenceConfig;
-	class UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const { return (UGenDialogueSequenceConfigBase*)AutoGenDialogueSequenceConfig; }
+	UPROPERTY(BlueprintReadWrite)
+	UGenDialogueSequenceConfigBase* AutoGenDialogueSequenceConfig;
+	UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const { return AutoGenDialogueSequenceConfig; }
 
 	UPROPERTY()
 	TArray<UMovieSceneTrack*> AutoGenTracks;
@@ -46,6 +47,8 @@ public:
 	uint8 bIsNewCreated : 1;
 	UPROPERTY()
 	uint8 bIsNotSetStandPosition : 1;
+
+	bool HasPreviewData() const;
 public:
 
 	// TODO：补全资源标签

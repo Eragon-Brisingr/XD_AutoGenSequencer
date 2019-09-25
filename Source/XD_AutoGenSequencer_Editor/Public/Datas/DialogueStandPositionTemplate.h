@@ -47,6 +47,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "站位模板")
 	TArray<FDialogueStandPosition> StandPositions;
 
+	void PreEditChange(UProperty* PropertyThatWillChange) override;
+
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	void OnConstruction(const FTransform& Transform) override;

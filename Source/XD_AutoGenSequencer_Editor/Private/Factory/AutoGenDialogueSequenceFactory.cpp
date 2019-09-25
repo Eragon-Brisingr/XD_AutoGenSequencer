@@ -57,7 +57,7 @@ bool UAutoGenDialogueSequenceFactory::ConfigureProperties()
 
 void UAutoGenDialogueSequenceFactory::AddAutoGenDialogueSystemData(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass)
 {
-	const EObjectFlags Flags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone | EObjectFlags::RF_Transactional;
+	const EObjectFlags Flags = EObjectFlags::RF_Transactional;
 	UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindOrAddMetaData<UAutoGenDialogueSystemData>();
 	AutoGenDialogueSystemData->SetFlags(Flags);
 	AutoGenDialogueSystemData->AutoGenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(LevelSequence, AutoGenDialogueSequenceConfigClass, GET_MEMBER_NAME_CHECKED(UAutoGenDialogueSystemData, AutoGenDialogueSequenceConfig), Flags);

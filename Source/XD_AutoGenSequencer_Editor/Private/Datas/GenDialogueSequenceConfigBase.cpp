@@ -69,9 +69,8 @@ UGenDialogueSequenceConfigBase::UGenDialogueSequenceConfigBase(const FObjectInit
 	PreviewDialogueSoundSequence = CreateDefaultSubobject<UPreviewDialogueSoundSequence>(GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, PreviewDialogueSoundSequence));
 	{
 		PreviewDialogueSoundSequence->Initialize();
-		const EObjectFlags Flags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone | EObjectFlags::RF_Transactional;
-		PreviewDialogueSoundSequence->SetFlags(Flags);
-		PreviewDialogueSoundSequence->GetMovieScene()->SetFlags(Flags);
+		PreviewDialogueSoundSequence->SetFlags(EObjectFlags::RF_Transactional);
+		PreviewDialogueSoundSequence->GetMovieScene()->SetFlags(EObjectFlags::RF_Public | EObjectFlags::RF_Transactional);
 	}
 }
 

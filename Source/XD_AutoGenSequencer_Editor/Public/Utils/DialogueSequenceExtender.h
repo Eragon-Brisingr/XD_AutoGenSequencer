@@ -60,4 +60,6 @@ private:
 	static void SyncSequenceInstanceReference(UAutoGenDialogueSystemData* AutoGenDialogueSystemData, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
 
 	void WhenStandTemplateInstanceChanged();
+
+	void SetStandTemplateInstancePickable(bool Enable);
 };

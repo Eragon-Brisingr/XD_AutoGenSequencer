@@ -233,12 +233,14 @@ void FDialogueSequenceExtender::OpenPreviewDialogueSoundSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 	FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+	SetStandTemplateInstancePickable(false);
 }
 
 void FDialogueSequenceExtender::OpenAutoGenDialogueSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 	FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+	SetStandTemplateInstancePickable(true);
 }
 
 void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSequencer)
@@ -259,6 +261,9 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 			if (AutoGenDialogueSystemData->bIsNewCreated)
 			{
 				AutoGenDialogueSystemData->bIsNewCreated = false;
+			}
+			if (!AutoGenDialogueSystemData->HasPreviewData())
+			{
 				FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 				// 直接开不行，延迟一帧
 				GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
@@ -269,6 +274,7 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 			else if (OldAutoGenDialogueSequence != AutoGenDialogueSystemData)
 			{
 				GeneratePreviewCharacters();
+				SetStandTemplateInstancePickable(true);
 			}
 		}
 		else
@@ -445,6 +451,32 @@ void FDialogueSequenceExtender::WhenStandTemplateInstanceChanged()
 
 	AutoGenDialogueSequenceConfig->DialogueStation.SyncInstanceData(StandPositionTemplate);
 	GetAutoGenDialogueSystemData()->StandPositionPosition = StandPositionTemplate->GetActorTransform();
+}
+
+void FDialogueSequenceExtender::SetStandTemplateInstancePickable(bool Enable)
+{
+	if (PreviewStandPositionTemplate.IsValid() == false)
+	{
+		return;
+	}
+
+	UProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
+	for (TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
+	{
+		if (ACharacter* Talker = Pair.Value.Get())
+		{
+			TWeakObjectPtr<UChildActorComponent>& ParentComponent = *ParentComponentProperty->ContainerPtrToValuePtr<TWeakObjectPtr<UChildActorComponent>>(Talker);
+			if (Enable)
+			{
+				ParentComponent = nullptr;
+			}
+			else
+			{
+				ParentComponent = *PreviewStandPositionTemplate->PreviewCharacters.FindByPredicate([&](UChildActorComponent* E) {return E->GetChildActor() == Talker; });
+			}
+		}
+	}
+	
 }
 
 #undef LOCTEXT_NAMESPACE

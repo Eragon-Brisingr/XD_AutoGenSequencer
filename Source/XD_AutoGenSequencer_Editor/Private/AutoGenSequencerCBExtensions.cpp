@@ -14,6 +14,7 @@
 #include "LevelSequence.h"
 #include "AutoGenDialogueSequenceFactory.h"
 #include "AutoGenDialogueSystemData.h"
+#include "GenDialogueSequenceConfigBase.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

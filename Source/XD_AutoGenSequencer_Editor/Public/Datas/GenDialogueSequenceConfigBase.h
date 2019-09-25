@@ -80,7 +80,7 @@ public:
 	void ReinitDialogueNameList();
 };
 
-UCLASS(abstract)
+UCLASS(abstract, BlueprintType)
 class XD_AUTOGENSEQUENCER_EDITOR_API UGenDialogueSequenceConfigBase : public UObject
 {
 	GENERATED_BODY()

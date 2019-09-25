@@ -30,7 +30,7 @@ public:
 	{}
 
 	UPROPERTY(EditAnywhere)
-		FName Name;
+	FName Name;
 
 	friend bool operator==(const FDialogueCharacterName& LHS, const FDialogueCharacterName& RHS) { return LHS.Name == RHS.Name; }
 	friend uint32 GetTypeHash(const FDialogueCharacterName& DialogueCharacterName) { return GetTypeHash(DialogueCharacterName.Name); }
