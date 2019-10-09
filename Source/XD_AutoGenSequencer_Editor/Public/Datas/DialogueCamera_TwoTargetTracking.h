@@ -6,6 +6,8 @@
 #include "Datas/AutoGenDialogueCameraTemplate.h"
 #include "DialogueCamera_TwoTargetTracking.generated.h"
 
+class UTextRenderComponent;
+
 /**
  * 
  */
@@ -15,16 +17,32 @@ class XD_AUTOGENSEQUENCER_EDITOR_API ADialogueCamera_TwoTargetTracking : public 
 	GENERATED_BODY()
 
 public:
+	ADialogueCamera_TwoTargetTracking();
+
 	void OnConstruction(const FTransform& Transform) override;
+	
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "前景对象占比", ClampMin = "-1", ClampMax = "0.499999"))
+	float FrontTargetRate = 0.1f;
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "前景焦点偏移"))
+	FVector FrontOffset;
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "背景对象占比", ClampMin = "-1", ClampMax = "0.499999"))
+	float BackTargetRate = 0.3f;
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "背景焦点偏移"))
+	FVector BackOffset;
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "镜头偏航角", ClampMin = "0.0001", ClampMax = "90"))
+	float CameraYawAngle = 20.f;
+	
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "预览前景对象编号"))
+	uint8 PreviewFrontTargetIdx = 0;
+	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "预览背景对象编号"))
+	uint8 PreviewBackTargetIdx = 1;
 
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "-1", ClampMax = "0.499999"))
-	float BackTargetRate;
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "-1", ClampMax = "0.499999"))
-	float FrontTargetRate;
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (ClampMin = "0", ClampMax = "180"))
-	float CameraYawAngle;
-
+public:
+	UPROPERTY(Transient)
+	UTextRenderComponent* PreviewFrontHint;
+	UPROPERTY(Transient)
+	UTextRenderComponent* PreviewBackHint;
+public:
 	FCameraWeightsData EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const override;
-
-	void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const override;
+	void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const override;
 };

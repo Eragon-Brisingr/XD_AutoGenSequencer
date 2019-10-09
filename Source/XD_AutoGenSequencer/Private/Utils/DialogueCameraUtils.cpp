@@ -2,6 +2,9 @@
 
 
 #include "DialogueCameraUtils.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/CameraTypes.h"
+#include "SceneView.h"
 
 void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraLocation, FRotator& CameraRotation, FVector& FocusCenterLocation)
 {
@@ -28,4 +31,55 @@ void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float 
 	CameraLocation = LookCenter + CenterInterval * FRotator(0.f, CameraYawAngle, 0.f).RotateVector((FrontTargetPosition - BackTargetPosition)).GetSafeNormal();
 	CameraRotation = (LookCenter - CameraLocation).Rotation();
 	FocusCenterLocation = LookCenter;
+}
+
+bool FDialogueCameraUtils::WorldToScreenWidgets(UCameraComponent* CameraComponent, const FVector& WorldLocation, FVector2D& OutScreenWidgets)
+{
+	FMinimalViewInfo MinimalViewInfo;
+	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
+	return WorldToScreenWidgets(MinimalViewInfo, WorldLocation, OutScreenWidgets);
+}
+
+bool FDialogueCameraUtils::WorldToScreenWidgets(const FMinimalViewInfo& MinimalViewInfo, const FVector& WorldLocation, FVector2D& OutScreenWidgets)
+{
+	const FMatrix ProjectionMatrix = MinimalViewInfo.CalculateProjectionMatrix();
+	if (FSceneView::ProjectWorldToScreen(WorldLocation, FIntRect(0, 0, 1, 1), 
+		FLookAtMatrix(MinimalViewInfo.Location, MinimalViewInfo.Location + MinimalViewInfo.Rotation.Vector(), FVector::UpVector) * ProjectionMatrix, OutScreenWidgets))
+	{
+		bool bIsInScreen = OutScreenWidgets.X > 0.f && OutScreenWidgets.X < 1.f && OutScreenWidgets.Y > 0.f && OutScreenWidgets.Y < 1.f;
+		return bIsInScreen;
+	}
+	return false;
+}
+
+bool FDialogueCameraUtils::WorldBoundsToScreenWidgets(UCameraComponent* CameraComponent, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenWidgetsBounds)
+{
+	FMinimalViewInfo MinimalViewInfo;
+	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
+
+	TArray<FVector> Points;
+	// calculate 3D corner Points of bounding box
+	Points.Add(Origin + FVector(Extend.X, Extend.Y, Extend.Z));
+	Points.Add(Origin + FVector(-Extend.X, Extend.Y, Extend.Z));
+	Points.Add(Origin + FVector(Extend.X, -Extend.Y, Extend.Z));
+	Points.Add(Origin + FVector(-Extend.X, -Extend.Y, Extend.Z));
+	Points.Add(Origin + FVector(Extend.X, Extend.Y, -Extend.Z));
+	Points.Add(Origin + FVector(-Extend.X, Extend.Y, -Extend.Z));
+	Points.Add(Origin + FVector(Extend.X, -Extend.Y, -Extend.Z));
+	Points.Add(Origin + FVector(-Extend.X, -Extend.Y, -Extend.Z));
+
+	FVector2D MinScreenWidgets(1.f, 1.f);
+	FVector2D MaxScreenWidgets(0, 0);
+	bool IsCompletelyInView = true;
+	for (const FVector& Point : Points) {
+		FVector2D ScreenWidgets(0, 0);
+		IsCompletelyInView &= WorldToScreenWidgets(MinimalViewInfo, Point, ScreenWidgets);
+		MaxScreenWidgets.X = FMath::Max(ScreenWidgets.X, MaxScreenWidgets.X);
+		MaxScreenWidgets.Y = FMath::Max(ScreenWidgets.Y, MaxScreenWidgets.Y);
+		MinScreenWidgets.X = FMath::Min(ScreenWidgets.X, MinScreenWidgets.X);
+		MinScreenWidgets.Y = FMath::Min(ScreenWidgets.Y, MinScreenWidgets.Y);
+	}
+	OutScreenWidgetsBounds = FBox2D(MinScreenWidgets, MaxScreenWidgets);
+
+	return IsCompletelyInView;
 }

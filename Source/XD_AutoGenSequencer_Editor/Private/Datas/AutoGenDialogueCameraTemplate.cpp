@@ -14,10 +14,16 @@
 #include "KismetEditorUtilities.h"
 #include "ClassViewerModule.h"
 #include "SClassPickerDialog.h"
+#include "AssetEditorManager.h"
+#include "BlueprintEditor.h"
+#include "SEditorViewport.h"
+#include "EditorViewportClient.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
+	:bActiveCameraViewport(true)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -30,11 +36,17 @@ AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
 	CineCamera->bIsEditorOnly = true;
 	CineCamera->SetChildActorClass(ACineCameraActor::StaticClass());
 	CineCamera->SetupAttachment(StandTemplatePreview);
+	if (ACineCameraActor* CineCameraActorTemplate = Cast<ACineCameraActor>(CineCamera->GetChildActorTemplate()))
+	{
+		CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
+	}
 }
 
 void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+	ACineCameraActor* CineCameraActorTemplate = CastChecked<ACineCameraActor>(CineCamera->GetChildActorTemplate());
+	CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
 }
 
 void AAutoGenDialogueCameraTemplate::PreEditChange(UProperty* PropertyThatWillChange)
@@ -56,6 +68,25 @@ void AAutoGenDialogueCameraTemplate::PostEditChangeProperty(FPropertyChangedEven
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		RerunConstructionScripts();
+	}
+
+	if (bActiveCameraViewport)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy))
+		{
+			if (IAssetEditorInstance* AssetEditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Blueprint, false))
+			{
+				FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(AssetEditorInstance);
+				TSharedPtr<FEditorViewportClient> EditorViewportClient = ((SEditorViewport*)BlueprintEditor->GetSCSViewport().Get())->GetViewportClient();
+
+				if (TActorIterator<ACineCameraActor> It = TActorIterator<ACineCameraActor>(EditorViewportClient->GetWorld()))
+				{
+					ACineCameraActor* CineCameraActor = *It;
+					EditorViewportClient->SetViewLocation(CineCameraActor->GetActorLocation());
+					EditorViewportClient->SetViewRotation(CineCameraActor->GetActorRotation());
+				}
+			}
+		}
 	}
 }
 

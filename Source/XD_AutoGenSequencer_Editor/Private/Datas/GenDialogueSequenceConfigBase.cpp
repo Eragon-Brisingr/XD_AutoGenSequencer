@@ -7,6 +7,7 @@
 #include "PreviewDialogueSoundSequence.h"
 #include "AutoGenDialogueAnimSet.h"
 #include "DialogueInterface.h"
+#include "AutoGenDialogueCameraSet.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -130,8 +131,20 @@ bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages)
 	bool bIsSucceed = true;
 	if (DialogueStation.DialogueStationTemplate == nullptr)
 	{
-		ErrorMessages.Add(LOCTEXT("对话模板为空", "对话模板为空"));
+		ErrorMessages.Add(LOCTEXT("站位模板为空", "站位模板为空"));
 		bIsSucceed &= false;
+	}
+	else
+	{
+		if (UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet = GetAutoGenDialogueCameraSet())
+		{
+			bIsSucceed &= AutoGenDialogueCameraSet->IsValid(ErrorMessages);
+		}
+		else
+		{
+			ErrorMessages.Add(LOCTEXT("站位中镜头模板集未配置", "站位中镜头模板集未配置"));
+			bIsSucceed &= false;
+		}
 	}
 	TSubclassOf<UAutoGenDialogueAnimSetBase> AnimSetType = GetAnimSetType();
 	if (AnimSetType == nullptr)
@@ -203,6 +216,11 @@ bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages)
 TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnimSetType() const
 {
 	return nullptr;
+}
+
+UAutoGenDialogueCameraSet* UGenDialogueSequenceConfigBase::GetAutoGenDialogueCameraSet() const
+{
+	return DialogueStation.DialogueStationTemplate.GetDefaultObject()->AutoGenDialogueCameraSet;
 }
 
 #undef LOCTEXT_NAMESPACE

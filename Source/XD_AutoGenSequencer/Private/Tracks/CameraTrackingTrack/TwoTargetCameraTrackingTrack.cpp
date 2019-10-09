@@ -71,13 +71,15 @@ UMovieSceneSection* UTwoTargetCameraTrackingTrack::CreateNewSection()
 	return NewSection;
 }
 
-UTwoTargetCameraTrackingSection* UTwoTargetCameraTrackingTrack::AddNewSentenceOnRow(FMovieSceneObjectBindingID FrontTarget, FMovieSceneObjectBindingID BackTarget)
+UTwoTargetCameraTrackingSection* UTwoTargetCameraTrackingTrack::AddNewSentenceOnRow(FMovieSceneObjectBindingID FrontTarget, const FVector& FrontOffset, FMovieSceneObjectBindingID BackTarget, const FVector& BackOffset)
 {
 	UTwoTargetCameraTrackingSection* NewSection = NewObject<UTwoTargetCameraTrackingSection>(this, NAME_None, RF_Transactional);
 	NewSection->SetRange(TRange<FFrameNumber>::All());
 	AddSection(*NewSection);
 	NewSection->FrontTarget = FrontTarget;
+	NewSection->FrontOffset = FrontOffset;
 	NewSection->BackTarget = BackTarget;
+	NewSection->BackOffset = BackOffset;
 	return NewSection;
 }
 

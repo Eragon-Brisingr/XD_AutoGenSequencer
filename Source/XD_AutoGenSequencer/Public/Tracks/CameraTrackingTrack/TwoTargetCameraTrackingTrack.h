@@ -34,5 +34,5 @@ public:
 	TArray<UMovieSceneSection*> CameraTrackingSections;
 
 public:
-	UTwoTargetCameraTrackingSection* AddNewSentenceOnRow(FMovieSceneObjectBindingID FrontTarget, FMovieSceneObjectBindingID BackTarget);
+	UTwoTargetCameraTrackingSection* AddNewSentenceOnRow(FMovieSceneObjectBindingID FrontTarget, const FVector& FrontOffset, FMovieSceneObjectBindingID BackTarget, const FVector& BackOffset);
 };

@@ -15,6 +15,7 @@ class UPreviewDialogueSoundSequence;
 class UAutoGenDialogueSystemData;
 class ADialogueStandPositionTemplate;
 class UAutoGenDialogueAnimSetBase;
+class UAutoGenDialogueCameraSet;
 
 /**
  *
@@ -89,7 +90,6 @@ public:
 
 	UPROPERTY()
 	UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence;
-
 public:
 	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (ShowOnlyInnerProperties = true))
 	FDialogueStationInstance DialogueStation;
@@ -103,4 +103,6 @@ public:
 	virtual void GeneratePreview() const {}
 
 	virtual void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSystemData& AutoGenDialogueSequence) const {}
+protected:
+	UAutoGenDialogueCameraSet* GetAutoGenDialogueCameraSet() const;
 };

@@ -3,3 +3,7 @@
 
 #include "PreviewDialogueSentenceSection.h"
 
+UPreviewDialogueSentenceSection::UPreviewDialogueSentenceSection()
+{
+	ChannelProxy = nullptr;
+}

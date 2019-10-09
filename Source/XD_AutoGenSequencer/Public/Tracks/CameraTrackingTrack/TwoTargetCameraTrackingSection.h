@@ -28,9 +28,16 @@ public:
 public:
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FMovieSceneObjectBindingID FrontTarget;
-
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	FVector FrontOffset;
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FMovieSceneObjectBindingID BackTarget;
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	FVector BackOffset;
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = CameraTracking)
+	UClass* CreateFrom;
+#endif
 
 	// TODO：只会在解算开始执行一次
 	UPROPERTY(EditAnywhere, Category = CameraTracking)

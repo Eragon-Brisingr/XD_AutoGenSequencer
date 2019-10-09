@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MovieSceneAudioSection.h"
 #include "MovieSceneEvalTemplate.h"
+#include "AutoGenDialogueType.h"
 #include "PreviewDialogueSentenceSection.generated.h"
 
 /**
@@ -15,6 +16,8 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UPreviewDialogueSentenceSection : public UM
 {
 	GENERATED_BODY()
 public:
+	UPreviewDialogueSentenceSection();
+
 	UPROPERTY(EditAnywhere)
 	FDialogueSentenceEditData DialogueSentenceEditData;
 };

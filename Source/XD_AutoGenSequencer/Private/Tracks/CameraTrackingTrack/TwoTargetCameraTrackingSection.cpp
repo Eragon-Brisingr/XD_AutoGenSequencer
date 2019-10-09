@@ -162,7 +162,7 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 						else
 						{
 							FrontLocation = FrontTarget->GetPawnViewLocation();
-							FrontLocation = BackTarget->GetPawnViewLocation();
+							BackLocation = BackTarget->GetPawnViewLocation();
 						}
 
 						FVector CameraLocation;
@@ -171,7 +171,7 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 						CameraTrackingSection->FrontTargetRate.Evaluate(Context.GetTime(), FrontTargetRate);
 						CameraTrackingSection->BackTargetRate.Evaluate(Context.GetTime(), BackTargetRate);
 						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, -1.f, 0.49999f), FMath::Clamp(BackTargetRate, -1.f, 0.49999f),
-							FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
+							FrontLocation + CameraTrackingSection->FrontOffset, BackLocation + CameraTrackingSection->BackOffset, CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
 						CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 
 						// 迭代位置，防止摄像机穿过模型

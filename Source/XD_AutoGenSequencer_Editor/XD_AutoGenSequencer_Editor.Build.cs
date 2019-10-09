@@ -41,6 +41,7 @@ public class XD_AutoGenSequencer_Editor : ModuleRules
                 "UnrealEd",
                 "GraphEditor",
                 "AssetTools",
+                "Kismet",
 
                 "Sequencer",
                 "MovieScene",

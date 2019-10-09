@@ -9,6 +9,7 @@
 
 class ACharacter;
 class UChildActorComponent;
+class UAutoGenDialogueCameraSet;
 
 USTRUCT()
 struct FDialogueStandPosition
@@ -41,11 +42,14 @@ public:
 	ADialogueStandPositionTemplate();
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditAnywhere, Category = "站位模板")
+	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (DisplayName = "预览用角色"))
 	TSubclassOf<ACharacter> PreviewCharacter;
 
-	UPROPERTY(EditAnywhere, Category = "站位模板")
+	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (DisplayName = "站位配置"))
 	TArray<FDialogueStandPosition> StandPositions;
+
+	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (DisplayName = "镜头模板集"))
+	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
 	void PreEditChange(UProperty* PropertyThatWillChange) override;
 

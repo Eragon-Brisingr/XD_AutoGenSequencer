@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "MovieSceneObjectBindingID.h"
 #include "Factories/Factory.h"
+#include "AutoGenDialogueType.h"
 #include "AutoGenDialogueCameraTemplate.generated.h"
 
 class UChildActorComponent;
@@ -34,10 +35,14 @@ public:
 	UPROPERTY()
 	UChildActorComponent* StandTemplatePreview;
 
-	UPROPERTY(VisibleAnywhere, Transient)
+	UPROPERTY(VisibleAnywhere, Transient, Category = "镜头模板")
 	UCineCameraComponent* CineCameraComponent;
 	UPROPERTY()
 	UChildActorComponent* CineCamera;
+
+	// 现在只是将摄像机的位置赋给了视口，Fov等数据并没有同步，只是用于简单预览
+	UPROPERTY(EditDefaultsOnly, Category = "镜头模板", meta = (DisplayName = "自动预览摄像机位置"))
+	uint8 bActiveCameraViewport : 1;
 public:
 	struct FCameraWeightsData
 	{
@@ -48,10 +53,24 @@ public:
 		bool IsValid() { return CameraTemplate ? true : false; }
 	};
 
+	struct FDialogueCameraCutData
+	{
+		TRange<FFrameNumber> CameraCutRange;
+
+		struct FDialogueData
+		{
+			ACharacter* Speaker;
+			TArray<ACharacter*> Targets;
+			FDialogueSentenceEditData DialogueSentenceEditData;
+			TRange<FFrameNumber> DialogueRange;
+		};
+		TArray<FDialogueData> DialogueDatas;
+	};
+
 	// 用于评估该镜头所处的对话环境中的分数
 	virtual FCameraWeightsData EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const { return FCameraWeightsData(); }
 	// 用于生成该镜头对应的轨道
-	virtual void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const {}
+	virtual void GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const {}
 };
 
 UCLASS()

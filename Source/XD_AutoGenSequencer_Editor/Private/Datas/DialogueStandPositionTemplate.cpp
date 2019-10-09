@@ -11,6 +11,7 @@
 #include "KismetEditorUtilities.h"
 #include "Engine/Blueprint.h"
 #include "BlueprintEditorUtils.h"
+#include "AutoGenDialogueSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -24,6 +25,7 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 // 	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
 
 	PreviewCharacter = ACharacter::StaticClass();
+	AutoGenDialogueCameraSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueCameraSet.LoadSynchronous();
 }
 
 #if WITH_EDITOR
