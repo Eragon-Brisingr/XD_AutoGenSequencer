@@ -541,6 +541,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		TRange<FFrameNumber> CameraCutRange;
 		// 和镜头有关系的SortedDialogueDatas下标
 		TArray<int32> RelatedSentenceIdxs;
+		// 镜头拍摄目标
+		ACharacter* LookTarget;
 		float GetDuration(const FFrameRate& FrameRate) const
 		{
 			return (CameraCutRange / FrameRate).Size<double>();
@@ -726,6 +728,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 		FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas.AddDefaulted_GetRef();
 		CameraCutCreateData.CameraHandle = CameraHandle;
+		CameraCutCreateData.LookTarget = Speaker;
 		CameraCutCreateData.CameraCutRange = TRange<FFrameNumber>(CurCameraCutFrame, EndFrameNumber);
 		CameraCutCreateData.RelatedSentenceIdxs.AddUnique(Idx);
 
@@ -880,6 +883,20 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				RemainCameraDuration > CameraSplitMinTime + CameraMergeMaxTime;
 				RemainCameraDuration -= SplitedTime, ++SplitIdx)
 			{
+				const bool IsLookToTarget = (SplitIdx - Idx) % 2 == 0;
+				ACharacter* LookTarget;
+				TArray<ACharacter*> Others;
+				if (IsLookToTarget && CameraActorCreateData.Targets.Num() > 0)
+				{
+					LookTarget = CameraActorCreateData.Targets[FMath::RandHelper(CameraActorCreateData.Targets.Num())];
+					Others = { CameraActorCreateData.Speaker };
+				}
+				else
+				{
+					LookTarget = CameraActorCreateData.Speaker;
+					Others = CameraActorCreateData.Targets;
+				}
+
 				FCameraCutCreateData& PrevCameraCutCreateData = CameraCutCreateDatas[SplitIdx];
 				TArray<int32> AllRelatedSentenceIdxs = PrevCameraCutCreateData.RelatedSentenceIdxs;
 				PrevCameraCutCreateData.RelatedSentenceIdxs.Empty();
@@ -890,6 +907,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				PrevCameraCutCreateData.CameraCutRange = TRange<FFrameNumber>(PrevStartFrameNumber, NextFrameStartNumber);
 
 				FCameraCutCreateData& NextCameraCutCreateData = CameraCutCreateDatas.InsertDefaulted_GetRef(SplitIdx + 1);
+				NextCameraCutCreateData.LookTarget = LookTarget;
 				NextCameraCutCreateData.CameraCutRange = TRange<FFrameNumber>(NextFrameStartNumber, PrevEndFrameNumber);
 				// 分离镜头后计算各自的RelatedSentenceIdxs
 				for (int32 RelatedSentenceIdx : AllRelatedSentenceIdxs)
@@ -908,7 +926,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 
 				float DialogueProgress = NextCameraCutCreateData.RelatedSentenceIdxs[NextCameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
-				NextCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, CameraActorCreateData.Speaker, CameraActorCreateData.Targets, CameraActorCreateDatas, { UsedCameraHandles });
+				NextCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, LookTarget, Others, CameraActorCreateDatas, { UsedCameraHandles });
 				check(!UsedCameraHandles.Contains(NextCameraCutCreateData.CameraHandle));
 				UsedCameraHandles.Add(NextCameraCutCreateData.CameraHandle);
 
@@ -1014,16 +1032,19 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		FCameraCutUtils::AddCameraCut(MovieScene, SpawnedCameraData.CameraGuid, *CameraCutTrack, CameraCutRange.GetLowerBoundValue(), CameraCutRange.GetUpperBoundValue());
 
 		// 景深目标控制
-		// TODO：由于镜头合并，现在会出现对话目标不在镜头中的情况，效果有些问题。
 		TMovieSceneChannelData<FMovieSceneActorReferenceKey> ActorToTrackSectionChannel = const_cast<FMovieSceneActorReferenceData&>(SpawnedCameraData.DepthOfFieldTargetSection->GetActorReferenceData()).GetData();
-		for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
-		{
-			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
-			ACharacter* Speaker = GenDialogueData.Speaker;
-			FFrameNumber SentenceStartTime = GenDialogueData.GetRange().GetLowerBoundValue();
-			FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
-			ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
-		}
+		check(CameraCutCreateData.LookTarget);
+		ActorToTrackSectionChannel.UpdateOrAddKey(CameraCutCreateData.CameraCutRange.GetLowerBoundValue(), FMovieSceneActorReferenceKey(DialogueCharacterDataMap[CameraCutCreateData.LookTarget].BindingID));
+
+		// TODO：可以根据说话方调整景深目标，但是要考虑说话方的朝向
+// 		for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
+// 		{
+// 			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
+// 			ACharacter* Speaker = GenDialogueData.Speaker;
+// 			FFrameNumber SentenceStartTime = GenDialogueData.GetRange().GetLowerBoundValue();
+// 			FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
+// 			ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
+// 		}
 
 		// 补光
 		if (bGenerateSupplementLightGroup)
@@ -1041,7 +1062,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 					SpawnParams.ObjectFlags &= ~RF_Transactional;
 					// 现在的补光是Butterfly Lighting模式
 					// TODO：结合上下文丰富补光模式
-					ARectLight* AutoGenSupplementLight = World->SpawnActor<ARectLight>(FVector::ForwardVector * 100.f, FRotator(0.f, 180.f, 0.f), SpawnParams);
+					ARectLight* AutoGenSupplementLight = World->SpawnActor<ARectLight>(
+						FVector(100.f, 0.f, (Speaker->GetPawnViewLocation() - Speaker->GetActorLocation()).Z), FRotator(0.f, 180.f, 0.f), SpawnParams);
 					AutoGenSupplementLight->SetActorLabel(FString::Printf(TEXT("%s_SupplementLight"), *CameraActorCreateData.GetSpeakerName()));
 					{
 						AutoGenSupplementLight->SetMobility(EComponentMobility::Movable);
