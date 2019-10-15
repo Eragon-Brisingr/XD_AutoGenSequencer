@@ -32,7 +32,7 @@ namespace GenAnimTrackUtils
 	void SetBlendInOutValue(FMovieSceneFloatChannel& AnimWeight, const FFrameRate FrameRate, FFrameNumber StartFrameNumber, float StartBlendTime, FFrameNumber EndFrameNumber, float EndBlendTime)
 	{
 		SetBlendInValue(AnimWeight, FrameRate, StartFrameNumber, StartBlendTime, 0.f, 1.f);
-		SetBlendOutValue(AnimWeight, FrameRate, EndFrameNumber, StartBlendTime, 1.f, 0.f);
+		SetBlendOutValue(AnimWeight, FrameRate, EndFrameNumber, EndBlendTime, 1.f, 0.f);
 	}
 };
 

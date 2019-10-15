@@ -22,7 +22,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AAutoGenDialogueCameraTemplate> CameraTemplate;
 
-	// TODO：使用权重！
 	UPROPERTY(EditAnywhere)
 	float Weights = 1.f;
 };

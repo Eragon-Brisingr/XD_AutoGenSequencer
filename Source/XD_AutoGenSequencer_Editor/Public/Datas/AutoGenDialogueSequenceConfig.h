@@ -46,9 +46,6 @@ public:
 
 	//生成对白
 public:
-	// TODO：不要用同一个镜头太久时间？
-// 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "镜头最大使用次数"))
-// 	int32 CameraMaxUseTimes = 3;
 	UPROPERTY(EditAnywhere, Category = "生成对白配置", meta = (DisplayName = "启用合并过短镜头"))
 	uint8 bEnableMergeCamera : 1;
 	//小于这个时间的镜头会被合并

@@ -1015,9 +1015,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 
 				// 生成景深导轨
-				// TODO：这个是否也可以移至GenerateCameraTrackData？
 				{
-					// 景深目标为说话者
 					CineCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
 					// TODO: 现在用字符串记录路径，可以考虑使用FPropertyPath，或者编译期通过一种方式做检查
 					UMovieSceneActorReferenceTrack* ActorToTrackTrack = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneActorReferenceTrack>(MovieScene, CineCameraComponentGuid,
@@ -1036,15 +1034,21 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		check(CameraCutCreateData.LookTarget);
 		ActorToTrackSectionChannel.UpdateOrAddKey(CameraCutCreateData.CameraCutRange.GetLowerBoundValue(), FMovieSceneActorReferenceKey(DialogueCharacterDataMap[CameraCutCreateData.LookTarget].BindingID));
 
-		// TODO：可以根据说话方调整景深目标，但是要考虑说话方的朝向
-// 		for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
-// 		{
-// 			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
-// 			ACharacter* Speaker = GenDialogueData.Speaker;
-// 			FFrameNumber SentenceStartTime = GenDialogueData.GetRange().GetLowerBoundValue();
-// 			FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
-// 			ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
-// 		}
+		// 考虑说话方的朝向，根据说话方调整景深目标
+		// TODO：考虑目标是否在画面内
+		for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
+		{
+			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
+			ACharacter* Speaker = GenDialogueData.Speaker;
+
+			const float DotValue = Speaker->GetActorRotation().Vector() | CameraActorCreateData.CameraRotation.Vector();
+			if (DotValue < 0.5f)
+			{
+				FFrameNumber SentenceStartTime = GenDialogueData.GetRange().GetLowerBoundValue();
+				FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
+				ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
+			}
+		}
 
 		// 补光
 		if (bGenerateSupplementLightGroup)
@@ -1132,6 +1136,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 		const float EndBlendInTime = 0.25f;
 		if (AnimSectionVirtualDatas.Num() > 0)
 		{
+			// 填补说话动作前的间隙
 			{
 				const FAnimSectionVirtualData FirstVirtualData = AnimSectionVirtualDatas[0];
 				if (FirstVirtualData.AnimRange.GetLowerBoundValue() > SequenceStartFrameNumber)
@@ -1145,22 +1150,23 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 				}
 			}
 
-			const TArray<FAnimSectionVirtualData> CachedAnimSectionVirtualDatas = AnimTrackData.AnimSectionVirtualDatas;
-			for (int32 Idx = 1; Idx < CachedAnimSectionVirtualDatas.Num(); ++Idx)
+			// 填补说话动作间的间隙
+			for (int32 Idx = 1; Idx < AnimSectionVirtualDatas.Num(); ++Idx)
 			{
-				const FAnimSectionVirtualData& LeftVirtualData = CachedAnimSectionVirtualDatas[Idx - 1];
-				const FAnimSectionVirtualData& RightVirtualData = CachedAnimSectionVirtualDatas[Idx];
+				const FAnimSectionVirtualData& LeftVirtualData = AnimSectionVirtualDatas[Idx - 1];
+				const FAnimSectionVirtualData RightVirtualData = AnimSectionVirtualDatas[Idx];
 				if (LeftVirtualData.AnimRange.GetUpperBoundValue() < RightVirtualData.AnimRange.GetLowerBoundValue())
 				{
-					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(0);
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
-						RightVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
+					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(Idx);
+					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(LeftVirtualData.BlendInTime, FrameRate),
+						RightVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(RightVirtualData.BlendOutTime, FrameRate));
 					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(LeftVirtualData, RightVirtualData, FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
 					IdleAnimSectionVirtualData.BlendInTime = LeftVirtualData.BlendOutTime;
 					IdleAnimSectionVirtualData.BlendOutTime = RightVirtualData.BlendInTime;
 				}
 			}
 
+			// 填补说话动作后的间隙
 			{
 				const FAnimSectionVirtualData LastVirtualData = AnimSectionVirtualDatas.Last();
 				if (LastVirtualData.AnimRange.GetUpperBoundValue() < SequenceEndFrameNumber)

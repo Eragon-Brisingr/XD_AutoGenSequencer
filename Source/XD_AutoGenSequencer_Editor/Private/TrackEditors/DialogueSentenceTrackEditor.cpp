@@ -141,7 +141,6 @@ TSharedPtr<SWidget> FDialogueSentenceTrackEditor::BuildOutlinerEditWidget(const 
 						AssetPickerConfig.bAllowNullSelection = false;
 						AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 
-						// TODO: 自定义过滤规则，根据DialogueVoice过滤
 						for (auto ClassName : DerivedClassNames)
 						{
 							AssetPickerConfig.Filter.ClassNames.Add(ClassName);
