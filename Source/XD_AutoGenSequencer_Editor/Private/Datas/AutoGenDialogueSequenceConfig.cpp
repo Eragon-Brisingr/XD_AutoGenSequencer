@@ -1138,7 +1138,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 				{
 					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(0);
 					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(SequenceStartFrameNumber
-						, FirstVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendOutTime, FrameRate));
+						, FirstVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(FirstVirtualData.BlendOutTime, FrameRate));
 					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(TOptional<FAnimSectionVirtualData>(), FirstVirtualData, FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
 					IdleAnimSectionVirtualData.BlendInTime = StartBlendInTime;
 					IdleAnimSectionVirtualData.BlendOutTime = FirstVirtualData.BlendInTime;
@@ -1166,7 +1166,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 				if (LastVirtualData.AnimRange.GetUpperBoundValue() < SequenceEndFrameNumber)
 				{
 					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(IdleAnimSectionVirtualData.BlendInTime, FrameRate),
+					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(LastVirtualData.BlendInTime, FrameRate),
 						SequenceEndFrameNumber);
 					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(LastVirtualData, TOptional<FAnimSectionVirtualData>(), FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
 					IdleAnimSectionVirtualData.BlendInTime = LastVirtualData.BlendInTime;
