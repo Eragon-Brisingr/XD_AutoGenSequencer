@@ -25,7 +25,6 @@ public:
 	UMovieSceneSection* SplitSection(FQualifiedFrameTime SplitTime) override;
 	TOptional<FFrameTime> GetOffsetTime() const override;
 	FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
-
 public:
 	/** The offset into the beginning of the audio clip */
 	UPROPERTY(EditAnywhere, Category = Dialogue)

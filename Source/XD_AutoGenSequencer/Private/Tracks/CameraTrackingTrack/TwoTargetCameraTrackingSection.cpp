@@ -8,6 +8,9 @@
 #include "DialogueCameraUtils.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "AutoGenDialogueRuntimeSettings.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
+#include "Components/SkeletalMeshComponent.h"
 
 DECLARE_CYCLE_STAT(TEXT("Two Target Camera Tracking Section Evaluate"), MovieSceneEval_TwoTargetCameraTrackingSection_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Two Target Camera Tracking Section Tear Down"), MovieSceneEval_TwoTargetCameraTrackingSection_TearDown, STATGROUP_MovieSceneEval);
@@ -75,10 +78,67 @@ FMovieSceneEvalTemplatePtr UTwoTargetCameraTrackingSection::GenerateTemplate() c
 	return FTwoTargetCameraTrackingSectionTemplate(*this);
 }
 
-struct FTwoTargetCameraTrackingTrackData : IPersistentEvaluationData
+#if WITH_EDITOR
+void UTwoTargetCameraTrackingSection::DrawSectionSelectedPreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const
 {
-	FVector FrontTargetLocation;
-	FVector BackTargetLocation;
+
+}
+
+void UTwoTargetCameraTrackingSection::DrawSectionExecutePreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const
+{
+	for (const TWeakObjectPtr<>& Object : Player->FindBoundObjects(BackTarget.GetGuid(), BackTarget.GetSequenceID()))
+	{
+		if (ACharacter* BackTargetRef = Cast<ACharacter>(Object.Get()))
+		{
+			FVector Origin, BoxExtent;
+			BackTargetRef->GetActorBounds(true, Origin, BoxExtent);
+
+			const FIntRect CanvasRect = Canvas->GetViewRect();
+
+			{
+				float CameraYawValue;
+				CameraYaw.Evaluate(FramePosition, CameraYawValue);
+				const bool FrontIsRight = CameraYawValue > 0.f;
+
+				float BackTargetRateValue;
+				BackTargetRate.Evaluate(FramePosition, BackTargetRateValue);
+				BackTargetRateValue = FMath::Clamp(BackTargetRateValue, -1.f, 0.49999f);
+				const float BackTargetRateX = (FrontIsRight ? BackTargetRateValue : 1.f - BackTargetRateValue);
+				{
+					const float BackTargetX = CanvasRect.Width() * (BackTargetRateX - BackTolerance);
+					FCanvasLineItem CanvasLineItem(FVector2D(BackTargetX, CanvasRect.Min.Y), FVector2D(BackTargetX, CanvasRect.Max.Y));
+					CanvasLineItem.LineThickness = 1.f;
+					CanvasLineItem.SetColor(DebugColor);
+					Canvas->DrawItem(CanvasLineItem);
+				}
+				{
+					const float BackTargetX = CanvasRect.Width() * (BackTargetRateX + BackTolerance);
+					FCanvasLineItem CanvasLineItem(FVector2D(BackTargetX, CanvasRect.Min.Y), FVector2D(BackTargetX, CanvasRect.Max.Y));
+					CanvasLineItem.LineThickness = 1.f;
+					CanvasLineItem.SetColor(DebugColor);
+					Canvas->DrawItem(CanvasLineItem);
+				}
+
+				{
+					const FVector BackLocation = BackTargetTrackingSocketName.IsNone() ? BackTargetRef->GetPawnViewLocation() : BackTargetRef->GetMesh()->GetSocketLocation(BackTargetTrackingSocketName);
+					FVector2D ScreenPosition;
+					FDialogueCameraUtils::ProjectWorldToScreen(View, CanvasRect, BackLocation, ScreenPosition);
+					const float ScreenRaduis = FDialogueCameraUtils::ConvertWorldSphereRadiusToScreen(View, BackLocation, BackTargetVolumnRadius) * CanvasRect.Width();
+					FCanvasLineItem CanvasLineItem(FVector2D(ScreenPosition.X - ScreenRaduis, ScreenPosition.Y), FVector2D(ScreenPosition.X + ScreenRaduis, ScreenPosition.Y));
+					CanvasLineItem.LineThickness = 1.f;
+					CanvasLineItem.SetColor(DebugColor);
+					Canvas->DrawItem(CanvasLineItem);
+				}
+			}
+		}
+	}
+}
+#endif
+
+struct FTwoTargetCameraTrackingSectionData : IPersistentEvaluationData
+{
+	// 用于确定是否是连续的镜头
+	FFrameNumber PrevFrameNumber = -2;
 };
 
 void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
@@ -96,10 +156,107 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 			void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 			{
 				MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_TwoTargetCameraTrackingSection_TokenExecute);
+				if (Operand.ObjectBindingID.IsValid())
+				{
+					for (const TWeakObjectPtr<>& CameraObject : Player.FindBoundObjects(Operand))
+					{
+						UCineCameraComponent* CineCameraComponent = Cast<UCineCameraComponent>(CameraObject.Get());
+						if (!CineCameraComponent)
+						{
+							continue;
+						}
 
-				EvaluateCameraPosition(Context, Operand, PersistentData, Player);
+						ACharacter* FrontTarget = TryGetFrontTarget(Player);
+						ACharacter* BackTarget = TryGetBackTarget(Player);
+
+						if (!FrontTarget || !BackTarget)
+						{
+							continue;
+						}
+
+						FTwoTargetCameraTrackingSectionData& TwoTargetCameraTrackingSectionData = PersistentData.GetOrAddSectionData<FTwoTargetCameraTrackingSectionData>();
+						const TRange<FFrameNumber> FrameNumberRange = Context.GetFrameNumberRange();
+						const bool IsFirstEvaluate = FrameNumberRange.GetLowerBoundValue() != (TwoTargetCameraTrackingSectionData.PrevFrameNumber + 1);
+						TwoTargetCameraTrackingSectionData.PrevFrameNumber = FrameNumberRange.GetUpperBoundValue();
+
+						float CameraYaw, FrontTargetRate, BackTargetRate;
+						CameraTrackingSection->CameraYaw.Evaluate(Context.GetTime(), CameraYaw);
+						if (CameraYaw == 0.f)
+						{
+							continue;
+						}
+						CameraTrackingSection->FrontTargetRate.Evaluate(Context.GetTime(), FrontTargetRate);
+						CameraTrackingSection->BackTargetRate.Evaluate(Context.GetTime(), BackTargetRate);
+
+						const FVector FrontLocation = FrontTarget->GetPawnViewLocation();
+						const FVector BackLocation = CameraTrackingSection->BackTargetTrackingSocketName.IsNone() ? BackTarget->GetPawnViewLocation() : BackTarget->GetMesh()->GetSocketLocation(CameraTrackingSection->BackTargetTrackingSocketName);
+
+						FMinimalViewInfo MinimalViewInfo;
+						CineCameraComponent->GetCameraView(0.f, MinimalViewInfo);
+						FVector2D BackScreenPosition;
+						FDialogueCameraUtils::ProjectWorldToScreen(MinimalViewInfo, BackLocation, BackScreenPosition);
+						const float ScreenRaduis = FDialogueCameraUtils::ConvertWorldSphereRadiusToScreen(CineCameraComponent, BackLocation, CameraTrackingSection->BackTargetVolumnRadius);
+
+						const bool FrontIsRight = CameraYaw > 0.f;
+						if (!FrontIsRight)
+						{
+							BackScreenPosition.X = 1.f - BackScreenPosition.X;
+						}
+
+						if (CameraTrackingSection->BackTolerance == 0.f)
+						{
+							if (BackScreenPosition.X == BackTargetRate)
+							{
+								return;
+							}
+						}
+						else
+						{
+							float LeftLimit = BackTargetRate - CameraTrackingSection->BackTolerance;
+							float RightLimit = BackTargetRate + CameraTrackingSection->BackTolerance;
+
+							const bool IsValid = RightLimit - LeftLimit > ScreenRaduis * 2.f;
+							if (IsValid)
+							{
+								LeftLimit += ScreenRaduis;
+								RightLimit -= ScreenRaduis;
+
+								if (BackScreenPosition.X > RightLimit)
+								{
+									BackTargetRate = RightLimit;
+								}
+								else if (BackScreenPosition.X < LeftLimit)
+								{
+									BackTargetRate = LeftLimit;
+								}
+								else
+								{
+									return;
+								}
+							}
+						}
+
+						FVector CameraLocation;
+						FRotator CameraRotation;
+						FVector FocusCenterLocation;
+						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, -1.f, 0.49999f), FMath::Clamp(BackTargetRate, -1.f, 0.49999f),
+							FrontLocation + CameraTrackingSection->FrontOffset, BackLocation + CameraTrackingSection->BackOffset, CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
+
+						if (IsFirstEvaluate)
+						{
+							CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
+						}
+						else
+						{
+							const FVector PrevLocation = CineCameraComponent->GetComponentLocation();
+							const FRotator PrevRotation = CineCameraComponent->GetComponentRotation();
+
+							const float DeltaTime = Context.GetDelta() / Context.GetFrameRate();
+							CineCameraComponent->SetWorldLocationAndRotation(FMath::VInterpTo(PrevLocation, CameraLocation, DeltaTime, 2.f), FMath::RInterpTo(PrevRotation, CameraRotation, DeltaTime, 2.f));
+						}
+					}
+				}
 			}
-
 
 			ACharacter* TryGetFrontTarget(IMovieScenePlayer& Player) const
 			{
@@ -124,95 +281,10 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 				return nullptr;
 			}
 
-			void EvaluateCameraPosition(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
-			{
-				if (Operand.ObjectBindingID.IsValid())
-				{
-					for (const TWeakObjectPtr<>& CameraObject : Player.FindBoundObjects(Operand))
-					{
-						UCineCameraComponent* CineCameraComponent = Cast<UCineCameraComponent>(CameraObject.Get());
-						if (!CineCameraComponent)
-						{
-							continue;
-						}
-
-						ACharacter* FrontTarget = TryGetFrontTarget(Player);
-						ACharacter* BackTarget = TryGetBackTarget(Player);
-
-						if (!FrontTarget || !BackTarget)
-						{
-							continue;
-						}
-
-						float CameraYaw, FrontTargetRate, BackTargetRate;
-
-						CameraTrackingSection->CameraYaw.Evaluate(Context.GetTime(), CameraYaw);
-						if (CameraYaw == 0.f)
-						{
-							continue;
-						}
-						FTwoTargetCameraTrackingTrackData& TwoTargetCameraTrackingTrackData = PersistentData.GetOrAddTrackData<FTwoTargetCameraTrackingTrackData>();
-
-						FVector FrontLocation, BackLocation;
-						if (CameraTrackingSection->bKeepInitializeTargetLocation)
-						{
-							FrontLocation = TwoTargetCameraTrackingTrackData.FrontTargetLocation;
-							BackLocation = TwoTargetCameraTrackingTrackData.BackTargetLocation;
-						}
-						else
-						{
-							FrontLocation = FrontTarget->GetPawnViewLocation();
-							BackLocation = BackTarget->GetPawnViewLocation();
-						}
-
-						FVector CameraLocation;
-						FRotator CameraRotation;
-						FVector FocusCenterLocation;
-						CameraTrackingSection->FrontTargetRate.Evaluate(Context.GetTime(), FrontTargetRate);
-						CameraTrackingSection->BackTargetRate.Evaluate(Context.GetTime(), BackTargetRate);
-						FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FMath::Clamp(FrontTargetRate, -1.f, 0.49999f), FMath::Clamp(BackTargetRate, -1.f, 0.49999f),
-							FrontLocation + CameraTrackingSection->FrontOffset, BackLocation + CameraTrackingSection->BackOffset, CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
-						CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
-
-						// 迭代位置，防止摄像机穿过模型
-						// 未实现
-			// 			const int32 MaxIteratorCount = 10;
-			// 			const float DeltaSeconds = Context.GetDelta() / Context.GetFrameRate();
-			// 
-			// 			const float IteratorDegree = 2.f * DeltaSeconds;
-			// 			for (int32& Idx = TwoTargetCameraTrackingTrackData.CameraIteratorNum; Idx < MaxIteratorCount; ++Idx)
-			// 			{
-			// 				float CameraYawIteratored = CameraYaw + Idx * (CameraYaw > 0 ? IteratorDegree : -IteratorDegree);
-			// 
-			// 				CameraTrackingSection->FrontTargetRate.Evaluate(Context.GetTime(), FrontTargetRate);
-			// 				CameraTrackingSection->BackTargetRate.Evaluate(Context.GetTime(), BackTargetRate);
-			// 				FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawIteratored, FMath::Clamp(FrontTargetRate, -1.f, 0.49999f), FMath::Clamp(BackTargetRate, -1.f, 0.49999f),
-			// 					FrontTarget->GetPawnViewLocation(), BackTarget->GetPawnViewLocation(), CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
-			// 
-			// 				FHitResult CameraHitResult;
-			// 				UKismetSystemLibrary::BoxTraceSingle(FrontTarget, CameraLocation, FocusCenterLocation, FVector(0.1f, 20.f, 20.f), (FocusCenterLocation - CameraLocation).Rotation(), GetDefault<UAutoGenDialogueRuntimeSettings>()->CameraEvaluateTraceChannel, false, {}, EDrawDebugTrace::ForOneFrame, CameraHitResult, false);
-			// 				float DistanceToCamera = FVector(CameraHitResult.ImpactPoint - CameraLocation).Size();
-			// 				if (!CameraHitResult.bBlockingHit || DistanceToCamera > 100.f)
-			// 				{
-			// 					CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
-			// 					return;
-			// 				}
-			// 			}
-			// 			
-			// 			{
-			// 				CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
-			// 			}
-					}
-				}
-			}
-
 			const UTwoTargetCameraTrackingSection* CameraTrackingSection;
 		};
 
-		if (CameraTrackingSection->bOnlyInitializeEvaluate == false)
-		{
-			ExecutionTokens.Add(FTwoTargetCameraTrackingSectionToken(CameraTrackingSection));
-		}
+		ExecutionTokens.Add(FTwoTargetCameraTrackingSectionToken(CameraTrackingSection));
 	}
 }
 

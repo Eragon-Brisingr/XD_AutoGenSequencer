@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraTypes.h"
 #include "SceneView.h"
+#include "CanvasTypes.h"
 
 void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraLocation, FRotator& CameraRotation, FVector& FocusCenterLocation)
 {
@@ -33,30 +34,51 @@ void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float 
 	FocusCenterLocation = LookCenter;
 }
 
-bool FDialogueCameraUtils::WorldToScreenWidgets(UCameraComponent* CameraComponent, const FVector& WorldLocation, FVector2D& OutScreenWidgets)
+bool FDialogueCameraUtils::ProjectWorldToScreen(UCameraComponent* CameraComponent, const FVector& WorldLocation, FVector2D& OutScreenPosition)
 {
 	FMinimalViewInfo MinimalViewInfo;
 	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
-	return WorldToScreenWidgets(MinimalViewInfo, WorldLocation, OutScreenWidgets);
+	return ProjectWorldToScreen(MinimalViewInfo, WorldLocation, OutScreenPosition);
 }
 
-bool FDialogueCameraUtils::WorldToScreenWidgets(const FMinimalViewInfo& MinimalViewInfo, const FVector& WorldLocation, FVector2D& OutScreenWidgets)
+bool FDialogueCameraUtils::ProjectWorldToScreen(const FMinimalViewInfo& MinimalViewInfo, const FVector& WorldLocation, FVector2D& OutScreenPosition)
 {
 	const FMatrix ProjectionMatrix = MinimalViewInfo.CalculateProjectionMatrix();
 	if (FSceneView::ProjectWorldToScreen(WorldLocation, FIntRect(0, 0, 1, 1), 
-		FLookAtMatrix(MinimalViewInfo.Location, MinimalViewInfo.Location + MinimalViewInfo.Rotation.Vector(), FVector::UpVector) * ProjectionMatrix, OutScreenWidgets))
+		FLookAtMatrix(MinimalViewInfo.Location, MinimalViewInfo.Location + MinimalViewInfo.Rotation.Vector(), FVector::UpVector) * ProjectionMatrix, OutScreenPosition))
 	{
-		bool bIsInScreen = OutScreenWidgets.X > 0.f && OutScreenWidgets.X < 1.f && OutScreenWidgets.Y > 0.f && OutScreenWidgets.Y < 1.f;
+		bool bIsInScreen = OutScreenPosition.X > 0.f && OutScreenPosition.X < 1.f && OutScreenPosition.Y > 0.f && OutScreenPosition.Y < 1.f;
 		return bIsInScreen;
 	}
 	return false;
 }
 
-bool FDialogueCameraUtils::WorldBoundsToScreenWidgets(UCameraComponent* CameraComponent, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenWidgetsBounds)
+bool FDialogueCameraUtils::ProjectWorldToScreen(const FSceneView* View, const FIntRect& CanvasRect, const FVector& WorldLocation, FVector2D& OutScreenPosition)
+{
+	return View->ProjectWorldToScreen(WorldLocation, CanvasRect, View->ViewMatrices.GetViewProjectionMatrix(), OutScreenPosition);
+}
+
+bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(UCameraComponent* CameraComponent, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
 {
 	FMinimalViewInfo MinimalViewInfo;
 	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
 
+	return ProjectWorldBoxBoundsToScreen(Origin, Extend, OutScreenBounds, [&](const FVector& WorldPosition, FVector2D& ScreenPosition)
+		{
+			return ProjectWorldToScreen(MinimalViewInfo, WorldPosition, ScreenPosition);
+		});
+}
+
+bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FSceneView* View, const FIntRect& CanvasRect, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
+{
+	return ProjectWorldBoxBoundsToScreen(Origin, Extend, OutScreenBounds, [&](const FVector& WorldPosition, FVector2D& ScreenPosition)
+		{
+			return ProjectWorldToScreen(View, CanvasRect, WorldPosition, ScreenPosition);
+		});
+}
+
+bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds, const TFunction<bool(const FVector&, FVector2D&)>& ProjectWorldToScreenFunction)
+{
 	TArray<FVector> Points;
 	// calculate 3D corner Points of bounding box
 	Points.Add(Origin + FVector(Extend.X, Extend.Y, Extend.Z));
@@ -68,18 +90,36 @@ bool FDialogueCameraUtils::WorldBoundsToScreenWidgets(UCameraComponent* CameraCo
 	Points.Add(Origin + FVector(Extend.X, -Extend.Y, -Extend.Z));
 	Points.Add(Origin + FVector(-Extend.X, -Extend.Y, -Extend.Z));
 
-	FVector2D MinScreenWidgets(1.f, 1.f);
-	FVector2D MaxScreenWidgets(0, 0);
+	FVector2D MinScreenWidgets(TNumericLimits<float>().Max(), TNumericLimits<float>().Max());
+	FVector2D MaxScreenWidgets(TNumericLimits<float>().Lowest(), TNumericLimits<float>().Lowest());
 	bool IsCompletelyInView = true;
 	for (const FVector& Point : Points) {
-		FVector2D ScreenWidgets(0, 0);
-		IsCompletelyInView &= WorldToScreenWidgets(MinimalViewInfo, Point, ScreenWidgets);
-		MaxScreenWidgets.X = FMath::Max(ScreenWidgets.X, MaxScreenWidgets.X);
-		MaxScreenWidgets.Y = FMath::Max(ScreenWidgets.Y, MaxScreenWidgets.Y);
-		MinScreenWidgets.X = FMath::Min(ScreenWidgets.X, MinScreenWidgets.X);
-		MinScreenWidgets.Y = FMath::Min(ScreenWidgets.Y, MinScreenWidgets.Y);
+		FVector2D ScreenPosition(0, 0);
+		IsCompletelyInView &= ProjectWorldToScreenFunction(Point, ScreenPosition);
+		MaxScreenWidgets.X = FMath::Max(ScreenPosition.X, MaxScreenWidgets.X);
+		MaxScreenWidgets.Y = FMath::Max(ScreenPosition.Y, MaxScreenWidgets.Y);
+		MinScreenWidgets.X = FMath::Min(ScreenPosition.X, MinScreenWidgets.X);
+		MinScreenWidgets.Y = FMath::Min(ScreenPosition.Y, MinScreenWidgets.Y);
 	}
-	OutScreenWidgetsBounds = FBox2D(MinScreenWidgets, MaxScreenWidgets);
+	OutScreenBounds = FBox2D(MinScreenWidgets, MaxScreenWidgets);
 
 	return IsCompletelyInView;
+}
+
+float FDialogueCameraUtils::ConvertWorldSphereRadiusToScreen(UCameraComponent* CameraComponent, const FVector& Origin, float Radius)
+{
+	float DistanceToObject = FVector(Origin - CameraComponent->GetComponentLocation()).Size();
+
+	/* Get Projected Screen Radius */
+	float ScreenRadius = FMath::Atan(Radius / DistanceToObject) * FMath::DegreesToRadians(CameraComponent->FieldOfView);
+	return ScreenRadius;
+}
+
+float FDialogueCameraUtils::ConvertWorldSphereRadiusToScreen(const FSceneView* View, const FVector& Origin, float Radius)
+{
+	float DistanceToObject = FVector(Origin - View->ViewLocation).Size();
+
+	/* Get Projected Screen Radius */
+	float ScreenRadius = FMath::Atan(Radius / DistanceToObject) * FMath::DegreesToRadians(View->FOV);
+	return ScreenRadius;
 }

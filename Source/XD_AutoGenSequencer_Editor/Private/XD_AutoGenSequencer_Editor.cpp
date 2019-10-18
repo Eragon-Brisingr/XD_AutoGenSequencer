@@ -18,6 +18,8 @@
 #include "DialogueSentenceFactory.h"
 #include "AutoGenDialogueAnimSet.h"
 #include "AutoGenDialogueCameraSet.h"
+#include "EditorModeRegistry.h"
+#include "EdMode_AutoGenSequence.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -92,6 +94,8 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 			GetMutableDefault<UAutoGenDialogueSettings>()
 		);
 	}
+
+	FEditorModeRegistry::Get().RegisterMode<FEdMode_AutoGenSequence>(FEdMode_AutoGenSequence::ID);
 }
 
 void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
@@ -99,9 +103,9 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 
-	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	if (FAssetToolsModule* AssetToolsModule = FModuleManager::Get().GetModulePtr<FAssetToolsModule>("AssetTools"))
 	{
-		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		IAssetTools& AssetTools = AssetToolsModule->Get();
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
@@ -109,25 +113,22 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 
 	FAutoGenSequencerContentBrowserExtensions::UnregisterExtender();
 
-	if (FModuleManager::Get().IsModuleLoaded("Sequencer"))
+	if (ISequencerModule* SequencerModule = FModuleManager::Get().GetModulePtr<ISequencerModule>("Sequencer"))
 	{
-		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		SequencerModule.UnRegisterTrackEditor(DialogueSentenceTrackEditorHandle);
-		SequencerModule.UnRegisterTrackEditor(PreviewDialogueSentenceTrackEditorHandle);
-		SequencerModule.UnRegisterTrackEditor(TwoTargetCameraTrackingTrackEditorHandle);
-		FDialogueSequenceExtender::Get().Unregister(SequencerModule);
+		SequencerModule->UnRegisterTrackEditor(DialogueSentenceTrackEditorHandle);
+		SequencerModule->UnRegisterTrackEditor(PreviewDialogueSentenceTrackEditorHandle);
+		SequencerModule->UnRegisterTrackEditor(TwoTargetCameraTrackingTrackEditorHandle);
+		FDialogueSequenceExtender::Get().Unregister(*SequencerModule);
 	}
 
-	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	if (FPropertyEditorModule* SequencerModule = FModuleManager::Get().GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
 	{
-		FPropertyEditorModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterDataTypeName);
-		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName);
-		SequencerModule.UnregisterCustomPropertyTypeLayout(DialogueCharacterName);
+		SequencerModule->UnregisterCustomPropertyTypeLayout(DialogueCharacterDataTypeName);
+		SequencerModule->UnregisterCustomPropertyTypeLayout(DialogueSentenceEditDataTypeName);
+		SequencerModule->UnregisterCustomPropertyTypeLayout(DialogueCharacterName);
 	}
 
-	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-	if (SettingsModule != nullptr)
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		if (RuntimeSettingsSection)
 		{
@@ -140,6 +141,8 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 			SettingsModule->UnregisterSettings("Project", Category->GetName(), SettingsSection->GetName());
 		}
 	}
+
+	FEditorModeRegistry::Get().UnregisterMode(FEdMode_AutoGenSequence::ID);
 }
 
 #undef LOCTEXT_NAMESPACE

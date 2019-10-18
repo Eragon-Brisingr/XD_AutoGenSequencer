@@ -117,12 +117,12 @@ AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTrac
 	return CameraWeightsData;
 }
 
-void ADialogueCamera_TwoTargetTracking::GenerateCameraTrackData(ACharacter* Speaker, const TArray<ACharacter*>& Targets, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const
+void ADialogueCamera_TwoTargetTracking::GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const
 {
-	check(Targets.Num() > 0);
-	ACharacter* Target = Targets[0];
+	check(Others.Num() > 0);
+	ACharacter* Target = Others[0];
 
-	const FGenDialogueCharacterData& SpeakCharacterData = DialogueCharacterDataMap[Speaker];
+	const FGenDialogueCharacterData& SpeakCharacterData = DialogueCharacterDataMap[LookTarget];
 	const FGenDialogueCharacterData& TargetCharacterData = DialogueCharacterDataMap[Target];
 
 	// 防止越轴的处理

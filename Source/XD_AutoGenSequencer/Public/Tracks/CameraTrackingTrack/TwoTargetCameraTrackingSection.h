@@ -6,13 +6,14 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneEvalTemplate.h"
 #include "MovieSceneFloatChannel.h"
+#include "XD_SequenceSectionPreviewInfo.h"
 #include "TwoTargetCameraTrackingSection.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class XD_AUTOGENSEQUENCER_API UTwoTargetCameraTrackingSection : public UMovieSceneSection
+class XD_AUTOGENSEQUENCER_API UTwoTargetCameraTrackingSection : public UMovieSceneSection, public IXD_SequenceSectionPreviewInfo
 {
 	GENERATED_BODY()
 public:
@@ -25,6 +26,13 @@ public:
 	TOptional<FFrameTime> GetOffsetTime() const override;
 	FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, Category = "调试")
+	FLinearColor DebugColor = FLinearColor::Red;
+	// IXD_SequenceSectionPreviewInfo
+	void DrawSectionSelectedPreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const override;
+	void DrawSectionExecutePreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const override;
+#endif
 public:
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FMovieSceneObjectBindingID FrontTarget;
@@ -33,20 +41,17 @@ public:
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FMovieSceneObjectBindingID BackTarget;
 	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	FName BackTargetTrackingSocketName = TEXT("head");
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	float BackTargetVolumnRadius = 10.f;
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
+	float BackTolerance = 0.05f;
+	UPROPERTY(EditAnywhere, Category = CameraTracking)
 	FVector BackOffset;
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = CameraTracking)
 	UClass* CreateFrom;
 #endif
-
-	// TODO：只会在解算开始执行一次
-	UPROPERTY(EditAnywhere, Category = CameraTracking)
-	uint8 bOnlyInitializeEvaluate : 1;
-
-	// TODO：保持初始化时传入目标的位置
-	UPROPERTY(EditAnywhere, Category = CameraTracking)
-	uint8 bKeepInitializeTargetLocation : 1;
-
 	UPROPERTY()
 	FMovieSceneFloatChannel CameraYaw;
 	UPROPERTY()

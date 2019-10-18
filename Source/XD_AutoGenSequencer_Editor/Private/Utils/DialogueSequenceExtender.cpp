@@ -20,6 +20,9 @@
 #include "Engine/Selection.h"
 #include "LevelEditorViewport.h"
 #include "MessageDialog.h"
+#include "Editor.h"
+#include "EdMode_AutoGenSequence.h"
+#include "EditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -245,6 +248,12 @@ void FDialogueSequenceExtender::OpenAutoGenDialogueSequence()
 
 void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSequencer)
 {
+	if (WeakSequencer.IsValid())
+	{
+		WeakSequencer.Pin()->OnCloseEvent().RemoveAll(this);
+	}
+	InSequencer->OnCloseEvent().AddRaw(this, &FDialogueSequenceExtender::OnSequencerClosed);
+	WeakSequencer = InSequencer;
 	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch)
 	{
 		ULevelSequence* LevelSequence = Cast<ULevelSequence>(InSequencer->GetFocusedMovieSceneSequence());
@@ -255,53 +264,63 @@ void FDialogueSequenceExtender::OnSequenceCreated(TSharedRef<ISequencer> InSeque
 
 		if (UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindMetaData<UAutoGenDialogueSystemData>())
 		{
-			UAutoGenDialogueSystemData* OldAutoGenDialogueSequence = WeakAutoGenDialogueSystemData.Get();
-			WeakAutoGenDialogueSystemData = AutoGenDialogueSystemData;
-
-			if (AutoGenDialogueSystemData->bIsNewCreated)
-			{
-				AutoGenDialogueSystemData->bIsNewCreated = false;
-			}
-			if (!AutoGenDialogueSystemData->HasPreviewData())
-			{
-				FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
-				// 直接开不行，延迟一帧
-				GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
-					{
-						OpenPreviewDialogueSoundSequence();
-					});
-			}
-			else if (OldAutoGenDialogueSequence != AutoGenDialogueSystemData)
-			{
-				GeneratePreviewCharacters();
-				SetStandTemplateInstancePickable(true);
-			}
+			WhenAutoGenSequenceEditorOpened(AutoGenDialogueSystemData);
 		}
 		else
 		{
-			WeakAutoGenDialogueSystemData = nullptr;
-			DestroyPreviewStandPositionTemplate();
+			WhenAutoGenSequenceEditorClosed();
 		}
 	}
-	if (WeakSequencer.IsValid())
+
+	if (FEdMode_AutoGenSequence* EdMode_AutoGenSequence = StaticCast<FEdMode_AutoGenSequence*>(GLevelEditorModeTools().GetActiveMode(FEdMode_AutoGenSequence::ID)))
 	{
-		WeakSequencer.Pin()->OnCloseEvent().RemoveAll(this);
+		EdMode_AutoGenSequence->WeakSequencer = WeakSequencer;
 	}
-	InSequencer->OnCloseEvent().AddRaw(this, &FDialogueSequenceExtender::OnSequencerClosed);
-	WeakSequencer = InSequencer;
 }
 
 void FDialogueSequenceExtender::OnSequencerClosed(TSharedRef<ISequencer> InSequencer)
 {
-	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch)
+	if (!FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch && WeakAutoGenDialogueSystemData.IsValid())
 	{
-		WeakSequencer = nullptr;
-		WeakAutoGenDialogueSystemData = nullptr;
-		if (PreviewStandPositionTemplate.IsValid())
-		{
-			DestroyPreviewStandPositionTemplate();
-		}
+		WhenAutoGenSequenceEditorClosed();
 	}
+}
+
+void FDialogueSequenceExtender::WhenAutoGenSequenceEditorOpened(UAutoGenDialogueSystemData* AutoGenDialogueSystemData)
+{
+	UAutoGenDialogueSystemData* OldAutoGenDialogueSequence = WeakAutoGenDialogueSystemData.Get();
+	WeakAutoGenDialogueSystemData = AutoGenDialogueSystemData;
+
+	if (AutoGenDialogueSystemData->bIsNewCreated)
+	{
+		AutoGenDialogueSystemData->bIsNewCreated = false;
+	}
+	if (!AutoGenDialogueSystemData->HasPreviewData())
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
+		// 直接开不行，延迟一帧
+		GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
+			{
+				OpenPreviewDialogueSoundSequence();
+			});
+	}
+	else if (OldAutoGenDialogueSequence != AutoGenDialogueSystemData)
+	{
+		GeneratePreviewCharacters();
+		SetStandTemplateInstancePickable(true);
+		GLevelEditorModeTools().ActivateMode(FEdMode_AutoGenSequence::ID);
+	}
+}
+
+void FDialogueSequenceExtender::WhenAutoGenSequenceEditorClosed()
+{
+	WeakSequencer = nullptr;
+	WeakAutoGenDialogueSystemData = nullptr;
+	if (PreviewStandPositionTemplate.IsValid())
+	{
+		DestroyPreviewStandPositionTemplate();
+	}
+	GLevelEditorModeTools().DeactivateMode(FEdMode_AutoGenSequence::ID);
 }
 
 UWorld* FDialogueSequenceExtender::GetEditorWorld() const

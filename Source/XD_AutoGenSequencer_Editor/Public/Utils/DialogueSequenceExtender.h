@@ -50,6 +50,9 @@ private:
 	void OnSequenceCreated(TSharedRef<ISequencer> InSequencer);
 	void OnSequencerClosed(TSharedRef<ISequencer> InSequencer);
 
+	void WhenAutoGenSequenceEditorOpened(UAutoGenDialogueSystemData* AutoGenDialogueSystemData);
+	void WhenAutoGenSequenceEditorClosed();
+
 	UWorld* GetEditorWorld() const;
 	TSoftObjectPtr<ADialogueStandPositionTemplate> PreviewStandPositionTemplate;
 	TArray<TSoftObjectPtr<ACharacter>> CachedSourceCharacterInstance;
