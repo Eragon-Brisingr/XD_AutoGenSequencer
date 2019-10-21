@@ -43,6 +43,6 @@ public:
 	UPROPERTY(Transient)
 	UTextRenderComponent* PreviewBackHint;
 public:
-	FCameraWeightsData EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const override;
+	FCameraWeightsData EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const override;
 	void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const override;
 };

@@ -78,21 +78,28 @@ void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transfo
 	}
 }
 
-AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTracking::EvaluateCameraTemplate(ACharacter* Speaker, const TArray<ACharacter*>& Targets, float DialogueProgress) const
+AAutoGenDialogueCameraTemplate::FCameraWeightsData ADialogueCamera_TwoTargetTracking::EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const
 {
 	FCameraWeightsData CameraWeightsData;
-	if (Targets.Num() > 0)
+	if (Others.Num() > 0)
 	{
-		ACharacter* Target = Targets[0];
+		ACharacter* Target = Others[0];
 		CameraWeightsData.CameraTemplate = this;
 
-		FVector SpeakerLocation = Speaker->GetPawnViewLocation();
+		FVector SpeakerLocation = LookTarget->GetPawnViewLocation();
 		FVector TargetLocation = Target->GetPawnViewLocation();
+
+		const FGenDialogueCharacterData& SpeakCharacterData = DialogueCharacterDataMap[LookTarget];
+		const FGenDialogueCharacterData& TargetCharacterData = DialogueCharacterDataMap[Target];
+
+		// 防止越轴的处理
+		bool InvertCameraPos = SpeakCharacterData.CharacterIdx - TargetCharacterData.CharacterIdx > 0;
+		const float CameraYaw = !InvertCameraPos ? CameraYawAngle : -CameraYawAngle;
 
 		FVector CameraLocation;
 		FRotator CameraRotation;
 		FVector FocusCenterLocation;
-		FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, SpeakerLocation + FrontOffset, TargetLocation + BackOffset, CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
+		FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYaw, FrontTargetRate, BackTargetRate, SpeakerLocation + FrontOffset, TargetLocation + BackOffset, CineCameraComponent->FieldOfView, CameraLocation, CameraRotation, FocusCenterLocation);
 
 		CameraWeightsData.CameraLocation = CameraLocation;
 		CameraWeightsData.CameraRotation = CameraRotation;

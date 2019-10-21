@@ -614,7 +614,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 		using FCameraWeightsData = AAutoGenDialogueCameraTemplate::FCameraWeightsData;
 
-		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, ACharacter* Speaker, const TArray<ACharacter*>& Targets, TArray<FCameraActorCreateData>& CameraActorCreateDatas, const TArray<FCameraHandle>& ExcludeCamreaHandles)
+		static FCameraHandle AddOrFindVirtualCameraData(float DialogueProgress, const UAutoGenDialogueSequenceConfig& GenConfig, ACharacter* Speaker, const TArray<ACharacter*>& Targets, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, TArray<FCameraActorCreateData>& CameraActorCreateDatas, const TArray<FCameraHandle>& ExcludeCamreaHandles)
 		{
 			TArray<const AAutoGenDialogueCameraTemplate*> ExcludeCameraTemplates;
 			for (const FCameraHandle CameraHandle : ExcludeCamreaHandles)
@@ -632,7 +632,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 
 				AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject();
-				FCameraWeightsData CameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueProgress);
+				FCameraWeightsData CameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueCharacterDataMap, DialogueProgress);
 				if (CameraWeightsData.IsValid())
 				{
 					CameraWeightsData.Weights *= AutoGenDialogueCameraConfig.Weights;
@@ -724,7 +724,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 		FCameraHandle CameraHandle = InvalidCameraHandle;
 
-		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, Speaker, Targets, CameraActorCreateDatas, {});
+		CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, Speaker, Targets, DialogueCharacterDataMap, CameraActorCreateDatas, {});
 
 		FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas.AddDefaulted_GetRef();
 		CameraCutCreateData.CameraHandle = CameraHandle;
@@ -926,7 +926,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				}
 
 				float DialogueProgress = NextCameraCutCreateData.RelatedSentenceIdxs[NextCameraCutCreateData.RelatedSentenceIdxs.Num() / 2] / DialogueCount;
-				NextCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, LookTarget, Others, CameraActorCreateDatas, { UsedCameraHandles });
+				NextCameraCutCreateData.CameraHandle = FCameraGenerateUtils::AddOrFindVirtualCameraData(DialogueProgress, *this, LookTarget, Others, DialogueCharacterDataMap, CameraActorCreateDatas, { UsedCameraHandles });
 				check(!UsedCameraHandles.Contains(NextCameraCutCreateData.CameraHandle));
 				UsedCameraHandles.Add(NextCameraCutCreateData.CameraHandle);
 
