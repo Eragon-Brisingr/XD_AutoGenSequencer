@@ -193,6 +193,31 @@ void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuil
 		LOCTEXT("刷新模板显示", "刷新模板显示"),
 		FAutoGenDialogueEditorStyle::Get().GetStandpositionIcon());
 
+	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
+			{
+				FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
+				if (EditorModeTools.IsModeActive(FEdMode_AutoGenSequence::ID))
+				{
+					EditorModeTools.DeactivateMode(FEdMode_AutoGenSequence::ID);
+				}
+				else
+				{
+					EditorModeTools.ActivateMode(FEdMode_AutoGenSequence::ID);
+				}
+			}),
+		FCanExecuteAction::CreateLambda([]()
+			{
+				return true;
+			}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+			{
+				return WeakAutoGenDialogueSystemData.IsValid();
+			}), EUIActionRepeatMode::RepeatEnabled), NAME_None,
+		LOCTEXT("切换辅助绘制模式", "切换辅助绘制模式"),
+		LOCTEXT("切换辅助绘制模式", "切换辅助绘制模式"),
+		FSlateIcon());
+
 	ToolBarBuilder.AddSeparator("Auto Gen Dialogue");
 }
 

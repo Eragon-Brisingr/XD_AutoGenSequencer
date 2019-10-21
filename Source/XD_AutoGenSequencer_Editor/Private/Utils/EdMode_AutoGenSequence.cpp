@@ -11,6 +11,8 @@
 #include "MovieScene.h"
 #include "MovieSceneSpawnTrack.h"
 #include "MovieSceneBoolSection.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
 
 FName FEdMode_AutoGenSequence::ID = TEXT("EdMode_AutoGenSequence");
 
@@ -28,11 +30,16 @@ void FEdMode_AutoGenSequence::DrawHUD(FEditorViewportClient* ViewportClient, FVi
 	if (WeakSequencer.IsValid())
 	{
 		ISequencer* Sequencer = WeakSequencer.Pin().Get();
+
+		// 只有在镜头被激活时才进行绘制
+		if (!Sequencer->IsPerspectiveViewportCameraCutEnabled())
+		{
+			return;
+		}
+
 		UMovieSceneSequence* MovieSceneSequence = Sequencer->GetFocusedMovieSceneSequence();
 		UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
 		const FFrameNumber FramePosition = Sequencer->GetLocalTime().ConvertTo(MovieScene->GetTickResolution()).GetFrame();
-
-		// TODO：只有在镜头被激活时才进行绘制
 
 		TArray<UMovieSceneSection*> SelectedSections;
 		Sequencer->GetSelectedSections(SelectedSections);
@@ -43,7 +50,6 @@ void FEdMode_AutoGenSequence::DrawHUD(FEditorViewportClient* ViewportClient, FVi
 				PreviewInfo->DrawSectionSelectedPreviewInfo(Sequencer, FramePosition, Viewport, View, Canvas);
 			}
 		}
-
 
 		for (const FMovieSceneBinding& Binding : MovieScene->GetBindings())
 		{
