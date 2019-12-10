@@ -65,4 +65,6 @@ private:
 	void WhenStandTemplateInstanceChanged();
 
 	void SetStandTemplateInstancePickable(bool Enable);
+
+	static void OpenEditorForAsset(UObject* Asset);
 };

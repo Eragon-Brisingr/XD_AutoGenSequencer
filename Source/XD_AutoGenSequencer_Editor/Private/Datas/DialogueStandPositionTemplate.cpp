@@ -18,7 +18,7 @@
 ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 {
 	bIsEditorOnlyActor = true;
-	bHidden = false;
+	SetHidden(false);
 
 //	数组有BUG，设置默认值之后编辑器Diff到超出默认长度后的元素直接溢出了
 // 	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));

@@ -56,7 +56,7 @@ void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuil
 // 					{
 // 						OpenPreviewDialogueSoundSequence();
 // 					}
-					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
+					OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 				}
 			}),
 		FCanExecuteAction(),
@@ -127,8 +127,8 @@ void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuil
 
 					TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 					//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
-					FAssetEditorManager::Get().OpenEditorForAsset(PreviewDialogueSoundSequence);
+					OpenEditorForAsset(GetAutoGenDialogueSequence());
+					OpenEditorForAsset(PreviewDialogueSoundSequence);
 				}
 				else if (IsAutoGenDialogueSequenceActived())
 				{
@@ -155,8 +155,8 @@ void FDialogueSequenceExtender::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuil
 
 					TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 					//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
-					FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
-					FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+					OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+					OpenEditorForAsset(GetAutoGenDialogueSequence());
 				}
 			}),
 		FCanExecuteAction::CreateLambda([]()
@@ -260,14 +260,14 @@ bool FDialogueSequenceExtender::IsAutoGenDialogueSequenceActived()
 void FDialogueSequenceExtender::OpenPreviewDialogueSoundSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-	FAssetEditorManager::Get().OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+	OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 	SetStandTemplateInstancePickable(false);
 }
 
 void FDialogueSequenceExtender::OpenAutoGenDialogueSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
-	FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequence());
+	OpenEditorForAsset(GetAutoGenDialogueSequence());
 	SetStandTemplateInstancePickable(true);
 }
 
@@ -322,7 +322,7 @@ void FDialogueSequenceExtender::WhenAutoGenSequenceEditorOpened(UAutoGenDialogue
 	}
 	if (!AutoGenDialogueSystemData->HasPreviewData())
 	{
-		FAssetEditorManager::Get().OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
+		OpenEditorForAsset(GetAutoGenDialogueSequenceConfig());
 		// 直接开不行，延迟一帧
 		GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
 			{
@@ -521,6 +521,12 @@ void FDialogueSequenceExtender::SetStandTemplateInstancePickable(bool Enable)
 		}
 	}
 	
+}
+
+void FDialogueSequenceExtender::OpenEditorForAsset(UObject* Asset)
+{
+	UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+	AssetEditorSubsystem->OpenEditorForAsset(Asset);
 }
 
 #undef LOCTEXT_NAMESPACE

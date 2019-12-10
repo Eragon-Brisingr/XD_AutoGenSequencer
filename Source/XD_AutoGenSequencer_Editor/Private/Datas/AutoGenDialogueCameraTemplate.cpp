@@ -74,7 +74,8 @@ void AAutoGenDialogueCameraTemplate::PostEditChangeProperty(FPropertyChangedEven
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy))
 		{
-			if (IAssetEditorInstance* AssetEditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Blueprint, false))
+			UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+			if (IAssetEditorInstance* AssetEditorInstance = AssetEditorSubsystem->FindEditorForAsset(Blueprint, false))
 			{
 				FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(AssetEditorInstance);
 				TSharedPtr<FEditorViewportClient> EditorViewportClient = ((SEditorViewport*)BlueprintEditor->GetSCSViewport().Get())->GetViewportClient();

@@ -242,7 +242,7 @@ TOptional<TRange<FFrameNumber>> UDialogueSentenceSection::GetAutoSizeRange() con
 	return TOptional<TRange<FFrameNumber>>();
 }
 
-void UDialogueSentenceSection::TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft)
+void UDialogueSentenceSection::TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft, bool bDeleteKeys)
 {
 	SetFlags(RF_Transactional);
 
@@ -253,15 +253,15 @@ void UDialogueSentenceSection::TrimSection(FQualifiedFrameTime TrimTime, bool bT
 			StartFrameOffset = HasStartFrame() ? GetStartOffsetAtTrimTime(TrimTime, StartFrameOffset, GetInclusiveStartFrame()) : 0;
 		}
 
-		Super::TrimSection(TrimTime, bTrimLeft);
+		Super::TrimSection(TrimTime, bTrimLeft, bDeleteKeys);
 	}
 }
 
-UMovieSceneSection* UDialogueSentenceSection::SplitSection(FQualifiedFrameTime SplitTime)
+UMovieSceneSection* UDialogueSentenceSection::SplitSection(FQualifiedFrameTime SplitTime, bool bDeleteKeys)
 {
 	const FFrameNumber NewOffset = HasStartFrame() ? GetStartOffsetAtTrimTime(SplitTime, StartFrameOffset, GetInclusiveStartFrame()) : 0;
 
-	UMovieSceneSection* NewSection = Super::SplitSection(SplitTime);
+	UMovieSceneSection* NewSection = Super::SplitSection(SplitTime, bDeleteKeys);
 	if (NewSection != nullptr)
 	{
 		UDialogueSentenceSection* NewAudioSection = Cast<UDialogueSentenceSection>(NewSection);

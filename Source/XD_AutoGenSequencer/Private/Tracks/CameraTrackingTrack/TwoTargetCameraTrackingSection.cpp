@@ -56,16 +56,16 @@ TOptional<TRange<FFrameNumber>> UTwoTargetCameraTrackingSection::GetAutoSizeRang
 	return Super::GetAutoSizeRange();
 }
 
-void UTwoTargetCameraTrackingSection::TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft)
+void UTwoTargetCameraTrackingSection::TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft, bool bDeleteKeys)
 {
 	SetFlags(RF_Transactional);
 
-	Super::TrimSection(TrimTime, bTrimLeft);
+	Super::TrimSection(TrimTime, bTrimLeft, bDeleteKeys);
 }
 
-UMovieSceneSection* UTwoTargetCameraTrackingSection::SplitSection(FQualifiedFrameTime SplitTime)
+UMovieSceneSection* UTwoTargetCameraTrackingSection::SplitSection(FQualifiedFrameTime SplitTime, bool bDeleteKeys)
 {
-	return Super::SplitSection(SplitTime);
+	return Super::SplitSection(SplitTime, bDeleteKeys);
 }
 
 TOptional<FFrameTime> UTwoTargetCameraTrackingSection::GetOffsetTime() const

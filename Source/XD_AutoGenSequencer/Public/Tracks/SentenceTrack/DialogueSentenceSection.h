@@ -21,8 +21,8 @@ class XD_AUTOGENSEQUENCER_API UDialogueSentenceSection : public UMovieSceneSecti
 public:
 	//~ UMovieSceneSection interface
 	TOptional<TRange<FFrameNumber> > GetAutoSizeRange() const override;
-	void TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft) override;
-	UMovieSceneSection* SplitSection(FQualifiedFrameTime SplitTime) override;
+	void TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft, bool bDeleteKeys) override;
+	UMovieSceneSection* SplitSection(FQualifiedFrameTime SplitTime, bool bDeleteKeys) override;
 	TOptional<FFrameTime> GetOffsetTime() const override;
 	FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
 public:
