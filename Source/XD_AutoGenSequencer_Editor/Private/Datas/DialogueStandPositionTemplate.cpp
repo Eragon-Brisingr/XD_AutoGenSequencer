@@ -1,17 +1,17 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueStandPositionTemplate.h"
-#include "GameFramework/Character.h"
-#include "Components/ChildActorComponent.h"
+#include "Datas/DialogueStandPositionTemplate.h"
+#include <GameFramework/Character.h>
+#include <Components/ChildActorComponent.h>
 #include "Components/BillboardComponent.h"
-#include "Engine/BlueprintGeneratedClass.h"
+#include <Engine/BlueprintGeneratedClass.h>
 #include "XD_AutoGenSequencer_Editor.h"
-#include "KismetCompilerModule.h"
-#include "KismetEditorUtilities.h"
-#include "Engine/Blueprint.h"
-#include "BlueprintEditorUtils.h"
-#include "AutoGenDialogueSettings.h"
+#include <KismetCompilerModule.h>
+#include <Kismet2/KismetEditorUtilities.h>
+#include <Engine/Blueprint.h>
+#include <Kismet2/BlueprintEditorUtils.h>
+#include "Utils/AutoGenDialogueSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

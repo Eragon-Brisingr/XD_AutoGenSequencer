@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "LevelSequence.h"
+#include <LevelSequence.h>
 #include "PreviewDialogueSoundSequence.generated.h"
 
 class UPreviewDialogueSentenceTrack;

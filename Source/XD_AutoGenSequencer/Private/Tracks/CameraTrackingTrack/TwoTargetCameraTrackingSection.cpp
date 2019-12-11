@@ -1,16 +1,17 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "TwoTargetCameraTrackingSection.h"
-#include "MovieSceneChannelProxy.h"
-#include "CineCameraComponent.h"
-#include "GameFramework/Character.h"
-#include "DialogueCameraUtils.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "AutoGenDialogueRuntimeSettings.h"
-#include "CanvasTypes.h"
-#include "CanvasItem.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
+#include <Kismet/KismetSystemLibrary.h>
+#include <GameFramework/Character.h>
+#include <Channels/MovieSceneChannelProxy.h>
+#include <CineCameraComponent.h>
+#include <CanvasTypes.h>
+#include <CanvasItem.h>
+#include <Components/SkeletalMeshComponent.h>
+
+#include "Utils/DialogueCameraUtils.h"
+#include "Utils/AutoGenDialogueRuntimeSettings.h"
 
 DECLARE_CYCLE_STAT(TEXT("Two Target Camera Tracking Section Evaluate"), MovieSceneEval_TwoTargetCameraTrackingSection_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Two Target Camera Tracking Section Tear Down"), MovieSceneEval_TwoTargetCameraTrackingSection_TearDown, STATGROUP_MovieSceneEval);

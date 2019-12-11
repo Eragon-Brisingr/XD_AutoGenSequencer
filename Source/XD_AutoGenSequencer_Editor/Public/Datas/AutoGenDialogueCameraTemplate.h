@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "MovieSceneObjectBindingID.h"
+#include <GameFramework/Actor.h>
+#include <MovieSceneObjectBindingID.h>
 #include "Factories/Factory.h"
-#include "AutoGenDialogueType.h"
+#include "Datas/AutoGenDialogueType.h"
 #include "AutoGenDialogueCameraTemplate.generated.h"
 
 class UChildActorComponent;

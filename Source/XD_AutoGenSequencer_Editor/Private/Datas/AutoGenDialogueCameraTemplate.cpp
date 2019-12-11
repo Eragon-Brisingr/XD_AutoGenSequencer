@@ -1,24 +1,25 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AutoGenDialogueCameraTemplate.h"
-#include "DialogueStandPositionTemplate.h"
-#include "Components/ChildActorComponent.h"
-#include "CineCameraComponent.h"
-#include "GameFramework/Character.h"
-#include "CineCameraActor.h"
+#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include <Components/ChildActorComponent.h>
+#include <CineCameraComponent.h>
+#include <GameFramework/Character.h>
+#include <CineCameraActor.h>
+#include <ClassViewerFilter.h>
+#include <KismetCompilerModule.h>
+#include <Engine/Blueprint.h>
+#include <Kismet2/KismetEditorUtilities.h>
+#include <ClassViewerModule.h>
+#include <Kismet2/SClassPickerDialog.h>
+#include <Toolkits/AssetEditorManager.h>
+#include <BlueprintEditor.h>
+#include <SEditorViewport.h>
+#include <EditorViewportClient.h>
+#include <EngineUtils.h>
+
+#include "Datas/DialogueStandPositionTemplate.h"
 #include "XD_AutoGenSequencer_Editor.h"
-#include "ClassViewerFilter.h"
-#include "KismetCompilerModule.h"
-#include "Engine/Blueprint.h"
-#include "KismetEditorUtilities.h"
-#include "ClassViewerModule.h"
-#include "SClassPickerDialog.h"
-#include "AssetEditorManager.h"
-#include "BlueprintEditor.h"
-#include "SEditorViewport.h"
-#include "EditorViewportClient.h"
-#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

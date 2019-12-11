@@ -1,13 +1,13 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AutoGenDialogueAnimSet.h"
+#include "Datas/AutoGenDialogueAnimSet.h"
+#include <Modules/ModuleManager.h>
+#include <ClassViewerModule.h>
+#include <ClassViewerFilter.h>
+#include <Kismet2/SClassPickerDialog.h>
 
 #include "XD_AutoGenSequencer_Editor.h"
-#include "ModuleManager.h"
-#include "ClassViewerModule.h"
-#include "ClassViewerFilter.h"
-#include "SClassPickerDialog.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

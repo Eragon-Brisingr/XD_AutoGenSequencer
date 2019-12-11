@@ -1,8 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSequenceConfigFactory.h"
-#include "AutoGenDialogueSequenceConfig.h"
+#include "Factory/DialogueSequenceConfigFactory.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
 #include "XD_AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"

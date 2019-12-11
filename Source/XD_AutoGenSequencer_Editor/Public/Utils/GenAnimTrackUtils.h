@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FrameRate.h"
-#include "NoExportTypes.h"
-#include "MovieSceneFloatChannel.h"
+#include <Misc/FrameRate.h>
+#include <UObject/NoExportTypes.h>
+#include <Channels/MovieSceneFloatChannel.h>
 
 
 namespace GenAnimTrackUtils

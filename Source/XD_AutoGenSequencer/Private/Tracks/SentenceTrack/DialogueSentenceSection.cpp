@@ -1,16 +1,16 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSentenceSection.h"
-#include "Engine/Engine.h"
-#include "Components/AudioComponent.h"
+#include "Tracks/SentenceTrack/DialogueSentenceSection.h"
+#include <Engine/Engine.h>
+#include <Components/AudioComponent.h>
 #include "Sound/SoundCue.h"
 #include "AudioDevice.h"
 #include "XD_AutoGenSequencerUtils.h"
 #include "Interface/DialogueInterface.h"
-#include "MovieSceneCommonHelpers.h"
+#include <MovieSceneCommonHelpers.h>
 #include "IMovieScenePlayer.h"
-#include "DialogueSentence.h"
+#include "Data/DialogueSentence.h"
 
 DECLARE_CYCLE_STAT(TEXT("Dialogue Sentence Track Evaluate"), MovieSceneEval_DialogueSentenceTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Dialogue Sentence Track Tear Down"), MovieSceneEval_DialogueSentenceTrack_TearDown, STATGROUP_MovieSceneEval);

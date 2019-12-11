@@ -1,13 +1,13 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueAnimationUtils.h"
-#include "Animation/AnimSequence.h"
-#include "BonePose.h"
-#include "AnimCurveTypes.h"
-#include "Animation/AnimationAsset.h"
-#include "Animation/Skeleton.h"
-#include "AnimationRuntime.h"
+#include "Utils/DialogueAnimationUtils.h"
+#include <Animation/AnimSequence.h>
+#include <BonePose.h>
+#include <Animation/AnimCurveTypes.h>
+#include <Animation/AnimationAsset.h>
+#include <Animation/Skeleton.h>
+#include <AnimationRuntime.h>
 
 float FDialogueAnimationUtils::GetSimilarityWeights(const UAnimSequence* LHS, float LTime, const UAnimSequence* RHS, float RTime)
 {

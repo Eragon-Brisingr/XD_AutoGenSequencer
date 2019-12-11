@@ -1,10 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueInterface.h"
-#include "GameFramework/Actor.h"
-#include "Components/AudioComponent.h"
-#include "Script.h"
+#include "Interface/DialogueInterface.h"
+#include <GameFramework/Actor.h>
+#include <Components/AudioComponent.h>
+#include <UObject/Script.h>
 
 // Add default functionality here for any IDialogueInterface functions that are not pure virtual.
 

@@ -3,18 +3,18 @@
 
 #include "AutoGenSequencerCBExtensions.h"
 
-#include "ContentBrowserModule.h"
+#include <ContentBrowserModule.h>
 #include "ContentBrowserDelegates.h"
-#include "MultiBoxBuilder.h"
-#include "EditorStyleSet.h"
-#include "Sound/SoundWave.h"
-#include "DialogueSentence.h"
-#include "AssetRegistryModule.h"
-#include "AutoGenDialogueSettings.h"
-#include "LevelSequence.h"
-#include "AutoGenDialogueSequenceFactory.h"
-#include "AutoGenDialogueSystemData.h"
-#include "GenDialogueSequenceConfigBase.h"
+#include <Framework/MultiBox/MultiBoxBuilder.h>
+#include <EditorStyleSet.h>
+#include <Sound/SoundWave.h>
+#include <AssetRegistryModule.h>
+#include <LevelSequence.h>
+#include "Data/DialogueSentence.h"
+#include "Utils/AutoGenDialogueSettings.h"
+#include "Factory/AutoGenDialogueSequenceFactory.h"
+#include "Datas/AutoGenDialogueSystemData.h"
+#include "Datas/GenDialogueSequenceConfigBase.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

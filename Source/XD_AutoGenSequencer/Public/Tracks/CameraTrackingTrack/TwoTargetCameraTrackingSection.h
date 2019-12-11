@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "MovieSceneSection.h"
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneFloatChannel.h"
-#include "XD_SequenceSectionPreviewInfo.h"
+#include <Evaluation/MovieSceneEvalTemplate.h>
+#include <Channels/MovieSceneFloatChannel.h>
+#include "Utils/XD_SequenceSectionPreviewInfo.h"
 #include "TwoTargetCameraTrackingSection.generated.h"
 
 /**

@@ -1,25 +1,26 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSentenceTrackEditor.h"
-#include "DialogueSentenceTrack.h"
-#include "MultiBoxBuilder.h"
-#include "ISequencer.h"
-#include "GameFramework/Actor.h"
-#include "SlateApplication.h"
-#include "ScopedTransaction.h"
-#include "SequencerSectionPainter.h"
-#include "DialogueSentenceSection.h"
-#include "LevelSequence.h"
-#include "SequencerUtilities.h"
-#include "AssetRegistryModule.h"
-#include "Sound/SoundBase.h"
-#include "ContentBrowserModule.h"
-#include "SBox.h"
-#include "IContentBrowserSingleton.h"
-#include "SButton.h"
-#include "DialogueSentence.h"
-#include "DialogueInterface.h"
+#include "TrackEditors/DialogueSentenceTrackEditor.h"
+#include <Framework/MultiBox/MultiBoxBuilder.h>
+#include <ISequencer.h>
+#include <GameFramework/Actor.h>
+#include <Framework/Application/SlateApplication.h>
+#include <ScopedTransaction.h>
+#include <SequencerSectionPainter.h>
+#include <LevelSequence.h>
+#include <SequencerUtilities.h>
+#include <AssetRegistryModule.h>
+#include <Sound/SoundBase.h>
+#include <ContentBrowserModule.h>
+#include <Widgets/Layout/SBox.h>
+#include <IContentBrowserSingleton.h>
+#include <Widgets/Input/SButton.h>
+
+#include "Tracks/SentenceTrack/DialogueSentenceTrack.h"
+#include "Tracks/SentenceTrack/DialogueSentenceSection.h"
+#include "Data/DialogueSentence.h"
+#include "Interface/DialogueInterface.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencerModule"
 

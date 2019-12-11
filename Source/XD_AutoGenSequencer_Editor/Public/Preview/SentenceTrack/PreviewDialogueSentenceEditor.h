@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "PropertyTrackEditor.h"
-#include "PreviewDialogueSentenceTrack.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
 
 class UPreviewDialogueSentenceSection;
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
+#include <UObject/NoExportTypes.h>
 #include "Factories/Factory.h"
 #include "AssetTypeActions_Base.h"
 #include "AutoGenDialogueAnimSet.generated.h"

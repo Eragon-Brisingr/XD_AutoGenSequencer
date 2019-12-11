@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GenDialogueSequenceConfigBase.h"
-#include "SubclassOf.h"
-#include "AutoGenDialogueType.h"
+#include "Datas/GenDialogueSequenceConfigBase.h"
+#include <Templates/SubclassOf.h>
+#include "Datas/AutoGenDialogueType.h"
 #include "AutoGenDialogueSequenceConfig.generated.h"
 
 class ADialogueStandPositionTemplate;

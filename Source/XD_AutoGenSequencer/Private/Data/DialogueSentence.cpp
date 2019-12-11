@@ -1,9 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSentence.h"
-#include "DialogueSentenceSection.h"
-#include "Sound/SoundWave.h"
+#include "Data/DialogueSentence.h"
+#include <Sound/SoundWave.h>
+#include "Tracks/SentenceTrack/DialogueSentenceSection.h"
 
 UDialogueSentence::UDialogueSentence()
 {

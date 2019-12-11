@@ -1,20 +1,21 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueCamera_TwoTargetTracking.h"
-#include "TwoTargetCameraTrackingTrack.h"
-#include "TwoTargetCameraTrackingSection.h"
-#include "DialogueCameraUtils.h"
-#include "CineCameraActor.h"
-#include "Editor.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "DialogueStandPositionTemplate.h"
-#include "GameFramework/Character.h"
-#include "CineCameraComponent.h"
-#include "GenDialogueSequenceConfigBase.h"
-#include "AutoGenDialogueRuntimeSettings.h"
+#include "Datas/DialogueCamera_TwoTargetTracking.h"
+#include <CineCameraActor.h>
+#include <Editor.h>
+#include <Kismet/KismetSystemLibrary.h>
+#include <GameFramework/Character.h>
+#include <CineCameraComponent.h>
+
+#include "Datas/DialogueStandPositionTemplate.h"
+#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
+#include "Utils/DialogueCameraUtils.h"
+#include "Utils/AutoGenDialogueRuntimeSettings.h"
 #include "Components/TextRenderComponent.h"
-#include "AutoGenSequence_Log.h"
+#include "Utils/AutoGenSequence_Log.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

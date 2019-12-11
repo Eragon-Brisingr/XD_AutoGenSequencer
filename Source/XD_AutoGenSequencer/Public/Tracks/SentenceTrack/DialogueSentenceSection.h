@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MovieSceneSection.h"
-#include "MovieSceneEvalTemplate.h"
+#include <Evaluation/MovieSceneEvalTemplate.h>
 #include "DialogueSentenceSection.generated.h"
 
 class USoundBase;

@@ -1,18 +1,18 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AutoGenDialogueSequenceFactory.h"
+#include "Factory/AutoGenDialogueSequenceFactory.h"
 #include "MovieSceneToolsProjectSettings.h"
-#include "FrameRate.h"
-#include "PreviewDialogueSoundSequence.h"
-#include "LevelSequence.h"
-#include "AutoGenDialogueSystemData.h"
-#include "PreviewDialogueSentenceTrack.h"
-#include "AutoGenDialogueSequenceConfig.h"
+#include <Misc/FrameRate.h>
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include <LevelSequence.h>
+#include "Datas/AutoGenDialogueSystemData.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
 #include "XD_AutoGenSequencer_Editor.h"
-#include "ClassViewerModule.h"
-#include "ClassViewerFilter.h"
-#include "SClassPickerDialog.h"
+#include <ClassViewerModule.h>
+#include <ClassViewerFilter.h>
+#include <Kismet2/SClassPickerDialog.h>
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

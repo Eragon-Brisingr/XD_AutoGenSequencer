@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MovieSceneAudioSection.h"
-#include "MovieSceneEvalTemplate.h"
-#include "AutoGenDialogueType.h"
+#include <Sections/MovieSceneAudioSection.h>
+#include <Evaluation/MovieSceneEvalTemplate.h>
+#include "Datas/AutoGenDialogueType.h"
 #include "PreviewDialogueSentenceSection.generated.h"
 
 /**

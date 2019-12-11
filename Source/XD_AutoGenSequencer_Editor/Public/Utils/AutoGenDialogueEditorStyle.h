@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SlateStyle.h"
-#include "SlateIcon.h"
+#include <Styling/SlateStyle.h>
+#include <Textures/SlateIcon.h>
 
 class FAutoGenDialogueEditorStyle
 	: public FSlateStyleSet

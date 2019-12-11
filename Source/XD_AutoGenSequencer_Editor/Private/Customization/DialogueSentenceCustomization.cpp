@@ -1,23 +1,23 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSentenceCustomization.h"
-#include "GenDialogueSequenceConfigBase.h"
-#include "AutoGenDialogueSequenceConfig.h"
-#include "DetailWidgetRow.h"
-#include "SBoxPanel.h"
-#include "GameFramework/Character.h"
-#include "DialogueInterface.h"
-#include "IDetailChildrenBuilder.h"
-#include "Editor.h"
-#include "Editor/EditorEngine.h"
-#include "TimerManager.h"
-#include "SButton.h"
-#include "EditorStyleSet.h"
-#include "SImage.h"
-#include "MessageDialog.h"
-#include "SNameComboBox.h"
-#include "AutoGenSequence_Log.h"
+#include "Customization/DialogueSentenceCustomization.h"
+#include <DetailWidgetRow.h>
+#include <Widgets/SBoxPanel.h>
+#include <GameFramework/Character.h>
+#include <IDetailChildrenBuilder.h>
+#include <Editor.h>
+#include <Editor/EditorEngine.h>
+#include <TimerManager.h>
+#include <Widgets/Input/SButton.h>
+#include <EditorStyleSet.h>
+#include <Widgets/Images/SImage.h>
+#include <Misc/MessageDialog.h>
+#include <SNameComboBox.h>
+#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "Interface/DialogueInterface.h"
+#include "Utils/AutoGenSequence_Log.h"
 
 namespace CustomizationUtils
 {

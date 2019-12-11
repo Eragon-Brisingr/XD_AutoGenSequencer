@@ -1,25 +1,25 @@
 ﻿// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "XD_AutoGenSequencer_Editor.h"
-#include "ISequencerModule.h"
+#include <ISequencerModule.h>
 #include "AutoGenSequencerCBExtensions.h"
-#include "DialogueSentenceTrackEditor.h"
-#include "PreviewDialogueSentenceEditor.h"
-#include "DialogueSequenceExtender.h"
-#include "PropertyEditorModule.h"
-#include "DialogueSentenceCustomization.h"
-#include "TwoTargetCameraTrackingEditor.h"
+#include "TrackEditors/DialogueSentenceTrackEditor.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceEditor.h"
+#include "Utils/DialogueSequenceExtender.h"
+#include <PropertyEditorModule.h>
+#include "Customization/DialogueSentenceCustomization.h"
+#include "TrackEditors/TwoTargetCameraTrackingEditor.h"
 #include <ISettingsModule.h>
 #include <ISettingsSection.h>
-#include "AutoGenDialogueSettings.h"
-#include "AssetToolsModule.h"
-#include "AutoGenDialogueRuntimeSettings.h"
+#include "Utils/AutoGenDialogueSettings.h"
+#include <AssetToolsModule.h>
+#include "Utils/AutoGenDialogueRuntimeSettings.h"
 #include "ISettingsCategory.h"
-#include "DialogueSentenceFactory.h"
-#include "AutoGenDialogueAnimSet.h"
-#include "AutoGenDialogueCameraSet.h"
+#include "Factory/DialogueSentenceFactory.h"
+#include "Datas/AutoGenDialogueAnimSet.h"
+#include "Datas/AutoGenDialogueCameraSet.h"
 #include "EditorModeRegistry.h"
-#include "EdMode_AutoGenSequence.h"
+#include "Utils/EdMode_AutoGenSequence.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

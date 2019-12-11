@@ -1,9 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PreviewDialogueSentenceTrack.h"
-#include "PreviewDialogueSentenceSection.h"
-#include "AutoGenDialogueSequenceConfig.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceSection.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
 
 #define LOCTEXT_NAMESPACE "DialogueSentenceTrack"
 

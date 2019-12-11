@@ -1,11 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueCameraUtils.h"
+#include "Utils/DialogueCameraUtils.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraTypes.h"
 #include "SceneView.h"
-#include "CanvasTypes.h"
+#include <CanvasTypes.h>
 
 void FDialogueCameraUtils::CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraLocation, FRotator& CameraRotation, FVector& FocusCenterLocation)
 {

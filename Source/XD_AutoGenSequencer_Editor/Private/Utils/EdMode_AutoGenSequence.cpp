@@ -1,18 +1,18 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "EdMode_AutoGenSequence.h"
-#include "CanvasTypes.h"
-#include "CanvasItem.h"
-#include "ISequencer.h"
+#include "Utils/EdMode_AutoGenSequence.h"
+#include <CanvasTypes.h>
+#include <CanvasItem.h>
+#include <ISequencer.h>
 #include "MovieSceneSection.h"
-#include "XD_SequenceSectionPreviewInfo.h"
+#include "Utils/XD_SequenceSectionPreviewInfo.h"
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
-#include "MovieSceneSpawnTrack.h"
-#include "MovieSceneBoolSection.h"
-#include "Editor.h"
-#include "LevelEditorViewport.h"
+#include <Tracks/MovieSceneSpawnTrack.h>
+#include <Sections/MovieSceneBoolSection.h>
+#include <Editor.h>
+#include <LevelEditorViewport.h>
 
 FName FEdMode_AutoGenSequence::ID = TEXT("EdMode_AutoGenSequence");
 

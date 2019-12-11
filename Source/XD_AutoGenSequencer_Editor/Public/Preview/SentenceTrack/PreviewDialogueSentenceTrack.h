@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MovieSceneAudioTrack.h"
+#include <Tracks/MovieSceneAudioTrack.h>
 #include "PreviewDialogueSentenceTrack.generated.h"
 
 struct FDialogueSentenceEditData;

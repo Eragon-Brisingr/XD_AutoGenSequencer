@@ -1,28 +1,28 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DialogueSequenceExtender.h"
+#include "Utils/DialogueSequenceExtender.h"
 
-#include "GenDialogueSequenceConfigBase.h"
-#include "LevelSequence.h"
-#include "AutoGenDialogueSystemData.h"
-#include "PreviewDialogueSoundSequence.h"
-#include "DialogueStandPositionTemplate.h"
+#include <ISequencerModule.h>
+#include <Toolkits/AssetEditorToolkit.h>
+#include <Framework/MultiBox/MultiBoxBuilder.h>
+#include <Engine/World.h>
+#include <GameFramework/Character.h>
+#include <Components/ChildActorComponent.h>
+#include <ScopedTransaction.h>
+#include <Engine/Selection.h>
+#include <LevelEditorViewport.h>
+#include <Misc/MessageDialog.h>
+#include <Editor.h>
+#include <EditorModeManager.h>
+#include <LevelSequence.h>
 
-#include "ISequencerModule.h"
-#include "AutoGenDialogueEditorStyle.h"
-#include "AssetEditorToolkit.h"
-#include "MultiBoxBuilder.h"
-#include "Engine/World.h"
-#include "GameFramework/Character.h"
-#include "Components/ChildActorComponent.h"
-#include "ScopedTransaction.h"
-#include "Engine/Selection.h"
-#include "LevelEditorViewport.h"
-#include "MessageDialog.h"
-#include "Editor.h"
-#include "EdMode_AutoGenSequence.h"
-#include "EditorModeManager.h"
+#include "Utils/AutoGenDialogueEditorStyle.h"
+#include "Datas/AutoGenDialogueSystemData.h"
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Datas/DialogueStandPositionTemplate.h"
+#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "Utils/EdMode_AutoGenSequence.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 

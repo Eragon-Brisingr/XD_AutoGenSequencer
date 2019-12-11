@@ -1,16 +1,16 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "TwoTargetCameraTrackingEditor.h"
-#include "TwoTargetCameraTrackingTrack.h"
-#include "TwoTargetCameraTrackingSection.h"
+#include "TrackEditors/TwoTargetCameraTrackingEditor.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
 
-#include "LevelSequence.h"
-#include "SequencerSectionPainter.h"
-#include "MultiBoxBuilder.h"
-#include "SlateApplication.h"
-#include "CineCameraComponent.h"
-#include "SequencerUtilities.h"
+#include <LevelSequence.h>
+#include <SequencerSectionPainter.h>
+#include <Framework/MultiBox/MultiBoxBuilder.h>
+#include <Framework/Application/SlateApplication.h>
+#include <CineCameraComponent.h>
+#include <SequencerUtilities.h>
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencerModule"
 

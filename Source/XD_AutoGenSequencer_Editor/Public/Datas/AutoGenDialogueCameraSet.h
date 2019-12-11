@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "SubclassOf.h"
+#include <UObject/NoExportTypes.h>
+#include <Templates/SubclassOf.h>
 #include "Factories/Factory.h"
 #include "AssetTypeActions_Base.h"
 #include "AutoGenDialogueCameraSet.generated.h"

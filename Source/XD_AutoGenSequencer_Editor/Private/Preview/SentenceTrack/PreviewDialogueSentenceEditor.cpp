@@ -1,12 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PreviewDialogueSentenceEditor.h"
-#include "PreviewDialogueSentenceTrack.h"
-#include "PreviewDialogueSoundSequence.h"
-#include "PreviewDialogueSentenceSection.h"
-#include "SequencerSectionPainter.h"
-#include "DialogueSentence.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceEditor.h"
+#include <SequencerSectionPainter.h>
+
+#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Preview/SentenceTrack/PreviewDialogueSentenceSection.h"
+#include "Data/DialogueSentence.h"
 
 FPreviewDialogueSentenceEditor::FPreviewDialogueSentenceEditor(TSharedRef<ISequencer> InSequencer) 
 	: FMovieSceneTrackEditor(InSequencer)

@@ -1,10 +1,10 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AutoGenDialogueSystemData.h"
-#include "LevelSequence.h"
-#include "GenDialogueSequenceConfigBase.h"
-#include "PreviewDialogueSoundSequence.h"
+#include "Datas/AutoGenDialogueSystemData.h"
+#include <LevelSequence.h>
+#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
 
 class ULevelSequenceUtils : public ULevelSequence
 {

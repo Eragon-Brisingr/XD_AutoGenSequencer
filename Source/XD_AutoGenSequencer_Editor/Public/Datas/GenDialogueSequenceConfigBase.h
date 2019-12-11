@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
-#include "SoftObjectPtr.h"
-#include "SubclassOf.h"
-#include "MovieSceneObjectBindingID.h"
+#include <UObject/NoExportTypes.h>
+#include <UObject/SoftObjectPtr.h>
+#include <Templates/SubclassOf.h>
+#include <MovieSceneObjectBindingID.h>
 #include "GenDialogueSequenceConfigBase.generated.h"
 
 class ISequencer;

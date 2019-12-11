@@ -1,8 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "TwoTargetCameraTrackingTrack.h"
-#include "TwoTargetCameraTrackingSection.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
 
 #define LOCTEXT_NAMESPACE "TwoTargetCameraTrackingTrack"
 
