@@ -9,7 +9,7 @@
 #include <Animation/Skeleton.h>
 #include <AnimationRuntime.h>
 
-float FDialogueAnimationUtils::GetSimilarityWeights(const UAnimSequence* LHS, float LTime, const UAnimSequence* RHS, float RTime)
+float UDialogueAnimationUtils::GetSimilarityWeights(const UAnimSequence* LHS, float LTime, const UAnimSequence* RHS, float RTime)
 {
 	check(LHS->GetSkeleton() == RHS->GetSkeleton());
 
@@ -71,4 +71,52 @@ float FDialogueAnimationUtils::GetSimilarityWeights(const UAnimSequence* LHS, fl
 		DistanceCount += (LTransform.GetLocation() - RTransform.GetLocation()).Size();
 	}
 	return DistanceCount;
+}
+
+TArray<FTransform> UDialogueAnimationUtils::SampleSequence(const UAnimSequence* Sequence, float Time, const TArray<FName>& BoneNames)
+{
+	TArray<FTransform> BoneTransforms;
+
+	USkeleton& Skeletion = *Sequence->GetSkeleton();
+	const FReferenceSkeleton& ReferenceSkeleton = Skeletion.GetReferenceSkeleton();
+
+	TArray<FBoneIndexType> RequiredBones;
+	TArray<FBoneIndexType> RequiredBonesWithParents;
+	{
+		for (const FName& BoneName : BoneNames)
+		{
+			int32 RequiredBoneIdx = ReferenceSkeleton.FindBoneIndex(BoneName);
+			if (RequiredBoneIdx != INDEX_NONE)
+			{
+				RequiredBones.Add(RequiredBoneIdx);
+				for (int32 ParentBoneIdx = RequiredBoneIdx; ParentBoneIdx != INDEX_NONE && !RequiredBonesWithParents.Contains(ParentBoneIdx); ParentBoneIdx = ReferenceSkeleton.GetParentIndex(ParentBoneIdx))
+				{
+					RequiredBonesWithParents.Add(ParentBoneIdx);
+				}
+			}
+		}
+		RequiredBonesWithParents.Sort();
+	}
+	check(RequiredBones.Num() == BoneNames.Num());
+	FBoneContainer BoneContainer(RequiredBonesWithParents, FCurveEvaluationOption(false), Skeletion);
+
+	FCompactPose Pose;
+	FBlendedCurve Curve;
+	{
+		Pose.SetBoneContainer(&BoneContainer);
+		FAnimExtractContext LAnimExtractContext;
+		LAnimExtractContext.CurrentTime = Time;
+		LAnimExtractContext.bExtractRootMotion = false;
+		Sequence->GetAnimationPose(Pose, Curve, LAnimExtractContext);
+	}
+	FCSPose<FCompactPose> CSPose;
+	CSPose.InitPose(Pose);
+
+	float DistanceCount = 0;
+	for (FBoneIndexType BoneIndex : RequiredBones)
+	{
+		FCompactPoseBoneIndex CompactPoseBoneIndex = BoneContainer.GetCompactPoseIndexFromSkeletonIndex(BoneIndex);
+		BoneTransforms.Add(CSPose.GetComponentSpaceTransform(CompactPoseBoneIndex));
+	}
+	return BoneTransforms;
 }

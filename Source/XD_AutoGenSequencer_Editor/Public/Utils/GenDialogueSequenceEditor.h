@@ -7,17 +7,18 @@
 class FExtender;
 class ISequencer;
 class ISequencerModule;
-class UAutoGenDialogueSystemData;
+class UGenDialogueSequenceConfigBase;
 class UPreviewDialogueSoundSequence;
 class UGenDialogueSequenceConfigBase;
 class ADialogueStandPositionTemplate;
 class UWorld;
 class ACharacter;
+class ULevelSequence;
 
 /**
  * 
  */
-class XD_AUTOGENSEQUENCER_EDITOR_API FDialogueSequenceExtender
+class XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueSequenceEditor
 {
 public:	
 	void Register(ISequencerModule& SequencerModule);
@@ -26,9 +27,13 @@ public:
 
 	void Unregister(ISequencerModule& SequencerModule);
 
-	static FDialogueSequenceExtender& Get()
+	void GenerateDialogueSequence();
+
+	void GeneratePreviewSequence();
+
+	static FGenDialogueSequenceEditor& Get()
 	{
-		static FDialogueSequenceExtender DialogueSequenceExtender;
+		static FGenDialogueSequenceEditor DialogueSequenceExtender;
 		return DialogueSequenceExtender;
 	}
 private:
@@ -36,11 +41,10 @@ private:
 	TSharedPtr<FExtender> SequencerToolbarExtender;
 	TWeakPtr<ISequencer> WeakSequencer;
 
-	TWeakObjectPtr<UAutoGenDialogueSystemData> WeakAutoGenDialogueSystemData;
-	UAutoGenDialogueSystemData* GetAutoGenDialogueSystemData() const;
+	TWeakObjectPtr<UGenDialogueSequenceConfigBase> WeakGenDialogueSequenceConfig;
+	UGenDialogueSequenceConfigBase* GetGenDialogueSequenceConfig() const;
 	ULevelSequence* GetAutoGenDialogueSequence() const;
 	UPreviewDialogueSoundSequence* GetPreviewDialogueSoundSequence() const;
-	UGenDialogueSequenceConfigBase* GetAutoGenDialogueSequenceConfig() const;
 
 	bool IsPreviewDialogueSequenceActived();
 	bool IsAutoGenDialogueSequenceActived();
@@ -50,17 +54,18 @@ private:
 	void OnSequenceCreated(TSharedRef<ISequencer> InSequencer);
 	void OnSequencerClosed(TSharedRef<ISequencer> InSequencer);
 
-	void WhenAutoGenSequenceEditorOpened(UAutoGenDialogueSystemData* AutoGenDialogueSystemData);
+	void WhenAutoGenSequenceEditorOpened(UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig);
 	void WhenAutoGenSequenceEditorClosed();
 
 	UWorld* GetEditorWorld() const;
 	TSoftObjectPtr<ADialogueStandPositionTemplate> PreviewStandPositionTemplate;
-	TArray<TSoftObjectPtr<ACharacter>> CachedSourceCharacterInstance;
+	TArray<TSoftObjectPtr<ACharacter>> CachedCharacterInstances;
 	TMap<FName, TSoftObjectPtr<ACharacter>> CharacterNameInstanceMap;
+	TMap<FName, ACharacter*> GetCharacterNameInstanceMap() const;
 	void DestroyPreviewStandPositionTemplate();
 	void GeneratePreviewCharacters();
 	//将生成的预览实例和定序器中的同步
-	static void SyncSequenceInstanceReference(UAutoGenDialogueSystemData* AutoGenDialogueSystemData, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
+	static void SyncSequenceInstanceReference(ULevelSequence* LevelSeqeunce, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
 
 	void WhenStandTemplateInstanceChanged();
 

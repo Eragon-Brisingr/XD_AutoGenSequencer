@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "DialogueInterface.generated.h"
+#include "XD_AutoGenDialogueInterface.generated.h"
 
 class UAudioComponent;
 class UDialogueSentence;
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UDialogueInterface : public UInterface
+class UXD_AutoGenDialogueInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -19,28 +19,28 @@ class UDialogueInterface : public UInterface
 /**
  * 
  */
-class XD_AUTOGENSEQUENCER_API IDialogueInterface
+class XD_AUTOGENSEQUENCER_API IXD_AutoGenDialogueInterface
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue")
-	UAudioComponent* GetMouthComponent() const;
-	virtual UAudioComponent* GetMouthComponent_Implementation() const;
-	static UAudioComponent* GetMouthComponent(const UObject* Obj);
+	UAudioComponent* GetDialogueMouthComponent() const;
+	virtual UAudioComponent* GetDialogueMouthComponent_Implementation() const;
+	static UAudioComponent* GetDialogueMouthComponent(const UObject* Obj);
 	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue")
 	FName GetDialogueCharacterName() const;
 	virtual FName GetDialogueCharacterName_Implementation() const;
 	static FName GetDialogueCharacterName(const UObject* Obj);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue")
-	void BeginSpeak(UDialogueSentence* Sentence);
-	virtual void BeginSpeak_Implementation(UDialogueSentence* Sentence) {}
-	static void BeginSpeak(UObject* Obj, UDialogueSentence* Sentence);
+	void BeginDialogueSpeak(UDialogueSentence* Sentence);
+	virtual void BeginDialogueSpeak_Implementation(UDialogueSentence* Sentence) {}
+	static void BeginDialogueSpeak(UObject* Obj, UDialogueSentence* Sentence);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Dialogue")
-	void EndSpeak();
-	virtual void EndSpeak_Implementation() {}
-	static void EndSpeak(UObject* Obj);
+	void EndDialogueSpeak();
+	virtual void EndDialogueSpeak_Implementation() {}
+	static void EndDialogueSpeak(UObject* Obj);
 };

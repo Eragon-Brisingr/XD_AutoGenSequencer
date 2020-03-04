@@ -61,7 +61,7 @@ public:
 		{
 			ACharacter* Speaker;
 			TArray<ACharacter*> Targets;
-			FDialogueSentenceEditData DialogueSentenceEditData;
+			UDialogueSentence* DialogueSentence;
 			TRange<FFrameNumber> DialogueRange;
 		};
 		TArray<FDialogueData> DialogueDatas;

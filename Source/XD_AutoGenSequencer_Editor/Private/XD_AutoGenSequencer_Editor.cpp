@@ -4,8 +4,7 @@
 #include <ISequencerModule.h>
 #include "AutoGenSequencerCBExtensions.h"
 #include "TrackEditors/DialogueSentenceTrackEditor.h"
-#include "Preview/SentenceTrack/PreviewDialogueSentenceEditor.h"
-#include "Utils/DialogueSequenceExtender.h"
+#include "Utils/GenDialogueSequenceEditor.h"
 #include <PropertyEditorModule.h>
 #include "Customization/DialogueSentenceCustomization.h"
 #include "TrackEditors/TwoTargetCameraTrackingEditor.h"
@@ -20,6 +19,7 @@
 #include "Datas/AutoGenDialogueCameraSet.h"
 #include "EditorModeRegistry.h"
 #include "Utils/EdMode_AutoGenSequence.h"
+#include "Datas/AutoGenDialogueCharacterSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -31,7 +31,7 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(AutoGenDialogueSequence_AssetCategoryKey, LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
+		AutoGenDialogueSequence_AssetCategory = AssetTools.RegisterAdvancedAssetCategory(TEXT("自动生成对白系统"), LOCTEXT("自动生成对白系统分类名", "自动生成对白系统"));
 
 		AssetTypeActions_DialogueSentence = MakeShareable(new FAssetTypeActions_DialogueSentence());
 		AssetTools.RegisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
@@ -41,6 +41,9 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 		AssetTypeActions_AutoGenDialogueCameraSet = MakeShareable(new FAssetTypeActions_AutoGenDialogueCameraSet());
 		AssetTools.RegisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
+
+		AssetTypeActions_AutoGenDialogueCharacterSettings = MakeShareable(new FAssetTypeActions_AutoGenDialogueCharacterSettings());
+		AssetTools.RegisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCharacterSettings.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::RegisterExtender();
@@ -51,15 +54,11 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 			{
 				return MakeShareable(new FDialogueSentenceTrackEditor(InSequencer));
 			}));
-		PreviewDialogueSentenceTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateLambda([](TSharedRef<ISequencer> InSequencer)
-			{
-				return MakeShareable(new FPreviewDialogueSentenceEditor(InSequencer));
-			}));
 		TwoTargetCameraTrackingTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateLambda([](TSharedRef<ISequencer> InSequencer)
 			{
 				return MakeShareable(new FTwoTargetCameraTrackingEditor(InSequencer));
 			}));
-		FDialogueSequenceExtender::Get().Register(SequencerModule);
+		FGenDialogueSequenceEditor::Get().Register(SequencerModule);
 	}
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -109,6 +108,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
+		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCharacterSettings.ToSharedRef());
 	}
 
 	FAutoGenSequencerContentBrowserExtensions::UnregisterExtender();
@@ -116,9 +116,8 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	if (ISequencerModule* SequencerModule = FModuleManager::Get().GetModulePtr<ISequencerModule>("Sequencer"))
 	{
 		SequencerModule->UnRegisterTrackEditor(DialogueSentenceTrackEditorHandle);
-		SequencerModule->UnRegisterTrackEditor(PreviewDialogueSentenceTrackEditorHandle);
 		SequencerModule->UnRegisterTrackEditor(TwoTargetCameraTrackingTrackEditorHandle);
-		FDialogueSequenceExtender::Get().Unregister(*SequencerModule);
+		FGenDialogueSequenceEditor::Get().Unregister(*SequencerModule);
 	}
 
 	if (FPropertyEditorModule* SequencerModule = FModuleManager::Get().GetModulePtr<FPropertyEditorModule>("PropertyEditor"))

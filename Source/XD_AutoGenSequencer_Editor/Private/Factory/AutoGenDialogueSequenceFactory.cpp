@@ -2,17 +2,16 @@
 
 
 #include "Factory/AutoGenDialogueSequenceFactory.h"
-#include "MovieSceneToolsProjectSettings.h"
 #include <Misc/FrameRate.h>
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
 #include <LevelSequence.h>
-#include "Datas/AutoGenDialogueSystemData.h"
-#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
-#include "Datas/AutoGenDialogueSequenceConfig.h"
-#include "XD_AutoGenSequencer_Editor.h"
 #include <ClassViewerModule.h>
 #include <ClassViewerFilter.h>
 #include <Kismet2/SClassPickerDialog.h>
+
+#include "MovieSceneToolsProjectSettings.h"
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "XD_AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -33,7 +32,7 @@ UObject* UAutoGenDialogueSequenceFactory::FactoryCreateNew(UClass* Class, UObjec
 	FFrameRate TickResolution = NewLevelSequence->GetMovieScene()->GetTickResolution();
 	NewLevelSequence->GetMovieScene()->SetPlaybackRange((ProjectSettings->DefaultStartTime*TickResolution).FloorToFrame(), (ProjectSettings->DefaultDuration*TickResolution).FloorToFrame().Value);
 
-	AddAutoGenDialogueSystemData(NewLevelSequence, AutoGenDialogueSequenceConfigClass);
+	AddGenDialogueSequenceConfig(NewLevelSequence, AutoGenDialogueSequenceConfigClass);
 	AutoGenDialogueSequenceConfigClass = nullptr;
 
 	return NewLevelSequence;
@@ -55,14 +54,17 @@ bool UAutoGenDialogueSequenceFactory::ConfigureProperties()
 	return bPressedOk; 
 }
 
-void UAutoGenDialogueSequenceFactory::AddAutoGenDialogueSystemData(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass)
+void UAutoGenDialogueSequenceFactory::AddGenDialogueSequenceConfig(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass)
 {
 	const EObjectFlags Flags = EObjectFlags::RF_Transactional;
-	UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindOrAddMetaData<UAutoGenDialogueSystemData>();
-	AutoGenDialogueSystemData->SetFlags(Flags);
-	AutoGenDialogueSystemData->AutoGenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(LevelSequence, AutoGenDialogueSequenceConfigClass, GET_MEMBER_NAME_CHECKED(UAutoGenDialogueSystemData, AutoGenDialogueSequenceConfig), Flags);
-	AutoGenDialogueSystemData->bIsNewCreated = true;
-	AutoGenDialogueSystemData->bIsNotSetStandPosition = true;
+	
+	UGenDialogueSequenceConfigContainer* GenDialogueSequenceConfigContainer = LevelSequence->FindOrAddMetaData<UGenDialogueSequenceConfigContainer>();
+	GenDialogueSequenceConfigContainer->SetFlags(Flags);
+
+	UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = NewObject<UGenDialogueSequenceConfigBase>(GenDialogueSequenceConfigContainer, AutoGenDialogueSequenceConfigClass, GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigContainer, GenDialogueSequenceConfig), Flags);
+	GenDialogueSequenceConfigContainer->GenDialogueSequenceConfig = GenDialogueSequenceConfig;
+	GenDialogueSequenceConfig->bIsNewCreated = true;
+	GenDialogueSequenceConfig->bIsNotSetStandPosition = true;
 }
 
 bool UAutoGenDialogueSequenceFactory::ShowPickConfigClassViewer(UClass*& ChosenClass)
@@ -77,12 +79,12 @@ bool UAutoGenDialogueSequenceFactory::ShowPickConfigClassViewer(UClass*& ChosenC
 	public:
 		EClassFlags DisallowedClassFlags = CLASS_Deprecated | CLASS_Abstract;
 
-		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
+		bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
 		{
 			return !InClass->HasAnyClassFlags(DisallowedClassFlags) && InClass->IsChildOf<UGenDialogueSequenceConfigBase>() != EFilterReturn::Failed;
 		}
 
-		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef<const class IUnloadedBlueprintData> InUnloadedClassData, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
+		bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef<const class IUnloadedBlueprintData> InUnloadedClassData, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
 		{
 			return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags) && InUnloadedClassData->IsChildOf(UGenDialogueSequenceConfigBase::StaticClass());
 		}

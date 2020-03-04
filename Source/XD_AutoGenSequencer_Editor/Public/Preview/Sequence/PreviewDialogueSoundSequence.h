@@ -6,9 +6,8 @@
 #include <LevelSequence.h>
 #include "PreviewDialogueSoundSequence.generated.h"
 
-class UPreviewDialogueSentenceTrack;
-class UAutoGenDialogueSystemData;
-class UAutoGenDialogueSequenceConfig;
+class UGenDialogueSequenceConfigBase;
+class UDialogueSentenceTrack;
 
 /**
  * 
@@ -18,12 +17,14 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UPreviewDialogueSoundSequence : public ULev
 {
 	GENERATED_BODY()
 public:
-#if WITH_EDITORONLY_DATA
-	UPROPERTY()
-	TArray<UPreviewDialogueSentenceTrack*> PreviewDialogueSentenceTracks;
-
 	UGenDialogueSequenceConfigBase* GetDialogueConfig() const;
 
 	bool HasPreviewData() const;
-#endif
+
+public:
+	UPROPERTY()
+	TMap<FName, UDialogueSentenceTrack*> DialogueSentenceTracks;
+
+	UPROPERTY()
+	TArray<FGuid> CharacterGuids;
 };

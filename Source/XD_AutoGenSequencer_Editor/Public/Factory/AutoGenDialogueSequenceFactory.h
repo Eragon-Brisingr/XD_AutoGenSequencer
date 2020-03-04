@@ -3,15 +3,39 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Factories/Factory.h"
+#include <Factories/Factory.h>
+#include <ILevelSequenceMetaData.h>
 #include "AutoGenDialogueSequenceFactory.generated.h"
 
-class UAutoGenDialogueSequenceConfig;
+class UGenDialogueSequenceConfigBase;
 class ULevelSequence;
 
 /**
  * 
  */
+UCLASS()
+class XD_AUTOGENSEQUENCER_EDITOR_API UGenDialogueSequenceConfigContainer : public UObject, public ILevelSequenceMetaData
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig;
+
+public:
+
+	// TODO：补全资源标签
+
+	/**
+	 * Extend the default ULevelSequence asset registry tags
+	 */
+	void ExtendAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override {}
+
+	/**
+	 * Extend the default ULevelSequence asset registry tag meta-data
+	 */
+	void ExtendAssetRegistryTagMetaData(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override {}
+};
+
 UCLASS()
 class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueSequenceFactory : public UFactory
 {
@@ -26,7 +50,7 @@ public:
 
 	bool ConfigureProperties() override;
 
-	static void AddAutoGenDialogueSystemData(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass);
+	static void AddGenDialogueSequenceConfig(ULevelSequence* LevelSequence, TSubclassOf<UGenDialogueSequenceConfigBase> AutoGenDialogueSequenceConfigClass);
 	static bool ShowPickConfigClassViewer(UClass*& ChosenClass);
 
 	FText GetDisplayName() const override;

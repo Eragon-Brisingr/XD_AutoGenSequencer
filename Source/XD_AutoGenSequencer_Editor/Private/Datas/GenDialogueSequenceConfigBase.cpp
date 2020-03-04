@@ -6,8 +6,10 @@
 #include "Utils/AutoGenDialogueSettings.h"
 #include "Preview/Sequence/PreviewDialogueSoundSequence.h"
 #include "Datas/AutoGenDialogueAnimSet.h"
-#include "Interface/DialogueInterface.h"
+#include "Interface/XD_AutoGenDialogueInterface.h"
 #include "Datas/AutoGenDialogueCameraSet.h"
+#include "Datas/AutoGenDialogueCharacterSettings.h"
+#include "Utils/GenDialogueSequenceEditor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -16,7 +18,7 @@ FDialogueCharacterData::FDialogueCharacterData()
 	
 }
 
-void FDialogueStationInstance::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
+void UGenDialogueSequenceConfigBase::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
 {
 	for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
 	{
@@ -24,7 +26,7 @@ void FDialogueStationInstance::SyncInstanceData(const ADialogueStandPositionTemp
 	}
 }
 
-TArray<FName> FDialogueStationInstance::GetCharacterNames() const
+TArray<FName> UGenDialogueSequenceConfigBase::GetCharacterNames() const
 {
 	TArray<FName> ValidNameList;
 	for (const FDialogueCharacterData& DialogueCharacterData : DialogueCharacterDatas)
@@ -34,32 +36,32 @@ TArray<FName> FDialogueStationInstance::GetCharacterNames() const
 	return ValidNameList;
 }
 
-TSharedPtr<FName> FDialogueStationInstance::InvalidDialogueName = MakeShareable(new FName(TEXT("无效的角色名")));
-
-TArray<TSharedPtr<FName>>& FDialogueStationInstance::GetDialogueNameList()
+TArray<TSharedPtr<FName>>& UGenDialogueSequenceConfigBase::GetDialogueNameList()
 {
-	if (DialogueNameList.Num() == 0)
+	ReinitDialogueNameList();
+	return DialogueNameList;
+}
+
+void UGenDialogueSequenceConfigBase::ReinitDialogueNameList()
+{
+	if (DialogueNameList.Num() != DialogueCharacterDatas.Num())
 	{
+		DialogueNameList.Reset(DialogueCharacterDatas.Num());
 		for (const FDialogueCharacterData& Override : DialogueCharacterDatas)
 		{
 			DialogueNameList.Add(MakeShareable(new FName(Override.NameOverride)));
 		}
 	}
-	return DialogueNameList;
-}
-
-void FDialogueStationInstance::ReinitDialogueNameList()
-{
-	DialogueNameList.SetNumZeroed(DialogueCharacterDatas.Num());
-	for (int32 Idx = 0; Idx < DialogueNameList.Num(); ++Idx)
+	else
 	{
-		if (DialogueNameList[Idx].IsValid())
+		for (int32 Idx = 0; Idx < DialogueNameList.Num(); ++Idx)
 		{
-			*(DialogueNameList[Idx].Get()) = DialogueCharacterDatas[Idx].NameOverride;
-		}
-		else
-		{
-			DialogueNameList[Idx] = MakeShareable(new FName(DialogueCharacterDatas[Idx].NameOverride));
+			FName& CachedName = *DialogueNameList[Idx].Get();
+			const FName& TargetName = DialogueCharacterDatas[Idx].NameOverride;
+			if (CachedName != TargetName)
+			{
+				CachedName = TargetName;
+			}
 		}
 	}
 }
@@ -67,11 +69,11 @@ void FDialogueStationInstance::ReinitDialogueNameList()
 UGenDialogueSequenceConfigBase::UGenDialogueSequenceConfigBase(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	PreviewDialogueSoundSequence = CreateDefaultSubobject<UPreviewDialogueSoundSequence>(GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, PreviewDialogueSoundSequence));
+	PreviewDialogueSequence = CreateDefaultSubobject<UPreviewDialogueSoundSequence>(GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, PreviewDialogueSequence));
 	{
-		PreviewDialogueSoundSequence->Initialize();
-		PreviewDialogueSoundSequence->SetFlags(EObjectFlags::RF_Transactional);
-		PreviewDialogueSoundSequence->GetMovieScene()->SetFlags(EObjectFlags::RF_Public | EObjectFlags::RF_Transactional);
+		PreviewDialogueSequence->Initialize();
+		PreviewDialogueSequence->SetFlags(EObjectFlags::RF_Transactional);
+		PreviewDialogueSequence->GetMovieScene()->SetFlags(EObjectFlags::RF_Public | EObjectFlags::RF_Transactional);
 	}
 }
 
@@ -80,19 +82,19 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(FDialogueStationInstance, DialogueStationTemplate))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, DialogueStationTemplate))
 	{
-		if (DialogueStation.DialogueStationTemplate)
+		if (DialogueStationTemplate)
 		{
-			const ADialogueStandPositionTemplate* DialogueStandPositionTemplate = DialogueStation.DialogueStationTemplate.GetDefaultObject();
-			DialogueStation.DialogueCharacterDatas.SetNumZeroed(DialogueStandPositionTemplate->StandPositions.Num());
-			DialogueStation.SyncInstanceData(DialogueStandPositionTemplate);
+			const ADialogueStandPositionTemplate* DialogueStandPositionTemplate = DialogueStationTemplate.GetDefaultObject();
+			DialogueCharacterDatas.SetNumZeroed(DialogueStandPositionTemplate->StandPositions.Num());
+			SyncInstanceData(DialogueStandPositionTemplate);
 
 			FDialogueCharacterData DefaultDialogueCharacterData;
-			for (int32 Idx = 0; Idx < DialogueStation.DialogueCharacterDatas.Num(); ++Idx)
+			for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
 			{
 				const FDialogueStandPosition& DialogueStandPosition = DialogueStandPositionTemplate->StandPositions[Idx];
-				FDialogueCharacterData& DialogueCharacterData = DialogueStation.DialogueCharacterDatas[Idx];
+				FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDatas[Idx];
 				if (DialogueCharacterData.NameOverride.IsNone())
 				{
 					DialogueCharacterData.NameOverride = DialogueStandPosition.StandName;
@@ -101,65 +103,63 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 				{
 					DialogueCharacterData.TypeOverride = DialogueStandPosition.PreviewCharacter ? DialogueStandPosition.PreviewCharacter : DialogueStandPositionTemplate->PreviewCharacter;
 				}
-				if (DialogueCharacterData.TalkAnimSlotName.IsNone())
-				{
-					DialogueCharacterData.TalkAnimSlotName = DefaultDialogueCharacterData.TalkAnimSlotName;
-				}
-				if (DialogueCharacterData.LookAtTargetPropertyName.IsNone())
-				{
-					DialogueCharacterData.LookAtTargetPropertyName = DefaultDialogueCharacterData.LookAtTargetPropertyName;
-				}
 				if (DialogueCharacterData.DialogueAnimSet == nullptr)
 				{
 					DialogueCharacterData.DialogueAnimSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueAnimSet.LoadSynchronous();
 				}
 			}
 
-			DialogueStation.DialogueNameList.Empty();
-			DialogueStation.GetDialogueNameList();
+			DialogueNameList.Empty();
+			GetDialogueNameList();
 		}
-		DialogueStation.ReinitDialogueNameList();
+		ReinitDialogueNameList();
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, NameOverride))
 	{
-		DialogueStation.ReinitDialogueNameList();
+		ReinitDialogueNameList();
 	}
+}
+
+const FDialogueCharacterData* UGenDialogueSequenceConfigBase::FindDialogueCharacterData(const FName& Name) const
+{
+	return DialogueCharacterDatas.FindByPredicate([&](const FDialogueCharacterData& E){ return E.NameOverride == Name; });
 }
 
 bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages) const
 {
-	bool bIsSucceed = true;
-	if (DialogueStation.DialogueStationTemplate == nullptr)
+	bool bIsValid = true;
+	if (DialogueStationTemplate == nullptr)
 	{
 		ErrorMessages.Add(LOCTEXT("站位模板为空", "站位模板为空"));
-		bIsSucceed &= false;
+		bIsValid &= false;
 	}
 	else
 	{
 		if (UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet = GetAutoGenDialogueCameraSet())
 		{
-			bIsSucceed &= AutoGenDialogueCameraSet->IsValid(ErrorMessages);
+			bIsValid &= AutoGenDialogueCameraSet->IsValid(ErrorMessages);
 		}
 		else
 		{
 			ErrorMessages.Add(LOCTEXT("站位中镜头模板集未配置", "站位中镜头模板集未配置"));
-			bIsSucceed &= false;
+			bIsValid &= false;
 		}
 	}
 	TSubclassOf<UAutoGenDialogueAnimSetBase> AnimSetType = GetAnimSetType();
 	if (AnimSetType == nullptr)
 	{
 		ErrorMessages.Add(LOCTEXT("允许的AnimSet类型未设置", "允许的AnimSet类型未设置"));
-		bIsSucceed &= false;
-	}
+		bIsValid &= false;
+	}	
+	
 	TArray<FName> VisitedName;
 	TArray<UAutoGenDialogueAnimSetBase*> VisitedAnimSets;
-	for (const FDialogueCharacterData& E : DialogueStation.DialogueCharacterDatas)
+	for (const FDialogueCharacterData& E : DialogueCharacterDatas)
 	{
 		if (E.DialogueAnimSet == nullptr || !E.DialogueAnimSet->IsA(AnimSetType))
 		{
-			ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet类型错误", "角色[{0}] 对白动画集类型错误，应该为 [{1}]"), FText::FromString(E.NameOverride.ToString()), AnimSetType->GetDisplayNameText()));
-			bIsSucceed &= false;
+			ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet类型错误", "角色[{0}] 对白动画集类型错误，应该为 [{1}]"), FText::FromName(E.NameOverride), AnimSetType->GetDisplayNameText()));
+			bIsValid &= false;
 		}
 		else if (!VisitedAnimSets.Contains(E.DialogueAnimSet))
 		{
@@ -168,49 +168,60 @@ bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages)
 			bool bIsAnimSetValid = E.DialogueAnimSet->IsAnimSetValid(AnimSetErrorMessages);
 			if (bIsAnimSetValid == false)
 			{
-				ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet配置错误", "角色[{0}] 对白动画集[{1}] 配置错误："), FText::FromString(E.NameOverride.ToString()), FText::FromString(E.DialogueAnimSet->GetName())));
+				ErrorMessages.Add(FText::Format(LOCTEXT("AnimSet配置错误", "角色[{0}] 对白动画集[{1}] 配置错误："), FText::FromName(E.NameOverride), FText::FromString(E.DialogueAnimSet->GetName())));
 				ErrorMessages.Append(AnimSetErrorMessages);
-				bIsSucceed &= false;
+				bIsValid &= false;
 			}
 		}
 		if (!VisitedName.Contains(E.NameOverride))
 		{
 			VisitedName.Add(E.NameOverride);
-			if (DialogueStation.DialogueCharacterDatas.FilterByPredicate([&](const FDialogueCharacterData& E2) {return E2.NameOverride == E.NameOverride; }).Num() >= 2)
+			if (DialogueCharacterDatas.FilterByPredicate([&](const FDialogueCharacterData& E2) {return E2.NameOverride == E.NameOverride; }).Num() >= 2)
 			{
 				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色数据重名", "角色名[{0}]重复"), FText::FromString(E.NameOverride.ToString())));
-				bIsSucceed &= false;
+				bIsValid &= false;
 			}
 		}
 		if (E.TypeOverride == nullptr)
 		{
 			ErrorMessages.Add(FText::Format(LOCTEXT("对白角色类型未配置", "角色[{0}] 类型未配置"), FText::FromString(E.NameOverride.ToString())));
-			bIsSucceed &= false;
+			bIsValid &= false;
 		}
 		else
 		{
-			if (!E.TypeOverride->ImplementsInterface(UDialogueInterface::StaticClass()))
+			if (!E.TypeOverride->ImplementsInterface(UXD_AutoGenDialogueInterface::StaticClass()))
 			{
-				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色类型未实现DialogueInterface接口", "角色[{0}] 类型未实现DialogueInterface接口"), FText::FromString(E.NameOverride.ToString())));
-				bIsSucceed &= false;
+				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色类型未实现DialogueInterface接口", "角色[{0}] 类型未实现DialogueInterface接口"), FText::FromName(E.NameOverride)));
+				bIsValid &= false;
 			}
-
-			if (UProperty* LookAtTargetProperty = E.TypeOverride->FindPropertyByName(E.LookAtTargetPropertyName))
+		}
+		if (TSubclassOf<UAutoGenDialogueCharacterSettings> CharacterSettingsType = GetCharacterSettingsType())
+		{
+			if (E.CharacterSettings == nullptr || !E.CharacterSettings->IsA(CharacterSettingsType))
 			{
-				if (!LookAtTargetProperty->IsA<USoftObjectProperty>())
-				{
-					ErrorMessages.Add(FText::Format(LOCTEXT("对白角色LookAtTargetProperty属性错误", "角色[{0}] 类型[{1}]属性类型需要为SoftObject"), FText::FromString(E.NameOverride.ToString()), FText::FromName(E.LookAtTargetPropertyName)));
-					bIsSucceed &= false;
-				}
+				ErrorMessages.Add(FText::Format(LOCTEXT("CharacterSettings类型错误", "角色[{0}] 对白角色配置类型错误，应该为 [{1}]"), FText::FromName(E.NameOverride), CharacterSettingsType->GetDisplayNameText()));
+				bIsValid &= false;
 			}
 			else
 			{
-				ErrorMessages.Add(FText::Format(LOCTEXT("对白角色未添加LookAtTargetProperty属性", "角色[{0}] 类型未添加[{1}]属性"), FText::FromString(E.NameOverride.ToString()), FText::FromName(E.LookAtTargetPropertyName)));
-				bIsSucceed &= false;
+				const FName LookAtTargetPropertyName = E.CharacterSettings->LookAtTargetPropertyName;
+				if (UProperty* LookAtTargetProperty = E.TypeOverride->FindPropertyByName(LookAtTargetPropertyName))
+				{
+					if (!LookAtTargetProperty->IsA<USoftObjectProperty>())
+					{
+						ErrorMessages.Add(FText::Format(LOCTEXT("对白角色LookAtTargetProperty属性错误", "角色[{0}] 类型[{1}]属性类型需要为SoftObject"), FText::FromName(E.NameOverride), FText::FromName(LookAtTargetPropertyName)));
+						bIsValid &= false;
+					}
+				}
+				else
+				{
+					ErrorMessages.Add(FText::Format(LOCTEXT("对白角色未添加LookAtTargetProperty属性", "角色[{0}] 类型未添加[{1}]属性"), FText::FromName(E.NameOverride), FText::FromName(LookAtTargetPropertyName)));
+					bIsValid &= false;
+				}
 			}
 		}
 	}
-	return bIsSucceed;
+	return bIsValid;
 }
 
 TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnimSetType() const
@@ -218,9 +229,29 @@ TSubclassOf<UAutoGenDialogueAnimSetBase> UGenDialogueSequenceConfigBase::GetAnim
 	return nullptr;
 }
 
+TSubclassOf<UAutoGenDialogueCharacterSettings> UGenDialogueSequenceConfigBase::GetCharacterSettingsType() const
+{
+	return UAutoGenDialogueCharacterSettings::StaticClass();
+}
+
+void UGenDialogueSequenceConfigBase::GeneratePreviewSequence()
+{
+	FGenDialogueSequenceEditor::Get().GeneratePreviewSequence();
+}
+
+void UGenDialogueSequenceConfigBase::GenerateDialogueSequence()
+{
+	FGenDialogueSequenceEditor::Get().GenerateDialogueSequence();
+}
+
 UAutoGenDialogueCameraSet* UGenDialogueSequenceConfigBase::GetAutoGenDialogueCameraSet() const
 {
-	return DialogueStation.DialogueStationTemplate.GetDefaultObject()->AutoGenDialogueCameraSet;
+	return DialogueStationTemplate.GetDefaultObject()->AutoGenDialogueCameraSet;
+}
+
+ULevelSequence* UGenDialogueSequenceConfigBase::GetOwingLevelSequence() const
+{
+	return GetTypedOuter<ULevelSequence>();
 }
 
 #undef LOCTEXT_NAMESPACE

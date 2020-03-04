@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MovieSceneSection.h"
+#include <MovieSceneSection.h>
 #include <Evaluation/MovieSceneEvalTemplate.h>
 #include "DialogueSentenceSection.generated.h"
 
@@ -79,12 +79,7 @@ struct XD_AUTOGENSEQUENCER_API FCachedDialogueSentenceTrackData : IPersistentEva
 
 	FCachedDialogueSentenceTrackData();
 
-	void StopAllSentences();
-
 	void StopSentencesOnSection(TObjectKey<const UDialogueSentenceSection> ObjectKey);
-
-	void StopSentence(UAudioComponent* AudioComponent);
-
 };
 
 struct XD_AUTOGENSEQUENCER_API FDialogueSentenceSectionExecutionToken : IMovieSceneExecutionToken

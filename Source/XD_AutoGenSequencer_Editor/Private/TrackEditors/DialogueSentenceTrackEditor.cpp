@@ -20,7 +20,7 @@
 #include "Tracks/SentenceTrack/DialogueSentenceTrack.h"
 #include "Tracks/SentenceTrack/DialogueSentenceSection.h"
 #include "Data/DialogueSentence.h"
-#include "Interface/DialogueInterface.h"
+#include "Interface/XD_AutoGenDialogueInterface.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencerModule"
 
@@ -31,7 +31,7 @@ void FDialogueSentenceTrackEditor::AddKey(const FGuid& ObjectGuid)
 
 void FDialogueSentenceTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const TArray<FGuid>& ObjectBindings, const UClass* ObjectClass)
 {
-	if (ObjectClass->ImplementsInterface(UDialogueInterface::StaticClass()))
+	if (ObjectClass->ImplementsInterface(UXD_AutoGenDialogueInterface::StaticClass()))
 	{
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 

@@ -9,6 +9,7 @@ class UPreviewDialogueSoundSequence;
 class FAssetTypeActions_DialogueSentence;
 class FAssetTypeActions_AutoGenDialogueAnimSet;
 class FAssetTypeActions_AutoGenDialogueCameraSet;
+class FAssetTypeActions_AutoGenDialogueCharacterSettings;
 
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
@@ -19,10 +20,8 @@ public:
 	virtual void ShutdownModule() override;
 
 	static uint32 AutoGenDialogueSequence_AssetCategory;
-	FName AutoGenDialogueSequence_AssetCategoryKey = TEXT("XD_AutoGenSequencer");
 private:
 	FDelegateHandle DialogueSentenceTrackEditorHandle;
-	FDelegateHandle PreviewDialogueSentenceTrackEditorHandle;
 	FDelegateHandle TwoTargetCameraTrackingTrackEditorHandle;
 
 	FName DialogueCharacterDataTypeName = TEXT("DialogueCharacterData");
@@ -35,4 +34,5 @@ private:
 	TSharedPtr<FAssetTypeActions_DialogueSentence> AssetTypeActions_DialogueSentence;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueAnimSet> AssetTypeActions_AutoGenDialogueAnimSet;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueCameraSet> AssetTypeActions_AutoGenDialogueCameraSet;
+	TSharedPtr<FAssetTypeActions_AutoGenDialogueCharacterSettings> AssetTypeActions_AutoGenDialogueCharacterSettings;
 };

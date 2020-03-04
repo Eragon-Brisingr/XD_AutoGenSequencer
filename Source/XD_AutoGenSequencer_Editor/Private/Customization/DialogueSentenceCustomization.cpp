@@ -14,9 +14,12 @@
 #include <Widgets/Images/SImage.h>
 #include <Misc/MessageDialog.h>
 #include <SNameComboBox.h>
+#include <IPropertyTypeCustomization.h>
+#include <IPropertyUtilities.h>
+
 #include "Datas/GenDialogueSequenceConfigBase.h"
 #include "Datas/AutoGenDialogueSequenceConfig.h"
-#include "Interface/DialogueInterface.h"
+#include "Interface/XD_AutoGenDialogueInterface.h"
 #include "Utils/AutoGenSequence_Log.h"
 
 namespace CustomizationUtils
@@ -91,9 +94,9 @@ void FDialogueCharacterData_Customization::CustomizeHeader(TSharedRef<IPropertyH
 			if (ACharacter* Character = DialogueStationInstanceOverride.InstanceOverride.Get())
 			{
 				DialogueStationInstanceOverride.TypeOverride = Character->GetClass();
-				if (Character->Implements<UDialogueInterface>())
+				if (Character->Implements<UXD_AutoGenDialogueInterface>())
 				{
-					DialogueStationInstanceOverride.NameOverride = IDialogueInterface::GetDialogueCharacterName(Character);
+					DialogueStationInstanceOverride.NameOverride = IXD_AutoGenDialogueInterface::GetDialogueCharacterName(Character);
 				}
 			}
 			CustomizationUtils::SetValue(StructPropertyHandle, DialogueStationInstanceOverride);
@@ -119,7 +122,7 @@ void FDialogueCharacterData_Customization::CustomizeChildren(TSharedRef<IPropert
 {
 	CustomizationUtils::StructBuilderDrawPropertys(StructBuilder, StructPropertyHandle, { GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, InstanceOverride) });
 
-	if (UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle)))
+	if (UGenDialogueSequenceConfigBase* Config = Cast<UGenDialogueSequenceConfigBase>(CustomizationUtils::GetOuter(StructPropertyHandle)))
 	{
 		TSharedPtr<IPropertyHandle> NameOverridePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterData, NameOverride));
 		NameOverridePropertyHandle->SetOnPropertyValuePreChange(FSimpleDelegate::CreateLambda([=]()
@@ -132,7 +135,7 @@ void FDialogueCharacterData_Customization::CustomizeChildren(TSharedRef<IPropert
 				NameOverridePropertyHandle->GetValue(NewNameOverride);
 				
 				int32 SameNameNum = 0;
-				for (FDialogueCharacterData& DialogueStationInstanceOverride : Config->DialogueStation.DialogueCharacterDatas)
+				for (FDialogueCharacterData& DialogueStationInstanceOverride : Config->DialogueCharacterDatas)
 				{
 					if (DialogueStationInstanceOverride.NameOverride == NewNameOverride)
 					{
@@ -154,20 +157,7 @@ void FDialogueCharacterData_Customization::CustomizeChildren(TSharedRef<IPropert
 				}
 				else
 				{
-					for (FDialogueSentenceEditData& Data : Config->DialogueSentenceEditDatas)
-					{
-						if (Data.SpeakerName.Name == PreNameOverride)
-						{
-							Data.SpeakerName.Name = NewNameOverride;
-						}
-						for (FDialogueCharacterName& TargetName : Data.TargetNames)
-						{
-							if (TargetName.Name == PreNameOverride)
-							{
-								TargetName.Name = NewNameOverride;
-							}
-						}
-					}
+					Config->WhenCharacterNameChanged(PreNameOverride, NewNameOverride);
 				}
 			}));
 	}
@@ -188,13 +178,14 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 		return;
 	}
 
+	TSharedPtr<IPropertyUtilities> PropertyUtilities = StructCustomizationUtils.GetPropertyUtilities();
 	TSharedPtr<IPropertyHandle> DialogueSentencePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, DialogueSentence));
 	TSharedPtr<IPropertyHandle> SpeakerNamePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, SpeakerName));
 	TSharedPtr<IPropertyHandle> TargetNamesPropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, TargetNames));
 
 	TSharedRef<SHorizontalBox> TargetsWidget = SNew(SHorizontalBox);
 	{
-		FSimpleDelegate CreateChilds = FSimpleDelegate::CreateLambda([=]()
+		auto CreateChilds = [=]()
 			{
 				TSharedPtr<IPropertyHandleArray> TargetNamesArrayPropertyHandle = TargetNamesPropertyHandle->AsArray();
 				TargetsWidget->ClearChildren();
@@ -206,7 +197,7 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 					TargetsWidget->AddSlot()
 						.AutoWidth()
 						[
-							FDialogueCharacterName_Customization::CreateValueWidget(Element, Config->DialogueStation.GetDialogueNameList())
+							FDialogueCharacterName_Customization::CreateValueWidget(Element, Config->GetDialogueNameList())
 						];
 					TargetsWidget->AddSlot()
 						.AutoWidth()
@@ -228,11 +219,12 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 							]
 						];
 				}
-			});
-		CreateChilds.Execute();
+			};
+		CreateChilds();
 		TargetNamesPropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([=]()
 			{
-				GEditor->GetTimerManager()->SetTimerForNextTick(CreateChilds);
+				CreateChilds();
+				PropertyUtilities->ForceRefresh();
 			}));
 	}
 
@@ -252,12 +244,9 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 				.BorderImage(&ErrorBrush)
 				.BorderBackgroundColor_Lambda([=]()
 					{
-						if (UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle)))
-						{
-							FDialogueSentenceEditData Data = CustomizationUtils::GetValue<FDialogueSentenceEditData>(StructPropertyHandle);
-							return Config->IsDialogueSentenceEditDataValid(Data, Config->DialogueStation.GetCharacterNames()) ? ValidColor : ErrorColor;
-						}
-						return NormalColor;
+						FDialogueSentenceEditData Data = CustomizationUtils::GetValue<FDialogueSentenceEditData>(StructPropertyHandle);
+						TArray<FText> ErrorText;
+						return Config->IsDialogueSentenceEditDataValid(Data, Config->GetCharacterNames(), ErrorText) ? ValidColor : ErrorColor;
 					})
 			]
 			+ SHorizontalBox::Slot()
@@ -278,7 +267,7 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 					.Padding(2.f, 0.f)
 					.AutoWidth()
 					[
-						FDialogueCharacterName_Customization::CreateValueWidget(SpeakerNamePropertyHandle.ToSharedRef(), Config->DialogueStation.GetDialogueNameList())
+						FDialogueCharacterName_Customization::CreateValueWidget(SpeakerNamePropertyHandle.ToSharedRef(), Config->GetDialogueNameList())
 					]
 				]
 				+ SVerticalBox::Slot()
@@ -322,7 +311,7 @@ void FDialogueSentenceEditData_Customization::CustomizeChildren(TSharedRef<IProp
 
 void FDialogueCharacterName_Customization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle));
+	UGenDialogueSequenceConfigBase* Config = Cast<UGenDialogueSequenceConfigBase>(CustomizationUtils::GetOuter(StructPropertyHandle));
 
 	HeaderRow.NameContent()
 		[
@@ -330,13 +319,13 @@ void FDialogueCharacterName_Customization::CustomizeHeader(TSharedRef<IPropertyH
 		]
 	.ValueContent()
 		[
-			FDialogueCharacterName_Customization::CreateValueWidget(StructPropertyHandle, Config->DialogueStation.GetDialogueNameList())
+			FDialogueCharacterName_Customization::CreateValueWidget(StructPropertyHandle, Config->GetDialogueNameList())
 		];
 }
 
 TSharedRef<SWidget> FDialogueCharacterName_Customization::CreateValueWidget(TSharedRef<class IPropertyHandle> StructPropertyHandle, TArray<TSharedPtr<FName>>& DialogueNameList)
 {
-	UAutoGenDialogueSequenceConfig* Config = Cast<UAutoGenDialogueSequenceConfig>(CustomizationUtils::GetOuter(StructPropertyHandle));
+	UGenDialogueSequenceConfigBase* Config = Cast<UGenDialogueSequenceConfigBase>(CustomizationUtils::GetOuter(StructPropertyHandle));
 	TSharedPtr<IPropertyHandle> NamePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueCharacterName, Name));
 
 	return SNew(SNameComboBox)
@@ -344,25 +333,45 @@ TSharedRef<SWidget> FDialogueCharacterName_Customization::CreateValueWidget(TSha
 			.InitiallySelectedItem([&]
 			{
 				FName SelectedName = CustomizationUtils::GetValue<FName>(NamePropertyHandle);
-				for (const TSharedPtr<FName>& NameRef : Config->DialogueStation.GetDialogueNameList())
+				for (const TSharedPtr<FName>& NameRef : DialogueNameList)
 				{
 					if (SelectedName == *NameRef.Get())
 					{
 						return NameRef;
 					}
 				}
-				return FDialogueStationInstance::InvalidDialogueName;
+				return TSharedPtr<FName>(nullptr);
 			}())
 			.OnSelectionChanged_Lambda([=](TSharedPtr<FName> Selection, ESelectInfo::Type SelectInfo)
 			{
-				if (SelectInfo == ESelectInfo::OnMouseClick)
+				if (SelectInfo == ESelectInfo::OnMouseClick || SelectInfo == ESelectInfo::OnKeyPress)
 				{
 					NamePropertyHandle->SetValue(*Selection.Get());
 				}
 			})
-			.OnComboBoxOpening_Lambda([]()
+// 			.([=]
+// 			{
+// 				FName SelectedName = CustomizationUtils::GetValue<FName>(NamePropertyHandle);
+// 				for (const TSharedPtr<FName>& NameRef : DialogueNameList)
+// 				{
+// 					if (SelectedName == *NameRef.Get())
+// 					{
+// 						return FSlateColor();
+// 					}
+// 				}
+// 				return FSlateColor(FLinearColor::Red);
+// 			})
+			.ToolTipText_Lambda([=]()
 			{
-				// TODO：打开时的处理，可以尝试修正InitiallySelectedItem的问题
+				FName SelectedName = CustomizationUtils::GetValue<FName>(NamePropertyHandle);
+				for (const TSharedPtr<FName>& NameRef : DialogueNameList)
+				{
+					if (SelectedName == *NameRef.Get())
+					{
+						return FText::FromName(*NameRef);
+					}
+				}
+				return FText::Format(LOCTEXT("名称无效", "[{0}]名称无效"), FText::FromName(SelectedName));
 			})
 			.IsEnabled(!StructPropertyHandle->IsEditConst());
 }

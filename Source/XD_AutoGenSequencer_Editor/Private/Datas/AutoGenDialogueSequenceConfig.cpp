@@ -2,28 +2,6 @@
 
 
 #include "Datas/AutoGenDialogueSequenceConfig.h"
-
-#include "Datas/DialogueStandPositionTemplate.h"
-#include "Data/DialogueSentence.h"
-#include "Datas/AutoGenDialogueSystemData.h"
-#include "Datas/AutoGenDialogueSequenceConfig.h"
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
-#include "Preview/SentenceTrack/PreviewDialogueSentenceTrack.h"
-#include "Preview/SentenceTrack/PreviewDialogueSentenceSection.h"
-#include "Tracks/SentenceTrack/DialogueSentenceTrack.h"
-#include "Interface/DialogueInterface.h"
-#include "Tracks/SentenceTrack/DialogueSentenceSection.h"
-#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
-#include "Datas/AutoGenDialogueCameraTemplate.h"
-#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
-#include "Utils/DialogueCameraUtils.h"
-#include "Datas/AutoGenDialogueAnimSet.h"
-#include "Utils/AutoGenDialogueSettings.h"
-#include "Datas/AutoGenDialogueCameraSet.h"
-#include "Utils/GenAnimTrackUtils.h"
-#include "Utils/DialogueAnimationUtils.h"
-#include "Utils/AutoGenSequence_Log.h"
-
 #include <ScopedTransaction.h>
 #include <Algo/Transform.h>
 #include <GameFramework/Character.h>
@@ -50,6 +28,25 @@
 #include <Components/RectLightComponent.h>
 #include <Tracks/MovieScene3DAttachTrack.h>
 
+#include "Datas/DialogueStandPositionTemplate.h"
+#include "Data/DialogueSentence.h"
+#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Tracks/SentenceTrack/DialogueSentenceTrack.h"
+#include "Interface/XD_AutoGenDialogueInterface.h"
+#include "Tracks/SentenceTrack/DialogueSentenceSection.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
+#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
+#include "Utils/DialogueCameraUtils.h"
+#include "Datas/AutoGenDialogueAnimSet.h"
+#include "Utils/AutoGenDialogueSettings.h"
+#include "Datas/AutoGenDialogueCameraSet.h"
+#include "Utils/GenAnimTrackUtils.h"
+#include "Utils/DialogueAnimationUtils.h"
+#include "Utils/AutoGenSequence_Log.h"
+#include "Datas/AutoGenDialogueCharacterSettings.h"
+
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 UAutoGenDialogueSequenceConfig::UAutoGenDialogueSequenceConfig(const FObjectInitializer& ObjectInitializer)
@@ -59,7 +56,11 @@ UAutoGenDialogueSequenceConfig::UAutoGenDialogueSequenceConfig(const FObjectInit
 	bGenerateSupplementLightGroup(true),
 	bShowGenerateLog(true)
 {
-	
+	AnimBoneWeights.Add(TEXT("head"), 1.f);
+	AnimBoneWeights.Add(TEXT("hand_l"), 1.f);
+	AnimBoneWeights.Add(TEXT("hand_r"), 1.f);
+	AnimBoneWeights.Add(TEXT("foot_l"), 1.f);
+	AnimBoneWeights.Add(TEXT("foot_r"), 1.f);
 }
 
 void UAutoGenDialogueSequenceConfig::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -87,15 +88,16 @@ bool UAutoGenDialogueSequenceConfig::IsConfigValid(TArray<FText>& ErrorMessages)
 {
 	bool bIsSucceed = Super::IsConfigValid(ErrorMessages);
 
-	TArray<FName> ValidNameList = DialogueStation.GetCharacterNames();
-	for (const FDialogueSentenceEditData& Data : DialogueSentenceEditDatas)
+	TArray<FName> ValidNameList = GetCharacterNames();
+	for (int32 Idx = 0; Idx < DialogueSentenceEditDatas.Num(); ++Idx)
 	{
-		if (!IsDialogueSentenceEditDataValid(Data, ValidNameList))
+		const FDialogueSentenceEditData& Data = DialogueSentenceEditDatas[Idx];
+		TArray<FText> ErrorText;
+		if (!IsDialogueSentenceEditDataValid(Data, ValidNameList, ErrorText))
 		{
-			// TODO：详细描述错误
-			ErrorMessages.Add(LOCTEXT("对白中存在问题", "对白中存在问题"));
+			ErrorMessages.Add(FText::Format(LOCTEXT("对白中存在问题", "对白[{0}]中存在问题"), Idx));
+			ErrorMessages.Append(ErrorText);
 			bIsSucceed &= false;
-			break;
 		}
 	}
 	return bIsSucceed;
@@ -106,36 +108,65 @@ TSubclassOf<UAutoGenDialogueAnimSetBase> UAutoGenDialogueSequenceConfig::GetAnim
 	return UAutoGenDialogueAnimSet::StaticClass();
 }
 
-bool UAutoGenDialogueSequenceConfig::IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList) const
+bool UAutoGenDialogueSequenceConfig::IsDialogueSentenceEditDataValid(const FDialogueSentenceEditData &Data, const TArray<FName>& ValidNameList, TArray<FText>& ErrorText) const
 {
+	bool IsValid = true;
 	if (!Data.DialogueSentence)
 	{
-		return false;
+		ErrorText.Add(LOCTEXT("未设置对白", "未设置对白"));
+		IsValid &= false;
 	}
-	if (!Data.DialogueSentence->SentenceWave)
+	else 
 	{
-		return false;
+		if (!Data.DialogueSentence->SentenceWave)
+		{
+			ErrorText.Add(LOCTEXT("未对白中不存在音频文件", "未对白中不存在音频文件"));
+			IsValid &= false;
+		}
 	}
 	if (Data.TargetNames.Contains(Data.SpeakerName))
 	{
-		return false;
+		ErrorText.Add(FText::Format(LOCTEXT("对话目标中包含说话者", "对话目标中包含说话者[{0}]"), FText::FromString(Data.SpeakerName.GetName().ToString())));
+		IsValid &= false;
 	}
 	if (TSet<FDialogueCharacterName>(Data.TargetNames).Num() != Data.TargetNames.Num())
 	{
-		return false;
+		ErrorText.Add(LOCTEXT("对话目标中存在重复", "对话目标中存在重复"));
+		IsValid &= false;
 	}
-	if (!ValidNameList.Contains(Data.SpeakerName.GetName()))
+	if (!ValidNameList.Contains(Data.SpeakerName))
 	{
-		return false;
+		ErrorText.Add(FText::Format(LOCTEXT("说话者不存在于角色集中", "说话者[{0}]不存在于角色集中"), FText::FromString(Data.SpeakerName.GetName().ToString())));
+		IsValid &= false;
 	}
 	for (const FDialogueCharacterName& Name : Data.TargetNames)
 	{
-		if (!ValidNameList.Contains(Name.GetName()))
+		if (!ValidNameList.Contains(Name))
 		{
-			return false;
+			ErrorText.Add(FText::Format(LOCTEXT("对话目标不存在于角色集中", "对话目标[{0}]不存在于角色集中"), FText::FromString(Data.SpeakerName.GetName().ToString())));
+			IsValid &= false;
 		}
 	}
-	return true;
+	return IsValid;
+}
+
+void UAutoGenDialogueSequenceConfig::WhenCharacterNameChanged(const FName& OldName, const FName& NewName)
+{
+	Super::WhenCharacterNameChanged(OldName, NewName);
+	for (FDialogueSentenceEditData& Data : DialogueSentenceEditDatas)
+	{
+		if (Data.SpeakerName.Name == OldName)
+		{
+			Data.SpeakerName.Name = NewName;
+		}
+		for (FDialogueCharacterName& TargetName : Data.TargetNames)
+		{
+			if (TargetName.Name == OldName)
+			{
+				TargetName.Name = NewName;
+			}
+		}
+	}
 }
 
 namespace DialogueSequencerUtils
@@ -168,44 +199,93 @@ namespace DialogueSequencerUtils
 	}
 }
 
-void UAutoGenDialogueSequenceConfig::GeneratePreview() const
+struct FLevelSequenceUtils : public ULevelSequence
+{
+	static FGuid FindOrAddPossessable(ULevelSequence* LevelSequence, UObject* ObjectToPossess)
+	{
+		return StaticCast<FLevelSequenceUtils*>(LevelSequence)->CreatePossessable(ObjectToPossess);
+	}
+
+	static FGuid AddSpawnable(ULevelSequence* LevelSequence, UObject* ObjectToSpawn)
+	{
+		return StaticCast<FLevelSequenceUtils*>(LevelSequence)->ULevelSequence::CreateSpawnable(ObjectToSpawn);
+	}
+};
+
+void UAutoGenDialogueSequenceConfig::GeneratePreview(const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const
 {
 	const FScopedTransaction Transaction(LOCTEXT("生成预览序列描述", "生成预览序列"));
-	PreviewDialogueSoundSequence->Modify();
+	PreviewDialogueSequence->Modify();
 
-	UMovieScene& MovieScene = *PreviewDialogueSoundSequence->GetMovieScene();
-	for (UPreviewDialogueSentenceTrack* PreviewDialogueSentenceTrack : PreviewDialogueSoundSequence->PreviewDialogueSentenceTracks)
+	UMovieScene& MovieScene = *PreviewDialogueSequence->GetMovieScene();
+	FFrameRate FrameRate = MovieScene.GetTickResolution();
+	FFrameNumber PaddingNumber = FFrameTime(PaddingTime * FrameRate).FrameNumber;
+
+	for (const FGuid& Guid : PreviewDialogueSequence->CharacterGuids)
 	{
-		if (PreviewDialogueSentenceTrack)
+		MovieScene.RemovePossessable(Guid);
+	}
+	PreviewDialogueSequence->CharacterGuids.Empty();
+	PreviewDialogueSequence->DialogueSentenceTracks.Empty();
+
+	TMap<ACharacter*, FGenDialogueCharacterData> DialogueCharacterDataMap;
+	{
+		int32 Idx = 0;
+		for (const TPair<FName, ACharacter*>& Entry : CharacterNameInstanceMap)
 		{
-			PreviewDialogueSoundSequence->GetMovieScene()->RemoveMasterTrack(*PreviewDialogueSentenceTrack);
+			FName SpeakerName = Entry.Key;
+			if (ACharacter* Character = Entry.Value)
+			{
+				check(Character->Implements<UXD_AutoGenDialogueInterface>());
+
+				const FDialogueCharacterData* DialogueCharacterData = DialogueCharacterDatas.FindByPredicate([&](const FDialogueCharacterData& E) {return E.NameOverride == SpeakerName; });
+				check(DialogueCharacterData);
+				FGenDialogueCharacterData& GenDialogueCharacterData = DialogueCharacterDataMap.Add(Character, *DialogueCharacterData);
+				GenDialogueCharacterData.CharacterIdx = Idx;
+
+				Idx += 1;
+			}
 		}
 	}
-	PreviewDialogueSoundSequence->PreviewDialogueSentenceTracks.Empty();
+	// 生成对象轨
+	for (TPair<ACharacter*, FGenDialogueCharacterData>& Pair : DialogueCharacterDataMap)
+	{
+		ACharacter* Speaker = Pair.Key;
+		FGenDialogueCharacterData& GenDialogueCharacterData = Pair.Value;
+		FGuid BindingGuid = FLevelSequenceUtils::FindOrAddPossessable(PreviewDialogueSequence, Speaker);
+		// TODO: 先用MovieSceneSequenceID::Root，以后再找MovieSceneSequenceID怎么获得
+		GenDialogueCharacterData.BindingID = FMovieSceneObjectBindingID(BindingGuid, MovieSceneSequenceID::Root);
 
-	FFrameRate FrameRate = MovieScene.GetTickResolution();
+		PreviewDialogueSequence->CharacterGuids.Add(BindingGuid);
+	}
 
-	FFrameNumber PaddingNumber = FFrameTime(PaddingTime * FrameRate).FrameNumber;
+	// 生成对白导轨
+	TMap<ACharacter*, UDialogueSentenceTrack*> DialogueSentenceTrackMap;
 	FFrameNumber CurFrameNumber;
-	TMap<FName, UPreviewDialogueSentenceTrack*> TrackMap;
 	for (const FDialogueSentenceEditData& DialogueSentenceEditData : DialogueSentenceEditDatas)
 	{
-		FName SpeakerName = DialogueSentenceEditData.SpeakerName.GetName();
-		check(SpeakerName != NAME_None);
-		UPreviewDialogueSentenceTrack* PreviewDialogueSentenceTrack = TrackMap.FindRef(SpeakerName);
-		if (PreviewDialogueSentenceTrack == nullptr)
+		const FName SpeakerName = DialogueSentenceEditData.SpeakerName.GetName();
+		ACharacter* Speaker = CharacterNameInstanceMap[SpeakerName];
+		UDialogueSentenceTrack* DialogueSentenceTrack = DialogueSentenceTrackMap.FindRef(Speaker);
+		if (!DialogueSentenceTrack)
 		{
-			PreviewDialogueSentenceTrack = MovieScene.AddMasterTrack<UPreviewDialogueSentenceTrack>();
-			PreviewDialogueSentenceTrack->SetDisplayName(FText::FromName(SpeakerName));
-			PreviewDialogueSentenceTrack->SpeakerName = SpeakerName;
-			PreviewDialogueSoundSequence->PreviewDialogueSentenceTracks.Add(PreviewDialogueSentenceTrack);
-			TrackMap.Add(SpeakerName, PreviewDialogueSentenceTrack);
+			DialogueSentenceTrack = MovieScene.AddTrack<UDialogueSentenceTrack>(DialogueCharacterDataMap[Speaker].BindingID.GetGuid());
+			DialogueSentenceTrackMap.Add(Speaker, DialogueSentenceTrack);
+			AutoGenTracks.Add(DialogueSentenceTrack);
+			PreviewDialogueSequence->DialogueSentenceTracks.Add(SpeakerName, DialogueSentenceTrack);
+		}
+		UDialogueSentenceSection* DialogueSentenceSection = DialogueSentenceTrack->AddNewSentenceOnRow(DialogueSentenceEditData.DialogueSentence, CurFrameNumber);
+		for (const FDialogueCharacterName& TargetName : DialogueSentenceEditData.TargetNames)
+		{
+			ACharacter* Target = CharacterNameInstanceMap[TargetName.GetName()];
+			DialogueSentenceSection->Targets.Add(DialogueCharacterDataMap[Target].BindingID);
 		}
 
-		FFrameNumber Duration;
-		UMovieSceneSection* Section = PreviewDialogueSentenceTrack->AddNewDialogueOnRow(DialogueSentenceEditData, CurFrameNumber, Duration);
-		CurFrameNumber += Duration + PaddingNumber;
+		FFrameTime Duration = DialogueSentenceEditData.DialogueSentence->GetDuration() * FrameRate;
+		CurFrameNumber += Duration.GetFrame() + PaddingNumber;
 	}
+
+	PostGeneratePreviewSentence(MovieScene, CharacterNameInstanceMap, DialogueCharacterDataMap, DialogueSentenceTrackMap);
 
 	FFrameNumber EndFrameNumber = (CurFrameNumber - PaddingNumber);
 	MovieScene.SetPlaybackRange(FFrameNumber(0), EndFrameNumber.Value);
@@ -213,10 +293,10 @@ void UAutoGenDialogueSequenceConfig::GeneratePreview() const
 	MovieScene.SetViewRange(0.f, EndFrameNumber / FrameRate);
 }
 
-void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap, UAutoGenDialogueSystemData& AutoGenDialogueSystemData) const
+void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const
 {
 	const FScopedTransaction Transaction(LOCTEXT("生成对白序列描述", "生成对白序列"));
-	ULevelSequence& AutoGenDialogueSequence = *AutoGenDialogueSystemData.GetOwingLevelSequence();
+	ULevelSequence& AutoGenDialogueSequence = *GetOwingLevelSequence();
 	AutoGenDialogueSequence.Modify();
 
 	ISequencer& Sequencer = SequencerRef.Get();
@@ -226,38 +306,34 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	const FFrameNumber SequenceEndFrameNumber = [&]() 
 	{
 		FFrameNumber EndFrameNumber = FFrameNumber(0);
-		for (UPreviewDialogueSentenceTrack* PreviewDialogueSentenceTrack : PreviewDialogueSoundSequence->PreviewDialogueSentenceTracks)
+		for (TPair<FName, UDialogueSentenceTrack*> Pair : PreviewDialogueSequence->DialogueSentenceTracks)
 		{
+			UDialogueSentenceTrack* PreviewDialogueSentenceTrack = Pair.Value;
 			for (UMovieSceneSection* Section : PreviewDialogueSentenceTrack->GetAllSections())
 			{
-				UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection = CastChecked<UPreviewDialogueSentenceSection>(Section);
+				UDialogueSentenceSection* PreviewDialogueSentenceSection = CastChecked<UDialogueSentenceSection>(Section);
 				EndFrameNumber = FMath::Max(EndFrameNumber, PreviewDialogueSentenceSection->GetRange().GetUpperBoundValue());
 			}
 		}
 		return EndFrameNumber;
 	}();
-	TArray<UMovieSceneTrack*>& AutoGenTracks = AutoGenDialogueSystemData.AutoGenTracks;
 
 	// 数据预处理
-	TMap<FName, ACharacter*> NameInstanceMap;
 	TMap<ACharacter*, FGenDialogueCharacterData> DialogueCharacterDataMap;
 	{
 		int32 Idx = 0;
-		for (const TPair<FName, TSoftObjectPtr<ACharacter>>& Entry : CharacterNameInstanceMap)
+		for (const TPair<FName, ACharacter*>& Entry : CharacterNameInstanceMap)
 		{
 			FName SpeakerName = Entry.Key;
-			if (ACharacter* Character = Entry.Value.Get())
-			{
-				check(Character->Implements<UDialogueInterface>());
-				NameInstanceMap.Add(Entry.Key, Character);
+			ACharacter* Character = Entry.Value;
+			check(Character->Implements<UXD_AutoGenDialogueInterface>());
 
-				const FDialogueCharacterData* DialogueCharacterData = DialogueStation.DialogueCharacterDatas.FindByPredicate([&](const FDialogueCharacterData& E) {return E.NameOverride == SpeakerName; });
-				check(DialogueCharacterData);
-				FGenDialogueCharacterData& GenDialogueCharacterData = DialogueCharacterDataMap.Add(Character, *DialogueCharacterData);
-				GenDialogueCharacterData.CharacterIdx = Idx;
+			const FDialogueCharacterData* DialogueCharacterData = DialogueCharacterDatas.FindByPredicate([&](const FDialogueCharacterData& E) {return E.NameOverride == SpeakerName; });
+			check(DialogueCharacterData);
+			FGenDialogueCharacterData& GenDialogueCharacterData = DialogueCharacterDataMap.Add(Character, *DialogueCharacterData);
+			GenDialogueCharacterData.CharacterIdx = Idx;
 
-				Idx += 1;
-			}
+			Idx += 1;
 		}
 	}
 
@@ -311,13 +387,13 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		AutoGenTracks.Empty();
 
 		// 镜头
-		for (const FGuid& CameraComponentGuid : AutoGenDialogueSystemData.AutoGenCameraComponentGuids)
+		for (const FGuid& CameraComponentGuid : AutoGenCameraComponentGuids)
 		{
 			MovieScene.RemovePossessable(CameraComponentGuid);
 		}
-		AutoGenDialogueSystemData.AutoGenCameraComponentGuids.Empty();
+		AutoGenCameraComponentGuids.Empty();
 		CameraCutTrack->RemoveAllAnimationData();
-		for (const FGuid& CameraGuid : AutoGenDialogueSystemData.AutoGenCameraGuids)
+		for (const FGuid& CameraGuid : AutoGenCameraGuids)
 		{
 			// TODO：之后假如有锁定导轨的逻辑需要再处理，现在先全删了
 // 			int32 Idx = CameraCutTrack->GetAllSections().IndexOfByPredicate([&](UMovieSceneSection* E) { return CastChecked<UMovieSceneCameraCutSection>(E)->GetCameraBindingID().GetGuid() == CameraGuid; });
@@ -329,44 +405,46 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 			AutoGenCameraFolder->RemoveChildObjectBinding(CameraGuid);
 		}
-		AutoGenDialogueSystemData.AutoGenCameraGuids.Empty();
+		AutoGenCameraGuids.Empty();
 
 		// 补光
 		if (bGenerateSupplementLightGroup)
 		{
-			for (const FGuid& SupplementLightGuid : AutoGenDialogueSystemData.AutoGenSupplementLightGuids)
+			for (const FGuid& SupplementLightGuid : AutoGenSupplementLightGuids)
 			{
 				MovieScene.RemoveSpawnable(SupplementLightGuid);
 				SupplementLightFolder->RemoveChildObjectBinding(SupplementLightGuid);
 			}
-			AutoGenDialogueSystemData.AutoGenSupplementLightGuids.Empty();
+			AutoGenSupplementLightGuids.Empty();
 		}
 	}
 
 	// 整理数据
 	TArray<FGenDialogueData> SortedDialogueDatas;
-	for (UPreviewDialogueSentenceTrack* PreviewDialogueSentenceTrack : PreviewDialogueSoundSequence->PreviewDialogueSentenceTracks)
+	for (TPair<FName, UDialogueSentenceTrack*> Pair : PreviewDialogueSequence->DialogueSentenceTracks)
 	{
-		const FName& SpeakerName = PreviewDialogueSentenceTrack->SpeakerName;
-		if (ACharacter* SpeakerInstance = NameInstanceMap.FindRef(SpeakerName))
+		const FName& SpeakerName = Pair.Key;
+		UDialogueSentenceTrack* PreviewDialogueSentenceTrack = Pair.Value;
+		if (ACharacter* SpeakerInstance = CharacterNameInstanceMap.FindRef(SpeakerName))
 		{
 			for (UMovieSceneSection* Section : PreviewDialogueSentenceTrack->GetAllSections())
 			{
 				FGenDialogueData& Data = SortedDialogueDatas.AddDefaulted_GetRef();
-				Data.PreviewDialogueSentenceSection = CastChecked<UPreviewDialogueSentenceSection>(Section);
+				Data.PreviewDialogueSentenceSection = CastChecked<UDialogueSentenceSection>(Section);
 				Data.Speaker = SpeakerInstance;
-
-				const FDialogueSentenceEditData& DialogueSentenceEditData = Data.PreviewDialogueSentenceSection->DialogueSentenceEditData;
-				for (const FDialogueCharacterName& TargetName : DialogueSentenceEditData.TargetNames)
+				
+				for (const FMovieSceneObjectBindingID& Target : Data.PreviewDialogueSentenceSection->Targets)
 				{
-					Data.Targets.Add(NameInstanceMap.FindRef(TargetName.GetName()));
+					UMovieScene& PreviewMovieScene = *PreviewDialogueSequence->GetMovieScene();
+					FMovieScenePossessable* Possessable = PreviewMovieScene.FindPossessable(Target.GetGuid());
+					Data.Targets.Add(CharacterNameInstanceMap.FindRef(*Possessable->GetName()));
 				}
 			}
 		}
 	}
 	SortedDialogueDatas.Sort([&](const FGenDialogueData& LHS, const FGenDialogueData& RHS)
 		{
-			return LHS.GetRange().GetLowerBoundValue().Value < RHS.GetRange().GetLowerBoundValue().Value;
+			return LHS.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue().Value < RHS.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue().Value;
 		});
 
 	// 生成对象轨
@@ -374,7 +452,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	{
 		ACharacter* Speaker = Pair.Key;
 		FGenDialogueCharacterData& GenDialogueCharacterData = Pair.Value;
-		FGuid BindingGuid = AutoGenDialogueSystemData.FindOrAddPossessable(Speaker);
+		FGuid BindingGuid = FLevelSequenceUtils::FindOrAddPossessable(GetOwingLevelSequence(), Speaker);
 		// TODO: 先用MovieSceneSequenceID::Root，以后再找MovieSceneSequenceID怎么获得
 		GenDialogueCharacterData.BindingID = FMovieSceneObjectBindingID(BindingGuid, MovieSceneSequenceID::Root);
 	}
@@ -387,9 +465,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		ACharacter* Speaker = GenDialogueData.Speaker;
 		const FGenDialogueCharacterData& GenDialogueCharacterData = DialogueCharacterDataMap[Speaker];
 		FGuid SpeakerBindingGuid = GenDialogueCharacterData.BindingID.GetGuid();
-		const UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection = GenDialogueData.PreviewDialogueSentenceSection;
-		const FDialogueSentenceEditData& DialogueSentenceEditData = GenDialogueData.GetDialogueSentenceEditData();
-		TRange<FFrameNumber> SectionRange = GenDialogueData.GetRange();
+		const UDialogueSentenceSection* PreviewDialogueSentenceSection = GenDialogueData.PreviewDialogueSentenceSection;
+		TRange<FFrameNumber> SectionRange = PreviewDialogueSentenceSection->GetRange();
 		FFrameNumber StartFrameNumber = SectionRange.GetLowerBoundValue();
 		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
 		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
@@ -402,7 +479,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				DialogueSentenceTrackMap.Add(Speaker, DialogueSentenceTrack);
 				AutoGenTracks.Add(DialogueSentenceTrack);
 			}
-			UDialogueSentenceSection* DialogueSentenceSection = DialogueSentenceTrack->AddNewSentenceOnRow(DialogueSentenceEditData.DialogueSentence, StartFrameNumber);
+			UDialogueSentenceSection* DialogueSentenceSection = DialogueSentenceTrack->AddNewSentenceOnRow(PreviewDialogueSentenceSection->DialogueSentence, StartFrameNumber);
 			for (ACharacter* Target : Targets)
 			{
 				DialogueSentenceSection->Targets.Add(DialogueCharacterDataMap[Target].BindingID);
@@ -410,8 +487,10 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		}
 	}
 
+	PostGeneratedDialogue(MovieScene, SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, CharacterNameInstanceMap, DialogueCharacterDataMap);
+
 	// -- 动作
-	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, NameInstanceMap, DialogueCharacterDataMap);
+	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, CharacterNameInstanceMap, DialogueCharacterDataMap);
 	// 合并相同的动画
 	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
 	{
@@ -452,7 +531,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			UMovieSceneSkeletalAnimationSection* TalkAnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->AddNewAnimation(AnimStartFrameNumber, AnimSectionVirtualData.AnimSequence));
 			TalkAnimSection->SetRange(AnimSectionVirtualData.AnimRange);
 
-			TalkAnimSection->Params.SlotName = DialogueCharacterData.TalkAnimSlotName;
+			TalkAnimSection->Params.SlotName = DialogueCharacterData.CharacterSettings->TalkAnimSlotName;
 			GenAnimTrackUtils::SetBlendInOutValue(TalkAnimSection->Params.Weight, FrameRate, AnimStartFrameNumber, AnimSectionVirtualData.BlendInTime, AnimEndFrameNumber, AnimSectionVirtualData.BlendOutTime);
 		}
 	}
@@ -465,7 +544,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		FGuid SpeakerBindingGuid = Pair.Value.BindingID.GetGuid();
 		const FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
 
-		UMovieSceneActorReferenceTrack* LookAtTargetTrack = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneActorReferenceTrack>(MovieScene, SpeakerBindingGuid, DialogueCharacterData.LookAtTargetPropertyName, DialogueCharacterData.LookAtTargetPropertyName.ToString());
+		const FName LookAtTargetPropertyName = DialogueCharacterData.CharacterSettings->LookAtTargetPropertyName;
+		UMovieSceneActorReferenceTrack* LookAtTargetTrack = DialogueSequencerUtils::CreatePropertyTrack<UMovieSceneActorReferenceTrack>(MovieScene, SpeakerBindingGuid, TEXT("注视目标"), LookAtTargetPropertyName.ToString());
 		AutoGenTracks.Add(LookAtTargetTrack);
 		UMovieSceneActorReferenceSection* LookAtTargetSection = DialogueSequencerUtils::CreatePropertySection<UMovieSceneActorReferenceSection>(LookAtTargetTrack);
 		LookAtTrackMap.Add(Speaker, LookAtTargetSection);
@@ -482,7 +562,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			{
 				for (const FGenDialogueData* GenDialogueData : AnimSectionVirtualData.GenDialogueDatas)
 				{
-					const FFrameNumber SentenceStartFrameNumber = GenDialogueData->GetRange().GetLowerBoundValue();
+					const FFrameNumber SentenceStartFrameNumber = GenDialogueData->PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue();
 					const TArray<ACharacter*>& Targets = GenDialogueData->Targets;
 					for (const TPair<ACharacter*, UMovieSceneActorReferenceSection*>& Entry : LookAtTrackMap)
 					{
@@ -715,8 +795,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
 		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
 		ACharacter* Speaker = GenDialogueData.Speaker;
-		const UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection = GenDialogueData.PreviewDialogueSentenceSection;
-		TRange<FFrameNumber> SectionRange = GenDialogueData.GetRange();
+		TRange<FFrameNumber> SectionRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
 		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
 
 		const float DialogueProgress = Idx / DialogueCount;
@@ -912,7 +991,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				for (int32 RelatedSentenceIdx : AllRelatedSentenceIdxs)
 				{
 					const FGenDialogueData& DialogueData = SortedDialogueDatas[RelatedSentenceIdx];
-					TRange<FFrameNumber> SentenceRange = DialogueData.GetRange();
+					TRange<FFrameNumber> SentenceRange = DialogueData.PreviewDialogueSentenceSection->GetRange();
 
 					if (PrevCameraCutCreateData.CameraCutRange.Overlaps(SentenceRange))
 					{
@@ -971,12 +1050,12 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			SpawnParams.Template = CameraActorCreateData.CameraParams;
 			ACineCameraActor* AutoGenCamera = World->SpawnActor<ACineCameraActor>(CameraActorCreateData.CameraLocation, CameraActorCreateData.CameraRotation, SpawnParams);
 			AutoGenCamera->SetActorLabel(FString::Printf(TEXT("%s_Camera"), *CameraActorCreateData.GetSpeakerName()));
-			CameraGuid = AutoGenDialogueSystemData.CreateSpawnable(AutoGenCamera);
+			CameraGuid = FLevelSequenceUtils::AddSpawnable(GetOwingLevelSequence(), AutoGenCamera);
 			World->EditorDestroyActor(AutoGenCamera, false);
 
 			AutoGenCameraFolder->AddChildObjectBinding(CameraGuid);
 			AutoGenCamera = Cast<ACineCameraActor>(MovieScene.FindSpawnable(CameraGuid)->GetObjectTemplate());
-			AutoGenDialogueSystemData.AutoGenCameraGuids.Add(CameraGuid);
+			AutoGenCameraGuids.Add(CameraGuid);
 			{
 				if (CurCameraCutFrame != SequenceStartFrameNumber)
 				{
@@ -986,7 +1065,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 
 				UCineCameraComponent* CineCameraComponent = AutoGenCamera->GetCineCameraComponent();
 				FGuid CineCameraComponentGuid = DialogueSequencerUtils::AddChildObject(AutoGenDialogueSequence, AutoGenCamera, MovieScene, CameraGuid, CineCameraComponent);
-				AutoGenDialogueSystemData.AutoGenCameraComponentGuids.Add(CineCameraComponentGuid);
+				AutoGenCameraComponentGuids.Add(CineCameraComponentGuid);
 				// 生成镜头的特殊轨道
 				{
 					using FDialogueCameraCutData = AAutoGenDialogueCameraTemplate::FDialogueCameraCutData;
@@ -1004,8 +1083,8 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 								FDialogueData& DialogueData = DialogueCameraCutData.DialogueDatas.AddDefaulted_GetRef();
 								DialogueData.Speaker = Speaker;
 								DialogueData.Targets = Targets;
-								DialogueData.DialogueSentenceEditData = GenDialogueData.GetDialogueSentenceEditData();
-								DialogueData.DialogueRange = GenDialogueData.GetRange();
+								DialogueData.DialogueSentence = GenDialogueData.PreviewDialogueSentenceSection->DialogueSentence;
+								DialogueData.DialogueRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
 							}
 						}
 					}
@@ -1043,7 +1122,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			const float DotValue = Speaker->GetActorRotation().Vector() | CameraActorCreateData.CameraRotation.Vector();
 			if (DotValue < 0.5f)
 			{
-				FFrameNumber SentenceStartTime = GenDialogueData.GetRange().GetLowerBoundValue();
+				FFrameNumber SentenceStartTime = GenDialogueData.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue();
 				FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
 				ActorToTrackSectionChannel.UpdateOrAddKey(DepthOfFieldTargetChangedFrameNumber, FMovieSceneActorReferenceKey(DialogueCharacterDataMap[Speaker].BindingID));
 			}
@@ -1081,10 +1160,10 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 						RectLight->LightingChannels.bChannel0 = false;
 						RectLight->LightingChannels.bChannel2 = true;
 					}
-					FGuid SupplementLightGuid = AutoGenDialogueSystemData.CreateSpawnable(AutoGenSupplementLight);
+					FGuid SupplementLightGuid = FLevelSequenceUtils::AddSpawnable(GetOwingLevelSequence(), AutoGenSupplementLight);
 					World->EditorDestroyActor(AutoGenSupplementLight, false);
 					SupplementLightFolder->AddChildObjectBinding(SupplementLightGuid);
-					AutoGenDialogueSystemData.AutoGenSupplementLightGuids.Add(SupplementLightGuid);
+					AutoGenSupplementLightGuids.Add(SupplementLightGuid);
 
 					FFrameNumber SupplementLightStartTime = CameraCutCreateData.CameraCutRange.GetLowerBoundValue();
 					FFrameNumber SupplementLightEndTime = CameraCutCreateData.CameraCutRange.GetUpperBoundValue();
@@ -1118,9 +1197,7 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 	const TMap<FName, ACharacter*>& NameInstanceMap,
 	const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
 {
-	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap;
-
-	EvaluateTalkAnimations(AnimationTrackDataMap, SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, NameInstanceMap, DialogueCharacterDataMap);
+	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateTalkAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, NameInstanceMap, DialogueCharacterDataMap);
 
 	// 没动画的地方补上Idle动画
 	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
@@ -1193,8 +1270,9 @@ TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialog
 	return AnimationTrackDataMap;
 }
 
-void UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(TMap<ACharacter*, FAnimTrackData>& AnimationTrackDataMap, const FFrameNumber SequenceStartFrameNumber, const FFrameNumber SequenceEndFrameNumber, const FFrameRate FrameRate, const TArray<FGenDialogueData>& SortedDialogueDatas, const TMap<FName, ACharacter*>& NameInstanceMap, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
+TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(const FFrameNumber SequenceStartFrameNumber, const FFrameNumber SequenceEndFrameNumber, const FFrameRate FrameRate, const TArray<FGenDialogueData>& SortedDialogueDatas, const TMap<FName, ACharacter*>& NameInstanceMap, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
 {
+	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap;
 	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
 	{
 		const FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
@@ -1202,8 +1280,7 @@ void UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(TMap<ACharacter*, FA
 		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
 		const FGenDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
 		FGuid SpeakerBindingGuid = DialogueCharacterData.BindingID.GetGuid();
-		const UPreviewDialogueSentenceSection* PreviewDialogueSentenceSection = GenDialogueData.PreviewDialogueSentenceSection;
-		TRange<FFrameNumber> SectionRange = GenDialogueData.GetRange();
+		TRange<FFrameNumber> SectionRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
 		FFrameNumber StartFrameNumber = SectionRange.GetLowerBoundValue();
 		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
 
@@ -1211,8 +1288,8 @@ void UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(TMap<ACharacter*, FA
 
 		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimationTrackData.AnimSectionVirtualDatas;
 
-		// TODO：根据动作的相似程度确认混合时间
-		const float BlendTime = 0.7f;
+		// 这个混合时间会由站立动画决定
+		const float BlendTime = 0.5f;
 
 		FFrameNumber AnimStartFrameNumber = StartFrameNumber;
 		FFrameNumber AnimEndFrameNumber = EndFrameNumber;
@@ -1236,33 +1313,97 @@ void UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(TMap<ACharacter*, FA
 			AnimEndFrameNumber = FMath::Min(SequenceEndFrameNumber, AnimEndFrameNumber + GenAnimTrackUtils::SecondToFrameNumber(AnimEndDelayTime, FrameRate));
 		}
 
-		const TArray<UAnimSequence*>& TalkAnims = CastChecked<UAutoGenDialogueAnimSet>(DialogueCharacterData.DialogueAnimSet)->TalkAnims;
-		UAnimSequence* SelectedAnimSequence = TalkAnims[FMath::RandHelper(TalkAnims.Num())];
+		const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
+
+		const float TalkAnimLength = (AnimRange / FrameRate).Size<double>();
+		TArray<UAnimSequence*> TalkAnims = CastChecked<UAutoGenDialogueAnimSet>(DialogueCharacterData.DialogueAnimSet)->TalkAnims;
+		TalkAnims.Sort([&](const UAnimSequence& LHS, const UAnimSequence& RHS) { return FMath::Abs(LHS.SequenceLength - TalkAnimLength) < FMath::Abs(RHS.SequenceLength - TalkAnimLength); });
+		UAnimSequence* SelectedAnimSequence = TalkAnims[0];
 
 		FAnimSectionVirtualData& AnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
 		AnimSectionVirtualData.AnimSequence = SelectedAnimSequence;
-		AnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
+		AnimSectionVirtualData.AnimRange = AnimRange;
 		AnimSectionVirtualData.BlendInTime = BlendTime;
 		AnimSectionVirtualData.BlendOutTime = BlendTime;
 		AnimSectionVirtualData.GenDialogueDatas.Add(&GenDialogueData);
 	}
+	return AnimationTrackDataMap;
 }
 
 UAnimSequence* UAutoGenDialogueSequenceConfig::EvaluateIdleAnimation(const TOptional<FAnimSectionVirtualData>& PrevTalkAnimData, const TOptional<FAnimSectionVirtualData>& NextTalkAnimData, FFrameRate FrameRate, const TRange<FFrameNumber>& IdleTimeRange, const FGenDialogueCharacterData& GenDialogueCharacterData) const
 {
 	const TArray<UAnimSequence*>& IdleAnims = CastChecked<UAutoGenDialogueAnimSet>(GenDialogueCharacterData.DialogueAnimSet)->IdleAnims;
-	UAnimSequence* SelectedTalkAnim = IdleAnims[FMath::RandHelper(IdleAnims.Num())];
-	return SelectedTalkAnim;
-}
 
-const FDialogueSentenceEditData& UAutoGenDialogueSequenceConfig::FGenDialogueData::GetDialogueSentenceEditData() const
-{
-	return PreviewDialogueSentenceSection->DialogueSentenceEditData;
-}
+	TArray<FName> BoneNames;
+	TArray<float> BoneWidgets;
+	for (const TPair<FName, float>& Pair : AnimBoneWeights)
+	{
+		BoneNames.Add(Pair.Key);
+		BoneWidgets.Add(Pair.Value);
+	}
 
-TRange<FFrameNumber> UAutoGenDialogueSequenceConfig::FGenDialogueData::GetRange() const
-{
-	return PreviewDialogueSentenceSection->GetRange();
+	struct FIdleAnimData
+	{
+		FIdleAnimData() = default;
+
+		UAnimSequence* IdleAnim;
+		float PrevDistance;
+		float NextDistance;
+	};
+	TArray<FIdleAnimData> AnimDistances;
+	AnimDistances.SetNumZeroed(IdleAnims.Num());
+	for (int32 AnimIdx = 0; AnimIdx < IdleAnims.Num(); ++AnimIdx)
+	{
+		AnimDistances[AnimIdx].IdleAnim = IdleAnims[AnimIdx];
+	}
+
+	if (PrevTalkAnimData)
+	{
+		const float Time = FMath::Fmod((PrevTalkAnimData->AnimRange / FrameRate).Size<double>(), PrevTalkAnimData->AnimSequence->SequenceLength);
+		TArray<FTransform> BoneTransforms = UDialogueAnimationUtils::SampleSequence(PrevTalkAnimData->AnimSequence, Time, BoneNames);
+		for (int32 AnimIdx = 0; AnimIdx < IdleAnims.Num(); ++AnimIdx)
+		{
+			UAnimSequence* IdleSequence = IdleAnims[AnimIdx];
+			TArray<FTransform> IdleBoneTransforms = UDialogueAnimationUtils::SampleSequence(IdleSequence, 0.f, BoneNames);
+			float Distance = 0.f;
+			for (int32 BoneIdx = 0; BoneIdx < BoneNames.Num(); ++BoneIdx)
+			{
+				Distance += (IdleBoneTransforms[BoneIdx].GetLocation() - BoneTransforms[BoneIdx].GetLocation()).Size() * BoneWidgets[BoneIdx];
+			}
+			AnimDistances[AnimIdx].PrevDistance = Distance;
+		}
+	}
+	if (NextTalkAnimData)
+	{
+		const float Time = FMath::Fmod((NextTalkAnimData->AnimRange / FrameRate).Size<double>(), NextTalkAnimData->AnimSequence->SequenceLength);
+		TArray<FTransform> BoneTransforms = UDialogueAnimationUtils::SampleSequence(NextTalkAnimData->AnimSequence, Time, BoneNames);
+		float IdleTime = (TRange<FFrameNumber>((PrevTalkAnimData ? PrevTalkAnimData->AnimRange.GetUpperBoundValue() : 0, NextTalkAnimData->AnimRange.GetLowerBoundValue())) / FrameRate).Size<double>();
+		for (int32 AnimIdx = 0; AnimIdx < IdleAnims.Num(); ++AnimIdx)
+		{
+			UAnimSequence* IdleSequence = IdleAnims[AnimIdx];
+			TArray<FTransform> IdleBoneTransforms = UDialogueAnimationUtils::SampleSequence(IdleSequence, FMath::Fmod(IdleTime, IdleSequence->SequenceLength), BoneNames);
+			float Distance = 0.f;
+			for (int32 BoneIdx = 0; BoneIdx < BoneNames.Num(); ++BoneIdx)
+			{
+				Distance += (IdleBoneTransforms[BoneIdx].GetLocation() - BoneTransforms[BoneIdx].GetLocation()).Size() * BoneWidgets[BoneIdx];
+			}
+			AnimDistances[AnimIdx].NextDistance = Distance;
+		}
+	}
+	AnimDistances.Sort([](const FIdleAnimData& LHS, const FIdleAnimData& RHS){return (LHS.PrevDistance + LHS.NextDistance) < (RHS.PrevDistance + RHS.NextDistance);});
+
+	const FIdleAnimData& SelectedTalkAnim = AnimDistances[0];
+	if (PrevTalkAnimData)
+	{
+		const_cast<FAnimSectionVirtualData&>(PrevTalkAnimData.GetValue()).BlendOutTime = FMath::GetMappedRangeValueClamped({0.f, 100.f}, {0.25f, 1.f}, SelectedTalkAnim.PrevDistance);
+	}
+	if (NextTalkAnimData)
+	{
+		const_cast<FAnimSectionVirtualData&>(NextTalkAnimData.GetValue()).BlendInTime = FMath::GetMappedRangeValueClamped({ 0.f, 100.f }, { 0.25f, 1.f }, SelectedTalkAnim.NextDistance);
+	}
+
+	AutoGenSequence_Display_Log("站立动画选择了[%s]，与前一个对话动画的距离为[%f]，与后一个对话动画的距离为[%f]", *SelectedTalkAnim.IdleAnim->GetName(), SelectedTalkAnim.PrevDistance, SelectedTalkAnim.NextDistance);
+	return SelectedTalkAnim.IdleAnim;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -19,9 +19,9 @@ class XD_AUTOGENSEQUENCER_API UDialogueSentence : public UObject
 public:
 	UDialogueSentence();
 
-	UPROPERTY(EditAnywhere, Category = "DialogueSentence")
+	UPROPERTY(EditAnywhere, Category = "对话", meta = (DisplayName = "音频"))
 	USoundWave* SentenceWave;
-	UPROPERTY(EditAnywhere, Category = "DialogueSentence")
+	UPROPERTY(EditAnywhere, Category = "对话", meta = (DisplayName = "字幕"))
 	FText SubTitle;
 
 	FORCEINLINE FText GetSubTitle() const { return SubTitle; }

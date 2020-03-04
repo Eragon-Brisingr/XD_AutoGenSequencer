@@ -34,7 +34,7 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FDialogueSentenceEditData
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白"))
 	UDialogueSentence* DialogueSentence;
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "说话者"))
 	FDialogueCharacterName SpeakerName = TEXT("Role");

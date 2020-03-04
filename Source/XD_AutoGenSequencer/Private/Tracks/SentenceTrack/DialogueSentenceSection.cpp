@@ -7,7 +7,7 @@
 #include "Sound/SoundCue.h"
 #include "AudioDevice.h"
 #include "XD_AutoGenSequencerUtils.h"
-#include "Interface/DialogueInterface.h"
+#include "Interface/XD_AutoGenDialogueInterface.h"
 #include <MovieSceneCommonHelpers.h>
 #include "IMovieScenePlayer.h"
 #include "Data/DialogueSentence.h"
@@ -47,43 +47,24 @@ FCachedDialogueSentenceTrackData::FCachedDialogueSentenceTrackData()
 
 }
 
-void FCachedDialogueSentenceTrackData::StopAllSentences()
-{
-	for (TPair<TObjectKey<const UDialogueSentenceSection>, TWeakObjectPtr<UAudioComponent>>& Pair : AudioComponentBySectionKey)
-	{
-		if (UAudioComponent* AudioComponent = Pair.Value.Get())
-		{
-			StopSentence(AudioComponent);
-#if WITH_EDITOR
-			AudioComponent->bIsPreviewSound = false;
-#endif
-		}
-	}
-}
-
 void FCachedDialogueSentenceTrackData::StopSentencesOnSection(TObjectKey<const UDialogueSentenceSection> ObjectKey)
 {
 	if (TWeakObjectPtr<UAudioComponent>* AudioComponentPtr = AudioComponentBySectionKey.Find(ObjectKey))
 	{
 		if (UAudioComponent* AudioComponent = AudioComponentPtr->Get())
 		{
-			StopSentence(AudioComponent);
+			AudioComponent->SetSound(nullptr);
+			AActor* Actor = AudioComponent->GetOwner();
+			if (Actor->Implements<UXD_AutoGenDialogueInterface>())
+			{
+				IXD_AutoGenDialogueInterface::EndDialogueSpeak(Actor);
+			}
 
 #if WITH_EDITOR
 			AudioComponent->bIsPreviewSound = false;
 #endif
 		}
 		AudioComponentBySectionKey.Remove(ObjectKey);
-	}
-}
-
-void FCachedDialogueSentenceTrackData::StopSentence(UAudioComponent* AudioComponent)
-{
-	AudioComponent->SetSound(nullptr);
-	AActor* Actor = AudioComponent->GetOwner();
-	if (Actor->Implements<UDialogueInterface>())
-	{
-		IDialogueInterface::EndSpeak(Actor);
 	}
 }
 
@@ -109,10 +90,17 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_DialogueSentenceTrack_TokenExecute);
 
-	if ((Context.GetStatus() != EMovieScenePlayerStatus::Playing && Context.GetStatus() != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped() || Context.GetDirection() == EPlayDirection::Backwards)
+	const EMovieScenePlayerStatus::Type Status = Context.GetStatus();
+	if ((Status != EMovieScenePlayerStatus::Playing && Status != EMovieScenePlayerStatus::Scrubbing) || Context.HasJumped() || Context.GetDirection() == EPlayDirection::Backwards)
 	{
 		// stopped, recording, etc
-		TrackData.StopAllSentences();
+		for (TPair<TObjectKey<const UDialogueSentenceSection>, TWeakObjectPtr<UAudioComponent>>& Pair : TrackData.AudioComponentBySectionKey)
+		{
+			if (UAudioComponent* AudioComponent = Pair.Value.Get())
+			{
+				AudioComponent->Stop();
+			}
+		}
 	}
 	else if (Operand.ObjectBindingID.IsValid() && SentenceSection->DialogueSentence)
 	{
@@ -135,10 +123,10 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 			TWeakObjectPtr<UAudioComponent>& AudioComponentPtr = TrackData.AudioComponentBySectionKey.FindOrAdd(SectionKey);
 			if (!AudioComponentPtr.IsValid())
 			{
-				if (Actor->Implements<UDialogueInterface>())
+				if (Actor->Implements<UXD_AutoGenDialogueInterface>())
 				{
-					AudioComponentPtr = IDialogueInterface::GetMouthComponent(Actor);
-					IDialogueInterface::BeginSpeak(Actor, SentenceSection->DialogueSentence);
+					AudioComponentPtr = IXD_AutoGenDialogueInterface::GetDialogueMouthComponent(Actor);
+					IXD_AutoGenDialogueInterface::BeginDialogueSpeak(Actor, SentenceSection->DialogueSentence);
 				}
 			}
 
@@ -148,7 +136,7 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 
 				bool bPlaySound = !AudioComponent->IsPlaying() || AudioComponent->Sound != SentenceSound;
 
-				if (bPlaySound && SentenceSound)
+				if (bPlaySound)
 				{
 #if WITH_EDITOR
 					UObject* PlaybackContext = Player.GetPlaybackContext();
@@ -159,13 +147,6 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 					}
 #endif // WITH_EDITOR
 
-					if (!SentenceSound->IsPlayWhenSilent())
-					{
-						AutoGenSequencer_Error_Log("[%s] 的VirtualizationMode必须标记为PlayWhenSilent，否则超出声音区域后再进入声音会有问题，已自动设置，请保存音频文件", *SentenceSound->GetName());
-						SentenceSound->Modify();
-						SentenceSound->VirtualizationMode = EVirtualizationMode::PlayWhenSilent;
-					}
-
 					AudioComponent->Stop();
 					AudioComponent->SetSound(SentenceSound);
 
@@ -173,12 +154,12 @@ void FDialogueSentenceSectionExecutionToken::ExecutePlayAudioImpl(FCachedDialogu
 					{
 						AudioComponent->Play(AudioTime);
 					}
+				}
 
-					if (Context.GetStatus() == EMovieScenePlayerStatus::Scrubbing)
-					{
-						// While scrubbing, play the sound for a short time and then cut it.
-						AudioComponent->StopDelayed(0.050f);
-					}
+				if (Status == EMovieScenePlayerStatus::Scrubbing)
+				{
+					// While scrubbing, play the sound for a short time and then cut it.
+					AudioComponent->StopDelayed(0.050f);
 				}
 
 				//if (bAllowSpatialization)

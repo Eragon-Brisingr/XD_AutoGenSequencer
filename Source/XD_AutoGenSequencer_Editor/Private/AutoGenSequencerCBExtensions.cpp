@@ -13,7 +13,6 @@
 #include "Data/DialogueSentence.h"
 #include "Utils/AutoGenDialogueSettings.h"
 #include "Factory/AutoGenDialogueSequenceFactory.h"
-#include "Datas/AutoGenDialogueSystemData.h"
 #include "Datas/GenDialogueSequenceConfigBase.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
@@ -118,16 +117,17 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 										for (const FAssetData& LevelSequenceAsset : SelectedLevelSequences)
 										{
 											ULevelSequence* LevelSequence = CastChecked<ULevelSequence>(LevelSequenceAsset.GetAsset());
-											UAutoGenDialogueSystemData* AutoGenDialogueSystemData = LevelSequence->FindMetaData<UAutoGenDialogueSystemData>();
-											if (AutoGenDialogueSystemData && !AutoGenDialogueSystemData->AutoGenDialogueSequenceConfig->IsA(ChoseClass))
+											UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = LevelSequence->FindMetaData<UGenDialogueSequenceConfigBase>();
+											if (GenDialogueSequenceConfig && !GenDialogueSequenceConfig->IsA(ChoseClass))
 											{
-												LevelSequence->RemoveMetaData<UAutoGenDialogueSystemData>();
-												AutoGenDialogueSystemData = nullptr;
+												LevelSequence->RemoveMetaData<UGenDialogueSequenceConfigBase>();
+												GenDialogueSequenceConfig = nullptr;
 											}
-											if (AutoGenDialogueSystemData == nullptr)
+											if (GenDialogueSequenceConfig == nullptr)
 											{
-												UAutoGenDialogueSequenceFactory::AddAutoGenDialogueSystemData(LevelSequence, ChoseClass);
+												UAutoGenDialogueSequenceFactory::AddGenDialogueSequenceConfig(LevelSequence, ChoseClass);
 											}
+											LevelSequence->MarkPackageDirty();
 										}
 									}
 								})));

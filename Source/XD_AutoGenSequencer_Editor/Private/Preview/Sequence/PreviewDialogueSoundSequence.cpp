@@ -5,7 +5,6 @@
 #include "MovieScene.h"
 #include "Datas/GenDialogueSequenceConfigBase.h"
 
-#if WITH_EDITOR
 UGenDialogueSequenceConfigBase* UPreviewDialogueSoundSequence::GetDialogueConfig() const
 {
 	return GetTypedOuter<UGenDialogueSequenceConfigBase>();
@@ -13,7 +12,5 @@ UGenDialogueSequenceConfigBase* UPreviewDialogueSoundSequence::GetDialogueConfig
 
 bool UPreviewDialogueSoundSequence::HasPreviewData() const
 {
-	return MovieScene->GetMasterTracks().Num() > 0;
+	return CharacterGuids.Num() > 0;
 }
-
-#endif

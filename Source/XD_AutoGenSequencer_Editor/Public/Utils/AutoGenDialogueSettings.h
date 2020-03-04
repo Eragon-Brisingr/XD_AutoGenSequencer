@@ -11,6 +11,7 @@ class UDialogueSentenceSection;
 class UAutoGenDialogueAnimSetBase;
 class UAutoGenDialogueCameraSet;
 class UGenDialogueSequenceConfigBase;
+class UAutoGenDialogueCharacterSettings;
 
 /**
  *
@@ -31,6 +32,10 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Settings", Config)
 	TSoftObjectPtr<UAutoGenDialogueCameraSet> DefaultAutoGenDialogueCameraSet;
+
+	UPROPERTY(EditAnywhere, Category = "Settings", Config)
+	TSoftClassPtr<UAutoGenDialogueCharacterSettings> DefaultDialogueCharacterSettingsType;
+	static TSubclassOf<UAutoGenDialogueCharacterSettings> GetDefaultDialogueCharacterSettingsType();
 
 	static const UAutoGenDialogueSettings& Get() { return *GetDefault<UAutoGenDialogueSettings>(); }
 };
