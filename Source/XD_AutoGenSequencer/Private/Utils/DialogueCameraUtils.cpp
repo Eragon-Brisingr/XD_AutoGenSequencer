@@ -58,15 +58,19 @@ bool FDialogueCameraUtils::ProjectWorldToScreen(const FSceneView* View, const FI
 	return View->ProjectWorldToScreen(WorldLocation, CanvasRect, View->ViewMatrices.GetViewProjectionMatrix(), OutScreenPosition);
 }
 
-bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(UCameraComponent* CameraComponent, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
+bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FMinimalViewInfo& MinimalViewInfo, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
 {
-	FMinimalViewInfo MinimalViewInfo;
-	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
-
 	return ProjectWorldBoxBoundsToScreen(Origin, Extend, OutScreenBounds, [&](const FVector& WorldPosition, FVector2D& ScreenPosition)
 		{
 			return ProjectWorldToScreen(MinimalViewInfo, WorldPosition, ScreenPosition);
 		});
+}
+
+bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(UCameraComponent* CameraComponent, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
+{
+	FMinimalViewInfo MinimalViewInfo;
+	CameraComponent->GetCameraView(0.f, MinimalViewInfo);
+	return ProjectWorldBoxBoundsToScreen(MinimalViewInfo, Origin, Extend, OutScreenBounds);
 }
 
 bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FSceneView* View, const FIntRect& CanvasRect, const FVector& Origin, const FVector& Extend, FBox2D& OutScreenBounds)
@@ -92,10 +96,10 @@ bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FVector& Origin, 
 
 	FVector2D MinScreenWidgets(TNumericLimits<float>().Max(), TNumericLimits<float>().Max());
 	FVector2D MaxScreenWidgets(TNumericLimits<float>().Lowest(), TNumericLimits<float>().Lowest());
-	bool IsCompletelyInView = true;
+	bool IsSomePartInView = false;
 	for (const FVector& Point : Points) {
 		FVector2D ScreenPosition(0, 0);
-		IsCompletelyInView &= ProjectWorldToScreenFunction(Point, ScreenPosition);
+		IsSomePartInView |= ProjectWorldToScreenFunction(Point, ScreenPosition);
 		MaxScreenWidgets.X = FMath::Max(ScreenPosition.X, MaxScreenWidgets.X);
 		MaxScreenWidgets.Y = FMath::Max(ScreenPosition.Y, MaxScreenWidgets.Y);
 		MinScreenWidgets.X = FMath::Min(ScreenPosition.X, MinScreenWidgets.X);
@@ -103,7 +107,7 @@ bool FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(const FVector& Origin, 
 	}
 	OutScreenBounds = FBox2D(MinScreenWidgets, MaxScreenWidgets);
 
-	return IsCompletelyInView;
+	return IsSomePartInView;
 }
 
 float FDialogueCameraUtils::ConvertWorldSphereRadiusToScreen(UCameraComponent* CameraComponent, const FVector& Origin, float Radius)

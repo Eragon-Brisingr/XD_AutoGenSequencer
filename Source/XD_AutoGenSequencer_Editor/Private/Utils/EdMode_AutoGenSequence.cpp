@@ -5,14 +5,18 @@
 #include <CanvasTypes.h>
 #include <CanvasItem.h>
 #include <ISequencer.h>
-#include "MovieSceneSection.h"
-#include "Utils/XD_SequenceSectionPreviewInfo.h"
-#include "MovieSceneSequence.h"
-#include "MovieScene.h"
+#include <MovieSceneSection.h>
+#include <MovieSceneSequence.h>
+#include <MovieScene.h>
 #include <Tracks/MovieSceneSpawnTrack.h>
 #include <Sections/MovieSceneBoolSection.h>
 #include <Editor.h>
 #include <LevelEditorViewport.h>
+#include <GameFramework/Character.h>
+
+#include "Utils/XD_SequenceSectionPreviewInfo.h"
+#include "Utils/GenDialogueSequenceEditor.h"
+#include "Utils/DialogueCameraUtils.h"
 
 FName FEdMode_AutoGenSequence::ID = TEXT("EdMode_AutoGenSequence");
 
@@ -27,9 +31,10 @@ void FEdMode_AutoGenSequence::Render(const FSceneView* View, FViewport* Viewport
 
 void FEdMode_AutoGenSequence::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
-	if (WeakSequencer.IsValid())
+	FGenDialogueSequenceEditor& GenDialogueSequenceEditor = FGenDialogueSequenceEditor::Get();
+	if (GenDialogueSequenceEditor.WeakSequencer.IsValid())
 	{
-		ISequencer* Sequencer = WeakSequencer.Pin().Get();
+		ISequencer* Sequencer = GenDialogueSequenceEditor.WeakSequencer.Pin().Get();
 
 		// 只有在镜头被激活时才进行绘制
 		if (!Sequencer->IsPerspectiveViewportCameraCutEnabled())
@@ -88,6 +93,25 @@ void FEdMode_AutoGenSequence::DrawHUD(FEditorViewportClient* ViewportClient, FVi
 							}
 						}
 					}
+				}
+			}
+		}
+
+		const FIntRect CanvasRect = Canvas->GetViewRect();
+		for (const TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : GenDialogueSequenceEditor.CharacterNameInstanceMap)
+		{
+			if (const ACharacter* Character = Pair.Value.Get())
+			{
+				FBox2D CharacterScreenBounds;
+				FVector Origin, BoxExtent;
+				Character->GetActorBounds(true, Origin, BoxExtent);
+				if (FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(View, CanvasRect, Origin, BoxExtent, CharacterScreenBounds))
+				{
+					CharacterScreenBounds = FDialogueCameraUtils::ClampBoundsInScreenRect(CharacterScreenBounds, CanvasRect);
+					FCanvasBoxItem CanvasBoxItem(CharacterScreenBounds.GetCenter() - CharacterScreenBounds.GetExtent(), CharacterScreenBounds.GetSize());
+					CanvasBoxItem.LineThickness = 2.f;
+					CanvasBoxItem.SetColor(FColor::Green);
+					Canvas->DrawItem(CanvasBoxItem);
 				}
 			}
 		}

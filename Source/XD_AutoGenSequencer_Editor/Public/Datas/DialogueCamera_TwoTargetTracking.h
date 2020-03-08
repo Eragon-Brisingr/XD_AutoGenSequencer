@@ -40,9 +40,13 @@ public:
 public:
 	UPROPERTY(Transient)
 	UTextRenderComponent* PreviewFrontHint;
+	UPROPERTY(VisibleAnywhere)
+	UChildActorComponent* FrontCharacterComponent;
 	UPROPERTY(Transient)
 	UTextRenderComponent* PreviewBackHint;
+	UPROPERTY(VisibleAnywhere)
+	UChildActorComponent* BackCharacterComponent;
 public:
-	FCameraWeightsData EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const override;
+	TOptional<FCameraWeightsData> EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const override;
 	void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const override;
 };

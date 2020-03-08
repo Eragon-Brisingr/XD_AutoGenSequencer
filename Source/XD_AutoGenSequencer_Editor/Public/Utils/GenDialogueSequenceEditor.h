@@ -20,6 +20,7 @@ class ULevelSequence;
  */
 class XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueSequenceEditor
 {
+	friend class FEdMode_AutoGenSequence;
 public:	
 	void Register(ISequencerModule& SequencerModule);
 
@@ -31,11 +32,7 @@ public:
 
 	void GeneratePreviewSequence();
 
-	static FGenDialogueSequenceEditor& Get()
-	{
-		static FGenDialogueSequenceEditor DialogueSequenceExtender;
-		return DialogueSequenceExtender;
-	}
+	static FGenDialogueSequenceEditor& Get();
 private:
 	FDelegateHandle SequencerCreatedHandle;
 	TSharedPtr<FExtender> SequencerToolbarExtender;
@@ -69,7 +66,7 @@ private:
 
 	void WhenStandTemplateInstanceChanged();
 
-	void SetStandTemplateInstancePickable(bool Enable);
+	void UpdateStandTemplateInstanceState();
 
 	static void OpenEditorForAsset(UObject* Asset);
 };

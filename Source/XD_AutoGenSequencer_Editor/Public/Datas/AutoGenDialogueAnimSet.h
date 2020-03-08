@@ -42,12 +42,8 @@ class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueAnimSetFactory : public UFa
 public:
 	UAutoGenDialogueAnimSetFactory();
 
-	UPROPERTY(BlueprintReadWrite, Category = "Settings")
-	TSubclassOf<UAutoGenDialogueAnimSetBase> AutoGenDialogueAnimSetClass;
-
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
 
-	bool ConfigureProperties() override;
 	FText GetDisplayName() const override;
 	uint32 GetMenuCategories() const override;
 };

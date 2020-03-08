@@ -52,17 +52,28 @@ public:
 
 	// 生成对白
 public:
-	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "启用合并过短镜头"))
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "合并过短镜头"))
 	uint8 bEnableMergeCamera : 1;
 	// 小于这个时间的镜头会被合并
 	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "镜头合并时间阈值", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraMergeMaxTime = 2.5f;
 
-	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "启用分割过长镜头"))
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "分割过长镜头"))
 	uint8 bEnableSplitCamera : 1;
 	// 大于这个时间的镜头会尝试拆分
 	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "镜头拆分时间阈值", EditCondition = "bEnableMergeCamera||bEnableSplitCamera"))
 	float CameraSplitMinTime = 5.f;
+	
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "合并相似镜头"))
+	uint8 bEnableMergeSameCut : 1;
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "相似镜头合并距离阈值", EditCondition = bEnableMergeSameCut))
+	float SameCutMergeDistanceThreshold = 50.f;
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "相似镜头合并角度阈值", EditCondition = bEnableMergeSameCut))
+	float SameCutMergeAngleThreshold = 30.f;
+
+	// 防止其它对话角色挡住当前相机注视角色
+	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "避免镜头目标被遮挡"))
+	uint8 bEnableAvoidCameraTargetCovered : 1;
 
 	// 补光使用LightChannel2，角色想受光需要开启
 	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "生成补光组"))
@@ -81,8 +92,9 @@ public:
 		TArray<ACharacter*> Targets;
 	};
 
-	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const final;
+	void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap, const FTransform& StandTemplateOrigin) const final;
 
+protected:
 	virtual void PostGeneratedDialogue(UMovieScene& MovieScene,
 		const FFrameNumber SequenceStartFrameNumber,
 		const FFrameNumber SequenceEndFrameNumber,
@@ -107,23 +119,20 @@ public:
 		TArray<FAnimSectionVirtualData> AnimSectionVirtualDatas;
 	};
 	using FAnimSectionVirtualData = FAnimTrackData::FAnimSectionVirtualData;
-	virtual TMap<ACharacter*, FAnimTrackData> EvaluateAnimations(
-		const FFrameNumber SequenceStartFrameNumber,
-		const FFrameNumber SequenceEndFrameNumber,
-		const FFrameRate FrameRate,
-		const TArray<FGenDialogueData>& SortedDialogueDatas,
-		const TMap<FName, ACharacter*>& NameInstanceMap,
-		const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const;
 
-	virtual TMap<ACharacter*, FAnimTrackData> EvaluateTalkAnimations(
-		const FFrameNumber SequenceStartFrameNumber,
-		const FFrameNumber SequenceEndFrameNumber,
-		const FFrameRate FrameRate,
-		const TArray<FGenDialogueData>& SortedDialogueDatas,
-		const TMap<FName, ACharacter*>& NameInstanceMap,
-		const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const;
+	virtual void EvaluateCharacterTalkAnimation(TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas, 
+		FFrameNumber AnimStartFrameNumber, 
+		FFrameNumber AnimEndFrameNumber, 
+		const FFrameRate FrameRate, 
+		const FGenDialogueCharacterData& DialogueCharacterData, 
+		const FGenDialogueData& GenDialogueData) const;
 
-	virtual UAnimSequence* EvaluateIdleAnimation(const TOptional<FAnimSectionVirtualData>& PrevTalkAnimData, const TOptional<FAnimSectionVirtualData>& NextTalkAnimData, FFrameRate FrameRate, const TRange<FFrameNumber>& IdleTimeRange, const FGenDialogueCharacterData& GenDialogueCharacterData) const;
+	virtual void EvaluateIdleAnimation(TArray<FAnimSectionVirtualData>& IdleAnimDatas, 
+		FAnimSectionVirtualData* PrevTalkAnimData, 
+		FAnimSectionVirtualData* NextTalkAnimData, 
+		FFrameRate FrameRate, 
+		const TRange<FFrameNumber>& IdleTimeRange, 
+		const FGenDialogueCharacterData& DialogueCharacterData) const;
 
 	// 生成时用到的数据
 protected:

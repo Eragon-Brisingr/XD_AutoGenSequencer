@@ -27,6 +27,11 @@
 #include <Engine/RectLight.h>
 #include <Components/RectLightComponent.h>
 #include <Tracks/MovieScene3DAttachTrack.h>
+#include <Tracks/MovieScene3DTransformTrack.h>
+#include <Sections/MovieScene3DTransformSection.h>
+#include <Channels/MovieSceneFloatChannel.h>
+#include <Channels/MovieSceneChannelProxy.h>
+#include <Components/CapsuleComponent.h>
 
 #include "Datas/DialogueStandPositionTemplate.h"
 #include "Data/DialogueSentence.h"
@@ -53,12 +58,14 @@ UAutoGenDialogueSequenceConfig::UAutoGenDialogueSequenceConfig(const FObjectInit
 	:Super(ObjectInitializer),
 	bEnableMergeCamera(true),
 	bEnableSplitCamera(true),
+	bEnableMergeSameCut(true),
+	bEnableAvoidCameraTargetCovered(true),
 	bGenerateSupplementLightGroup(true),
 	bShowGenerateLog(true)
 {
-	AnimBoneWeights.Add(TEXT("head"), 1.f);
-	AnimBoneWeights.Add(TEXT("hand_l"), 1.f);
-	AnimBoneWeights.Add(TEXT("hand_r"), 1.f);
+	AnimBoneWeights.Add(TEXT("head"), 0.25f);
+	AnimBoneWeights.Add(TEXT("hand_l"), 0.5f);
+	AnimBoneWeights.Add(TEXT("hand_r"), 0.5f);
 	AnimBoneWeights.Add(TEXT("foot_l"), 1.f);
 	AnimBoneWeights.Add(TEXT("foot_r"), 1.f);
 }
@@ -275,10 +282,24 @@ void UAutoGenDialogueSequenceConfig::GeneratePreview(const TMap<FName, ACharacte
 			PreviewDialogueSequence->DialogueSentenceTracks.Add(SpeakerName, DialogueSentenceTrack);
 		}
 		UDialogueSentenceSection* DialogueSentenceSection = DialogueSentenceTrack->AddNewSentenceOnRow(DialogueSentenceEditData.DialogueSentence, CurFrameNumber);
-		for (const FDialogueCharacterName& TargetName : DialogueSentenceEditData.TargetNames)
+		if (DialogueSentenceEditData.bToAllTargets)
 		{
-			ACharacter* Target = CharacterNameInstanceMap[TargetName.GetName()];
-			DialogueSentenceSection->Targets.Add(DialogueCharacterDataMap[Target].BindingID);
+			for (const TPair<FName, ACharacter*>& Pair : CharacterNameInstanceMap)
+			{
+				ACharacter* Target = Pair.Value;
+				if (Target != Speaker)
+				{
+					DialogueSentenceSection->Targets.Add(DialogueCharacterDataMap[Target].BindingID);
+				}
+			}
+		}
+		else
+		{
+			for (const FDialogueCharacterName& TargetName : DialogueSentenceEditData.TargetNames)
+			{
+				ACharacter* Target = CharacterNameInstanceMap[TargetName.GetName()];
+				DialogueSentenceSection->Targets.Add(DialogueCharacterDataMap[Target].BindingID);
+			}
 		}
 
 		FFrameTime Duration = DialogueSentenceEditData.DialogueSentence->GetDuration() * FrameRate;
@@ -293,7 +314,7 @@ void UAutoGenDialogueSequenceConfig::GeneratePreview(const TMap<FName, ACharacte
 	MovieScene.SetViewRange(0.f, EndFrameNumber / FrameRate);
 }
 
-void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const
+void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap, const FTransform& StandTemplateOrigin) const
 {
 	const FScopedTransaction Transaction(LOCTEXT("生成对白序列描述", "生成对白序列"));
 	ULevelSequence& AutoGenDialogueSequence = *GetOwingLevelSequence();
@@ -331,6 +352,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			const FDialogueCharacterData* DialogueCharacterData = DialogueCharacterDatas.FindByPredicate([&](const FDialogueCharacterData& E) {return E.NameOverride == SpeakerName; });
 			check(DialogueCharacterData);
 			FGenDialogueCharacterData& GenDialogueCharacterData = DialogueCharacterDataMap.Add(Character, *DialogueCharacterData);
+			GenDialogueCharacterData.WorldPosition = DialogueCharacterData->PositionOverride * StandTemplateOrigin;
 			GenDialogueCharacterData.CharacterIdx = Idx;
 
 			Idx += 1;
@@ -457,6 +479,38 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		GenDialogueCharacterData.BindingID = FMovieSceneObjectBindingID(BindingGuid, MovieSceneSequenceID::Root);
 	}
 
+	// 生成对象位置导轨
+	TMap<ACharacter*, UMovieScene3DTransformSection*> TransformSectionMap;
+	for (TPair<ACharacter*, FGenDialogueCharacterData>& Pair : DialogueCharacterDataMap)
+	{
+		ACharacter* Speaker = Pair.Key;
+		FGenDialogueCharacterData& GenDialogueCharacterData = Pair.Value;
+		UMovieScene3DTransformTrack* TransformTrack = MovieScene.AddTrack<UMovieScene3DTransformTrack>(GenDialogueCharacterData.BindingID.GetGuid());
+		AutoGenTracks.Add(TransformTrack);
+		UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>(TransformTrack->CreateNewSection());
+		TransformTrack->AddSection(*TransformSection);
+		TransformSection->SetRange(TRange<FFrameNumber>::All());
+		
+		TArrayView<FMovieSceneFloatChannel*> FloatChannels = TransformSection->GetChannelProxy().GetChannels<FMovieSceneFloatChannel>();
+		const FTransform& Transform = GenDialogueCharacterData.WorldPosition;
+		const FVector Location = Transform.GetTranslation() + FVector(0.f, 0.f, Speaker->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+		for (int32 Index = 0; Index < 3; ++Index)
+		{
+			FloatChannels[Index]->AddCubicKey(0, Location[Index]);
+		}
+		const FRotator Rotation = Transform.Rotator();
+		FloatChannels[3]->AddCubicKey(0, Rotation.Roll);
+		FloatChannels[4]->AddCubicKey(0, Rotation.Pitch);
+		FloatChannels[5]->AddCubicKey(0, Rotation.Yaw);
+		const FVector Scale = Transform.GetScale3D();
+		for (int32 Index = 6; Index < 9; ++Index)
+		{
+			FloatChannels[Index]->AddCubicKey(0, Scale[Index - 6]);
+		}
+
+		TransformSectionMap.Add(Speaker, TransformSection);
+	}
+
 	// 生成对白导轨
 	TMap<ACharacter*, UDialogueSentenceTrack*> DialogueSentenceTrackMap;
 	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
@@ -490,12 +544,110 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	PostGeneratedDialogue(MovieScene, SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, CharacterNameInstanceMap, DialogueCharacterDataMap);
 
 	// -- 动作
-	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, CharacterNameInstanceMap, DialogueCharacterDataMap);
+	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap;
+	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
+	{
+		const FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
+		ACharacter* Speaker = GenDialogueData.Speaker;
+		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
+		const FGenDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
+		FGuid SpeakerBindingGuid = DialogueCharacterData.BindingID.GetGuid();
+		TRange<FFrameNumber> SectionRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
+		FFrameNumber StartFrameNumber = SectionRange.GetLowerBoundValue();
+		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
+
+		FAnimTrackData& AnimationTrackData = AnimationTrackDataMap.FindOrAdd(Speaker);
+		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimationTrackData.AnimSectionVirtualDatas;
+
+		FFrameNumber AnimStartFrameNumber = StartFrameNumber;
+		FFrameNumber AnimEndFrameNumber = EndFrameNumber;
+		// 动作应该早于说话，且晚于结束
+		const float AnimStartEarlyTime = 0.5f;
+		const float AnimEndDelayTime = 0.5f;
+
+		if (AnimSectionVirtualDatas.Num() > Idx + 1)
+		{
+			// 防止插到前一个对话动画里
+			const FAnimSectionVirtualData& PreAnimSectionVirtualData = AnimSectionVirtualDatas[Idx - 1];
+			AnimStartFrameNumber = FMath::Max(PreAnimSectionVirtualData.AnimRange.GetUpperBoundValue() - FrameRate.AsFrameNumber(PreAnimSectionVirtualData.BlendOutTime),
+				AnimStartFrameNumber - FrameRate.AsFrameNumber(AnimStartEarlyTime));
+		}
+		else
+		{
+			AnimStartFrameNumber = FMath::Max(SequenceStartFrameNumber, AnimStartFrameNumber - FrameRate.AsFrameNumber(AnimStartEarlyTime));
+		}
+		AnimEndFrameNumber = FMath::Min(SequenceEndFrameNumber, AnimEndFrameNumber + FrameRate.AsFrameNumber(AnimEndDelayTime));
+
+		EvaluateCharacterTalkAnimation(AnimSectionVirtualDatas, AnimStartFrameNumber, AnimEndFrameNumber, FrameRate, DialogueCharacterData, GenDialogueData);
+	}
+	// 没动画的地方补上Idle动画
+	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
+	{
+		ACharacter* Speaker = Pair.Key;
+		FAnimTrackData& AnimTrackData = Pair.Value;
+		const FGenDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
+
+		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimTrackData.AnimSectionVirtualDatas;
+
+		const float StartBlendInTime = 0.25f;
+		const float EndBlendInTime = 0.25f;
+		TArray<FAnimSectionVirtualData> IdleAnimDatas;
+		if (AnimSectionVirtualDatas.Num() > 0)
+		{
+			// 填补说话动作前的间隙
+			{
+				FAnimSectionVirtualData& FirstVirtualData = AnimSectionVirtualDatas[0];
+				if (FirstVirtualData.AnimRange.GetLowerBoundValue() > SequenceStartFrameNumber)
+				{
+					const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(SequenceStartFrameNumber,
+						FirstVirtualData.AnimRange.GetLowerBoundValue());
+					EvaluateIdleAnimation(IdleAnimDatas, nullptr, &FirstVirtualData, FrameRate, AnimRange, DialogueCharacterData);
+				}
+			}
+
+			// 填补说话动作间的间隙
+			for (int32 Idx = 1; Idx < AnimSectionVirtualDatas.Num(); ++Idx)
+			{
+				FAnimSectionVirtualData& LeftVirtualData = AnimSectionVirtualDatas[Idx - 1];
+				FAnimSectionVirtualData& RightVirtualData = AnimSectionVirtualDatas[Idx];
+				if (LeftVirtualData.AnimRange.GetUpperBoundValue() < RightVirtualData.AnimRange.GetLowerBoundValue())
+				{
+					const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue(),
+						RightVirtualData.AnimRange.GetLowerBoundValue());
+					EvaluateIdleAnimation(IdleAnimDatas, &LeftVirtualData, &RightVirtualData, FrameRate, AnimRange, DialogueCharacterData);
+				}
+			}
+
+			// 填补说话动作后的间隙
+			{
+				FAnimSectionVirtualData& LastVirtualData = AnimSectionVirtualDatas.Last();
+				if (LastVirtualData.AnimRange.GetUpperBoundValue() < SequenceEndFrameNumber)
+				{
+					const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue(),
+						SequenceEndFrameNumber);
+					EvaluateIdleAnimation(IdleAnimDatas, &LastVirtualData, nullptr, FrameRate, AnimRange, DialogueCharacterData);
+				}
+			}
+		}
+		else
+		{
+			// 没动画就一直站着
+			const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(SequenceStartFrameNumber, SequenceEndFrameNumber);
+			 EvaluateIdleAnimation(IdleAnimDatas, nullptr, nullptr, FrameRate, AnimRange, DialogueCharacterData);
+		}
+		for (FAnimSectionVirtualData& IdleAnimData : IdleAnimDatas)
+		{
+			IdleAnimData.AnimRange.SetLowerBoundValue(FMath::Max(SequenceStartFrameNumber, IdleAnimData.AnimRange.GetLowerBoundValue()));
+			IdleAnimData.AnimRange.SetUpperBoundValue(FMath::Min(SequenceEndFrameNumber, IdleAnimData.AnimRange.GetUpperBoundValue()));
+		}
+		AnimSectionVirtualDatas.Append(IdleAnimDatas);
+	}
 	// 合并相同的动画
 	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
 	{
 		FAnimTrackData& AnimationTrackData = Pair.Value;
 		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimationTrackData.AnimSectionVirtualDatas;
+		// 给动画按时间顺序排序
 		AnimSectionVirtualDatas.Sort([](const FAnimSectionVirtualData& LHS, const FAnimSectionVirtualData& RHS) {return LHS.AnimRange.GetLowerBoundValue() < RHS.AnimRange.GetLowerBoundValue(); });
 		for (int32 Idx = 1; Idx < AnimSectionVirtualDatas.Num();)
 		{
@@ -659,30 +811,42 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		{
 			return LHS.CameraHandle == RHS.CameraHandle;
 		}
-		static void MergeSameCut(int32 Idx, TArray<FCameraCutCreateData>& CameraCutCreateDatas, TArray<FCameraActorCreateData>& CameraActorCreateDatas)
+		static void MergeCut(int32 LeftIdx, bool LeftOverlapRight, TArray<FCameraCutCreateData>& CameraCutCreateDatas, TArray<FCameraActorCreateData>& CameraActorCreateDatas)
 		{
-			// 左边向右边合并
-			FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas[Idx];
-			FCameraCutCreateData& NextCameraCutCreateData = CameraCutCreateDatas[Idx + 1];
+			FCameraCutCreateData& LeftCameraCutCreateData = CameraCutCreateDatas[LeftIdx];
+			FCameraCutCreateData& RightCameraCutCreateData = CameraCutCreateDatas[LeftIdx + 1];
 
-			check(CanMergeSameCut(CameraCutCreateData, NextCameraCutCreateData));
+			if (LeftOverlapRight)
+			{
+				FCameraActorCreateData& CameraActorCreateData = CameraActorCreateDatas[LeftCameraCutCreateData.CameraHandle];
+				CameraActorCreateData.UseNumber -= 1;
 
-			FCameraActorCreateData& CameraActorCreateData = CameraActorCreateDatas[CameraCutCreateData.CameraHandle];
-			CameraActorCreateData.UseNumber -= 1;
+				AppendRelatedSentenceIdxs(LeftCameraCutCreateData.RelatedSentenceIdxs, RightCameraCutCreateData.RelatedSentenceIdxs);
+				LeftCameraCutCreateData.CameraCutRange.SetUpperBoundValue(RightCameraCutCreateData.CameraCutRange.GetUpperBoundValue());
+				CameraCutCreateDatas.RemoveAt(LeftIdx + 1);
+			}
+			else
+			{
+				FCameraActorCreateData& CameraActorCreateData = CameraActorCreateDatas[RightCameraCutCreateData.CameraHandle];
+				CameraActorCreateData.UseNumber -= 1;
 
-			AppendRelatedSentenceIdxs(CameraCutCreateData.RelatedSentenceIdxs, NextCameraCutCreateData.RelatedSentenceIdxs);
-			CameraCutCreateData.CameraCutRange.SetUpperBoundValue(NextCameraCutCreateData.CameraCutRange.GetUpperBoundValue());
-			CameraCutCreateDatas.RemoveAt(Idx + 1);
+				AppendRelatedSentenceIdxs(RightCameraCutCreateData.RelatedSentenceIdxs, LeftCameraCutCreateData.RelatedSentenceIdxs);
+				RightCameraCutCreateData.CameraCutRange.SetLowerBoundValue(LeftCameraCutCreateData.CameraCutRange.GetLowerBoundValue());
+				CameraCutCreateDatas.RemoveAt(LeftIdx);
+			}
 		}
 		static void TryMergeAllSameCut(TArray<FCameraCutCreateData>& CameraCutCreateDatas, TArray<FCameraActorCreateData>& CameraActorCreateDatas)
 		{
 			for (int32 Idx = 0; Idx < CameraCutCreateDatas.Num() - 1;)
 			{
-				FCameraCutCreateData& CameraCutCreateData = CameraCutCreateDatas[Idx];
-				FCameraCutCreateData& NextCameraCutCreateData = CameraCutCreateDatas[Idx + 1];
-				if (CanMergeSameCut(CameraCutCreateData, NextCameraCutCreateData))
+				FCameraCutCreateData& LeftCameraCutCreateData = CameraCutCreateDatas[Idx];
+				FCameraCutCreateData& RightCameraCutCreateData = CameraCutCreateDatas[Idx + 1];
+				if (CanMergeSameCut(LeftCameraCutCreateData, RightCameraCutCreateData))
 				{
-					MergeSameCut(Idx, CameraCutCreateDatas, CameraActorCreateDatas);
+					FCameraActorCreateData& LeftCameraActorData = CameraActorCreateDatas[LeftCameraCutCreateData.CameraHandle];
+					FCameraActorCreateData& RightCameraActorData = CameraActorCreateDatas[RightCameraCutCreateData.CameraHandle];
+					// 左边向右边合并
+					MergeCut(Idx, LeftCameraActorData.UseNumber < RightCameraActorData.UseNumber, CameraCutCreateDatas, CameraActorCreateDatas);
 				}
 				else
 				{
@@ -710,12 +874,62 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 					continue;
 				}
 
-				AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject();
-				FCameraWeightsData CameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueCharacterDataMap, DialogueProgress);
-				if (CameraWeightsData.IsValid())
+				const AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject();
+				TOptional<FCameraWeightsData> EvaluatedCameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueCharacterDataMap, DialogueProgress);
+				if (EvaluatedCameraWeightsData)
 				{
-					CameraWeightsData.Weights *= AutoGenDialogueCameraConfig.Weights;
-					CameraWeightsDatas.Add(CameraWeightsData);
+					check(EvaluatedCameraWeightsData->CameraTemplate);
+					EvaluatedCameraWeightsData->Weights *= AutoGenDialogueCameraConfig.Weights;
+					FCameraWeightsData& CameraWeightsData = CameraWeightsDatas.Add_GetRef(EvaluatedCameraWeightsData.GetValue());
+
+					if (GenConfig.bEnableAvoidCameraTargetCovered)
+					{
+						const AAutoGenDialogueCameraTemplate* CheckedCameraTemplate = CameraWeightsData.CameraTemplate;
+						FMinimalViewInfo CameraViewInfo;
+						CheckedCameraTemplate->CineCameraComponent->GetCameraView(0.f, CameraViewInfo);
+						CameraViewInfo.Location = CameraWeightsData.CameraLocation;
+						CameraViewInfo.Rotation = CameraWeightsData.CameraRotation;
+
+						FBox2D SpeakerScreenBounds;
+						bool SpeakerIsInScreen;
+						{
+							FVector Origin, BoxExtent;
+							Speaker->GetActorBounds(true, Origin, BoxExtent);
+							SpeakerIsInScreen = FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(CameraViewInfo, Origin, BoxExtent, SpeakerScreenBounds);
+							SpeakerScreenBounds = FDialogueCameraUtils::ClampBoundsInScreenRect(SpeakerScreenBounds);
+						}
+						if (SpeakerIsInScreen)
+						{
+							for (const TPair<ACharacter*, FGenDialogueCharacterData>& Pair : DialogueCharacterDataMap)
+							{
+								ACharacter* Other = Pair.Key;
+								if (Speaker != Other)
+								{
+									const float SpeakerToCameraDistance = Speaker->GetDistanceTo(CheckedCameraTemplate);
+									const float OtherToCameraDistance = Other->GetDistanceTo(CheckedCameraTemplate);
+									if (OtherToCameraDistance < SpeakerToCameraDistance)
+									{
+										FBox2D OtherScreenBounds;
+										FVector Origin, BoxExtent;
+										Other->GetActorBounds(true, Origin, BoxExtent);
+										FDialogueCameraUtils::ProjectWorldBoxBoundsToScreen(CameraViewInfo, Origin, BoxExtent, OtherScreenBounds);
+										OtherScreenBounds = FDialogueCameraUtils::ClampBoundsInScreenRect(OtherScreenBounds);
+										if (OtherScreenBounds.Intersect(SpeakerScreenBounds))
+										{
+											const float IntersectArea = FDialogueCameraUtils::CalIntersectArea(SpeakerScreenBounds, OtherScreenBounds);
+											const float IntersectRate = IntersectArea / SpeakerScreenBounds.GetArea();
+											// 当覆盖的面积比例大于该值时影响镜头估值权重
+											const float MinAreaRate = 0.2f;
+											if (IntersectRate > MinAreaRate)
+											{
+												CameraWeightsData.Weights *= FMath::GetMappedRangeValueUnclamped({ MinAreaRate, 1.f }, { 0.f, 1.f }, 1.f - IntersectRate);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 			CameraWeightsDatas.Sort([](const FCameraWeightsData& LHS, const FCameraWeightsData& RHS) {return LHS.Weights > RHS.Weights; });
@@ -795,8 +1009,22 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
 		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
 		ACharacter* Speaker = GenDialogueData.Speaker;
-		TRange<FFrameNumber> SectionRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
-		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
+		// 优先将镜头切到插嘴方，但是要有一定延迟做缓冲
+		constexpr float InterruptDelayTime = 0.5f;
+		const TRange<FFrameNumber> SentenceRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
+		const FFrameNumber EndFrameNumber = [&]
+		{
+			if (Idx + 1 < SortedDialogueDatas.Num())
+			{
+				const TRange<FFrameNumber> NextSentenceRange = SortedDialogueDatas[Idx + 1].PreviewDialogueSentenceSection->GetRange();
+				if (NextSentenceRange.GetLowerBoundValue() < SentenceRange.GetUpperBoundValue())
+				{
+					return NextSentenceRange.GetLowerBoundValue() + FrameRate.AsFrameNumber(InterruptDelayTime);
+				}
+			}
+			return SentenceRange.GetUpperBoundValue();
+		}();
+		const TRange<FFrameNumber> CameraRange = TRange<FFrameNumber>(SentenceRange.GetLowerBoundValue(), EndFrameNumber);
 
 		const float DialogueProgress = Idx / DialogueCount;
 
@@ -1021,6 +1249,31 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		FCameraGenerateUtils::TryMergeAllSameCut(CameraCutCreateDatas, CameraActorCreateDatas);
 	}
 
+	// 过于相似的镜头做合并
+	if (bEnableMergeSameCut)
+	{
+		for (int32 Idx = 0; Idx < CameraCutCreateDatas.Num() - 1;)
+		{
+			FCameraCutCreateData& LeftCut = CameraCutCreateDatas[Idx];
+			FCameraActorCreateData& LeftCamera = CameraActorCreateDatas[LeftCut.CameraHandle];
+			FCameraCutCreateData& RightCut = CameraCutCreateDatas[Idx + 1];
+			FCameraActorCreateData& RightCamera = CameraActorCreateDatas[RightCut.CameraHandle];
+
+			const float AngleDiffThreshold = FMath::Cos(FMath::DegreesToRadians(SameCutMergeAngleThreshold));
+			const float CameraDistance = (LeftCamera.CameraLocation - RightCamera.CameraLocation).Size();
+			const float CameraAngleDiff = FVector::DotProduct(LeftCamera.CameraRotation.Vector(), RightCamera.CameraRotation.Vector());
+			const bool IsTooSame = CameraDistance < SameCutMergeDistanceThreshold && CameraAngleDiff > AngleDiffThreshold;
+			if (IsTooSame)
+			{
+				FCameraGenerateUtils::MergeCut(Idx, LeftCamera.UseNumber < RightCamera.UseNumber, CameraCutCreateDatas, CameraActorCreateDatas);
+			}
+			else
+			{
+				++Idx;
+			}
+		}
+	}
+
 	// TODO：镜头时长的膨胀和收缩
 
 	// 生成摄像机导轨
@@ -1113,14 +1366,21 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 		ActorToTrackSectionChannel.UpdateOrAddKey(CameraCutCreateData.CameraCutRange.GetLowerBoundValue(), FMovieSceneActorReferenceKey(DialogueCharacterDataMap[CameraCutCreateData.LookTarget].BindingID));
 
 		// 考虑说话方的朝向，根据说话方调整景深目标
-		// TODO：考虑目标是否在画面内
 		for (int32 RelatedSentenceIdx : CameraCutCreateData.RelatedSentenceIdxs)
 		{
 			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
 			ACharacter* Speaker = GenDialogueData.Speaker;
 
-			const float DotValue = Speaker->GetActorRotation().Vector() | CameraActorCreateData.CameraRotation.Vector();
-			if (DotValue < 0.5f)
+			const FRotator CameraLookAtSpeakerRotation = (Speaker->GetActorLocation() - CameraActorCreateData.CameraLocation).Rotation();
+
+			// 角色要尽量面对相机
+			const float CharacterLocationMinAngle = 60.f;
+			const float CharacterFaceAngleDiff = Speaker->GetActorRotation().Vector() | CameraActorCreateData.CameraRotation.Vector();
+			// 角色要在相机的目标里
+			// TODO：通过计算FOV得到角度
+			const float CharacterLocationMaxAngle = 45.f;
+			const float CharacterLocationAngleDiff = FVector::DotProduct(CameraActorCreateData.CameraRotation.Vector(), CameraLookAtSpeakerRotation.Vector());
+			if (CharacterFaceAngleDiff < FMath::Cos(FMath::DegreesToRadians(CharacterLocationMinAngle)) && CharacterLocationAngleDiff > FMath::Cos(FMath::DegreesToRadians(CharacterLocationMaxAngle)))
 			{
 				FFrameNumber SentenceStartTime = GenDialogueData.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue();
 				FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;
@@ -1189,150 +1449,45 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 	MovieScene.SetViewRange(0.f, SequenceEndFrameNumber / FrameRate);
 }
 
-TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialogueSequenceConfig::EvaluateAnimations(
-	const FFrameNumber SequenceStartFrameNumber,
-	const FFrameNumber SequenceEndFrameNumber,
-	const FFrameRate FrameRate,
-	const TArray<FGenDialogueData>& SortedDialogueDatas,
-	const TMap<FName, ACharacter*>& NameInstanceMap,
-	const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
+void UAutoGenDialogueSequenceConfig::EvaluateCharacterTalkAnimation(TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas, FFrameNumber AnimStartFrameNumber, FFrameNumber AnimEndFrameNumber, const FFrameRate FrameRate, const FGenDialogueCharacterData& DialogueCharacterData, const FGenDialogueData& GenDialogueData) const
 {
-	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap = EvaluateTalkAnimations(SequenceStartFrameNumber, SequenceEndFrameNumber, FrameRate, SortedDialogueDatas, NameInstanceMap, DialogueCharacterDataMap);
+	const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
+	const float TalkLength = (AnimRange / FrameRate).Size<double>();
 
-	// 没动画的地方补上Idle动画
-	for (TPair<ACharacter*, FAnimTrackData>& Pair : AnimationTrackDataMap)
+	TArray<UAnimSequence*> TalkAnims = CastChecked<UAutoGenDialogueAnimSet>(DialogueCharacterData.DialogueAnimSet)->TalkAnims;
+	TArray<UAnimSequence*> ValidTalkAnims;
+	for (UAnimSequence* TalkAnim : TalkAnims)
 	{
-		ACharacter* Speaker = Pair.Key;
-		FAnimTrackData& AnimTrackData = Pair.Value;
-		const FGenDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
-
-		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimTrackData.AnimSectionVirtualDatas;
-
-		const float StartBlendInTime = 0.25f;
-		const float EndBlendInTime = 0.25f;
-		if (AnimSectionVirtualDatas.Num() > 0)
+		constexpr float MaxDiffTime = 2.f;
+		if (FMath::Abs(TalkAnim->SequenceLength - TalkLength) < MaxDiffTime)
 		{
-			// 填补说话动作前的间隙
-			{
-				const FAnimSectionVirtualData FirstVirtualData = AnimSectionVirtualDatas[0];
-				if (FirstVirtualData.AnimRange.GetLowerBoundValue() > SequenceStartFrameNumber)
-				{
-					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(0);
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(SequenceStartFrameNumber
-						, FirstVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(FirstVirtualData.BlendOutTime, FrameRate));
-					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(TOptional<FAnimSectionVirtualData>(), FirstVirtualData, FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
-					IdleAnimSectionVirtualData.BlendInTime = StartBlendInTime;
-					IdleAnimSectionVirtualData.BlendOutTime = FirstVirtualData.BlendInTime;
-				}
-			}
-
-			// 填补说话动作间的间隙
-			for (int32 Idx = 1; Idx < AnimSectionVirtualDatas.Num(); ++Idx)
-			{
-				const FAnimSectionVirtualData& LeftVirtualData = AnimSectionVirtualDatas[Idx - 1];
-				const FAnimSectionVirtualData RightVirtualData = AnimSectionVirtualDatas[Idx];
-				if (LeftVirtualData.AnimRange.GetUpperBoundValue() < RightVirtualData.AnimRange.GetLowerBoundValue())
-				{
-					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(Idx);
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LeftVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(LeftVirtualData.BlendInTime, FrameRate),
-						RightVirtualData.AnimRange.GetLowerBoundValue() + GenAnimTrackUtils::SecondToFrameNumber(RightVirtualData.BlendOutTime, FrameRate));
-					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(LeftVirtualData, RightVirtualData, FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
-					IdleAnimSectionVirtualData.BlendInTime = LeftVirtualData.BlendOutTime;
-					IdleAnimSectionVirtualData.BlendOutTime = RightVirtualData.BlendInTime;
-				}
-			}
-
-			// 填补说话动作后的间隙
-			{
-				const FAnimSectionVirtualData LastVirtualData = AnimSectionVirtualDatas.Last();
-				if (LastVirtualData.AnimRange.GetUpperBoundValue() < SequenceEndFrameNumber)
-				{
-					FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
-					IdleAnimSectionVirtualData.AnimRange = TRange<FFrameNumber>(LastVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(LastVirtualData.BlendInTime, FrameRate),
-						SequenceEndFrameNumber);
-					IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(LastVirtualData, TOptional<FAnimSectionVirtualData>(), FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
-					IdleAnimSectionVirtualData.BlendInTime = LastVirtualData.BlendInTime;
-					IdleAnimSectionVirtualData.BlendOutTime = EndBlendInTime;
-				}
-			}
-		}
-		else
-		{
-			// 没动画就一直站着
-			FAnimSectionVirtualData& IdleAnimSectionVirtualData = AnimSectionVirtualDatas.InsertDefaulted_GetRef(0);
-			IdleAnimSectionVirtualData.AnimSequence = EvaluateIdleAnimation(TOptional<FAnimSectionVirtualData>(), TOptional<FAnimSectionVirtualData>(), FrameRate, IdleAnimSectionVirtualData.AnimRange, DialogueCharacterData);
-			IdleAnimSectionVirtualData.BlendInTime = StartBlendInTime;
-			IdleAnimSectionVirtualData.BlendOutTime = EndBlendInTime;
-			IdleAnimSectionVirtualData.AnimRange.SetLowerBoundValue(SequenceStartFrameNumber);
-			IdleAnimSectionVirtualData.AnimRange.SetUpperBoundValue(SequenceEndFrameNumber);
+			ValidTalkAnims.Add(TalkAnim);
 		}
 	}
-	return AnimationTrackDataMap;
-}
-
-TMap<ACharacter*, UAutoGenDialogueSequenceConfig::FAnimTrackData> UAutoGenDialogueSequenceConfig::EvaluateTalkAnimations(const FFrameNumber SequenceStartFrameNumber, const FFrameNumber SequenceEndFrameNumber, const FFrameRate FrameRate, const TArray<FGenDialogueData>& SortedDialogueDatas, const TMap<FName, ACharacter*>& NameInstanceMap, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap) const
-{
-	TMap<ACharacter*, FAnimTrackData> AnimationTrackDataMap;
-	for (int32 Idx = 0; Idx < SortedDialogueDatas.Num(); ++Idx)
+	UAnimSequence* SelectedAnimSequence;
+	if (ValidTalkAnims.Num() > 0)
 	{
-		const FGenDialogueData& GenDialogueData = SortedDialogueDatas[Idx];
-		ACharacter* Speaker = GenDialogueData.Speaker;
-		const TArray<ACharacter*>& Targets = GenDialogueData.Targets;
-		const FGenDialogueCharacterData& DialogueCharacterData = DialogueCharacterDataMap[Speaker];
-		FGuid SpeakerBindingGuid = DialogueCharacterData.BindingID.GetGuid();
-		TRange<FFrameNumber> SectionRange = GenDialogueData.PreviewDialogueSentenceSection->GetRange();
-		FFrameNumber StartFrameNumber = SectionRange.GetLowerBoundValue();
-		FFrameNumber EndFrameNumber = SectionRange.GetUpperBoundValue();
-
-		FAnimTrackData& AnimationTrackData = AnimationTrackDataMap.FindOrAdd(Speaker);
-
-		TArray<FAnimSectionVirtualData>& AnimSectionVirtualDatas = AnimationTrackData.AnimSectionVirtualDatas;
-
-		// 这个混合时间会由站立动画决定
-		const float BlendTime = 0.5f;
-
-		FFrameNumber AnimStartFrameNumber = StartFrameNumber;
-		FFrameNumber AnimEndFrameNumber = EndFrameNumber;
-		// 动作应该早于说话，且晚于结束
-		const float AnimStartEarlyTime = 0.5f;
-		const float AnimEndDelayTime = 0.5f;
-
-		if (AnimSectionVirtualDatas.Num() > Idx + 1)
-		{
-			// 防止插到前一个对话动画里
-			const FAnimSectionVirtualData& PreAnimSectionVirtualData = AnimSectionVirtualDatas[Idx - 1];
-			AnimStartFrameNumber = FMath::Max(PreAnimSectionVirtualData.AnimRange.GetUpperBoundValue() - GenAnimTrackUtils::SecondToFrameNumber(PreAnimSectionVirtualData.BlendOutTime, FrameRate),
-				AnimStartFrameNumber - GenAnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
-		}
-		else
-		{
-			AnimStartFrameNumber = FMath::Max(SequenceStartFrameNumber, AnimStartFrameNumber - GenAnimTrackUtils::SecondToFrameNumber(AnimStartEarlyTime, FrameRate));
-		}
-		if (Idx == AnimSectionVirtualDatas.Num() - 1)
-		{
-			AnimEndFrameNumber = FMath::Min(SequenceEndFrameNumber, AnimEndFrameNumber + GenAnimTrackUtils::SecondToFrameNumber(AnimEndDelayTime, FrameRate));
-		}
-
-		const TRange<FFrameNumber> AnimRange = TRange<FFrameNumber>(AnimStartFrameNumber, AnimEndFrameNumber);
-
-		const float TalkAnimLength = (AnimRange / FrameRate).Size<double>();
-		TArray<UAnimSequence*> TalkAnims = CastChecked<UAutoGenDialogueAnimSet>(DialogueCharacterData.DialogueAnimSet)->TalkAnims;
-		TalkAnims.Sort([&](const UAnimSequence& LHS, const UAnimSequence& RHS) { return FMath::Abs(LHS.SequenceLength - TalkAnimLength) < FMath::Abs(RHS.SequenceLength - TalkAnimLength); });
-		UAnimSequence* SelectedAnimSequence = TalkAnims[0];
-
-		FAnimSectionVirtualData& AnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
-		AnimSectionVirtualData.AnimSequence = SelectedAnimSequence;
-		AnimSectionVirtualData.AnimRange = AnimRange;
-		AnimSectionVirtualData.BlendInTime = BlendTime;
-		AnimSectionVirtualData.BlendOutTime = BlendTime;
-		AnimSectionVirtualData.GenDialogueDatas.Add(&GenDialogueData);
+		SelectedAnimSequence = ValidTalkAnims[FMath::RandHelper(ValidTalkAnims.Num())];
 	}
-	return AnimationTrackDataMap;
+	else
+	{
+		TalkAnims.Sort([&](const UAnimSequence& LHS, const UAnimSequence& RHS) { return FMath::Abs(LHS.SequenceLength - TalkLength) < FMath::Abs(RHS.SequenceLength - TalkLength); });
+		SelectedAnimSequence = TalkAnims[0];
+	}
+
+	// 这个混合时间会由站立动画决定
+	const float BlendTime = 0.5f;
+	FAnimSectionVirtualData& AnimSectionVirtualData = AnimSectionVirtualDatas.AddDefaulted_GetRef();
+	AnimSectionVirtualData.AnimSequence = SelectedAnimSequence;
+	AnimSectionVirtualData.AnimRange = AnimRange;
+	AnimSectionVirtualData.BlendInTime = BlendTime;
+	AnimSectionVirtualData.BlendOutTime = BlendTime;
+	AnimSectionVirtualData.GenDialogueDatas.Add(&GenDialogueData);
 }
 
-UAnimSequence* UAutoGenDialogueSequenceConfig::EvaluateIdleAnimation(const TOptional<FAnimSectionVirtualData>& PrevTalkAnimData, const TOptional<FAnimSectionVirtualData>& NextTalkAnimData, FFrameRate FrameRate, const TRange<FFrameNumber>& IdleTimeRange, const FGenDialogueCharacterData& GenDialogueCharacterData) const
+void UAutoGenDialogueSequenceConfig::EvaluateIdleAnimation(TArray<FAnimSectionVirtualData>& IdleAnimDatas, FAnimSectionVirtualData* PrevTalkAnimData, FAnimSectionVirtualData* NextTalkAnimData, FFrameRate FrameRate, const TRange<FFrameNumber>& IdleTimeRange, const FGenDialogueCharacterData& DialogueCharacterData) const
 {
-	const TArray<UAnimSequence*>& IdleAnims = CastChecked<UAutoGenDialogueAnimSet>(GenDialogueCharacterData.DialogueAnimSet)->IdleAnims;
+	const TArray<UAnimSequence*>& IdleAnims = CastChecked<UAutoGenDialogueAnimSet>(DialogueCharacterData.DialogueAnimSet)->IdleAnims;
 
 	TArray<FName> BoneNames;
 	TArray<float> BoneWidgets;
@@ -1390,20 +1545,46 @@ UAnimSequence* UAutoGenDialogueSequenceConfig::EvaluateIdleAnimation(const TOpti
 			AnimDistances[AnimIdx].NextDistance = Distance;
 		}
 	}
-	AnimDistances.Sort([](const FIdleAnimData& LHS, const FIdleAnimData& RHS){return (LHS.PrevDistance + LHS.NextDistance) < (RHS.PrevDistance + RHS.NextDistance);});
+	TArray<FIdleAnimData> ValidAnims;
+	for (const FIdleAnimData& IdleAnimData : AnimDistances)
+	{
+		constexpr float MaxDistance = 60.f;
+		if (IdleAnimData.PrevDistance < MaxDistance && IdleAnimData.NextDistance < MaxDistance)
+		{
+			ValidAnims.Add(IdleAnimData);
+		}
+	}
 
-	const FIdleAnimData& SelectedTalkAnim = AnimDistances[0];
+	const FIdleAnimData& SelectedIdleAnimData = [&]
+	{
+		if (ValidAnims.Num() > 0)
+		{
+			return ValidAnims[FMath::RandHelper(ValidAnims.Num())];
+		}
+		else
+		{
+			AnimDistances.Sort([](const FIdleAnimData& LHS, const FIdleAnimData& RHS) {return (LHS.PrevDistance + LHS.NextDistance) < (RHS.PrevDistance + RHS.NextDistance); });
+			return AnimDistances[0];
+		}
+	}();
+
+	const float BlendInTime = FMath::GetMappedRangeValueClamped({ 0.f, 100.f }, { 0.25f, 1.f }, SelectedIdleAnimData.NextDistance);
+	const float BlendOutTime = FMath::GetMappedRangeValueClamped({ 0.f, 100.f }, { 0.25f, 1.f }, SelectedIdleAnimData.PrevDistance);
 	if (PrevTalkAnimData)
 	{
-		const_cast<FAnimSectionVirtualData&>(PrevTalkAnimData.GetValue()).BlendOutTime = FMath::GetMappedRangeValueClamped({0.f, 100.f}, {0.25f, 1.f}, SelectedTalkAnim.PrevDistance);
+		PrevTalkAnimData->BlendOutTime = BlendOutTime;
 	}
 	if (NextTalkAnimData)
 	{
-		const_cast<FAnimSectionVirtualData&>(NextTalkAnimData.GetValue()).BlendInTime = FMath::GetMappedRangeValueClamped({ 0.f, 100.f }, { 0.25f, 1.f }, SelectedTalkAnim.NextDistance);
+		PrevTalkAnimData->BlendInTime = BlendInTime;
 	}
 
-	AutoGenSequence_Display_Log("站立动画选择了[%s]，与前一个对话动画的距离为[%f]，与后一个对话动画的距离为[%f]", *SelectedTalkAnim.IdleAnim->GetName(), SelectedTalkAnim.PrevDistance, SelectedTalkAnim.NextDistance);
-	return SelectedTalkAnim.IdleAnim;
+	AutoGenSequence_Display_Log("站立动画选择了[%s]，与前一个对话动画的距离为[%f]，与后一个对话动画的距离为[%f]", *SelectedIdleAnimData.IdleAnim->GetName(), SelectedIdleAnimData.PrevDistance, SelectedIdleAnimData.NextDistance);
+	FAnimSectionVirtualData& IdleAnimData = IdleAnimDatas.AddDefaulted_GetRef();
+	IdleAnimData.AnimSequence = SelectedIdleAnimData.IdleAnim;
+	IdleAnimData.AnimRange = TRange<FFrameNumber>(IdleTimeRange.GetLowerBoundValue() - FrameRate.AsFrameNumber(BlendInTime), IdleTimeRange.GetUpperBoundValue() + FrameRate.AsFrameNumber(BlendOutTime));
+	IdleAnimData.BlendInTime = BlendInTime;
+	IdleAnimData.BlendOutTime = BlendOutTime;
 }
 
 #undef LOCTEXT_NAMESPACE

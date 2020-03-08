@@ -5,15 +5,15 @@
 #include "CoreMinimal.h"
 #include "MovieSceneTrackEditor.h"
 
-class UTwoTargetCameraTrackingSection;
+class UMovieSceneSection;
 
 /**
  * 
  */
-class XD_AUTOGENSEQUENCER_EDITOR_API FTwoTargetCameraTrackingEditor : public FMovieSceneTrackEditor
+class XD_AUTOGENSEQUENCER_EDITOR_API FCameraTrackingEditor : public FMovieSceneTrackEditor
 {
 public:
-	FTwoTargetCameraTrackingEditor(TSharedRef<ISequencer> InSequencer)
+	FCameraTrackingEditor(TSharedRef<ISequencer> InSequencer)
 		:FMovieSceneTrackEditor(InSequencer)
 	{}
 
@@ -23,13 +23,13 @@ public:
 	bool SupportsSequence(UMovieSceneSequence* InSequence) const override;
 };
 
-class XD_AUTOGENSEQUENCER_EDITOR_API FTwoTargetCameraTrackingSectionEditor
+class XD_AUTOGENSEQUENCER_EDITOR_API FCameraTrackingSectionEditor
 	: public ISequencerSection
-	, public TSharedFromThis<FTwoTargetCameraTrackingSectionEditor>
+	, public TSharedFromThis<FCameraTrackingSectionEditor>
 {
 public:
 	/** Constructor. */
-	FTwoTargetCameraTrackingSectionEditor(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer);
+	FCameraTrackingSectionEditor(UMovieSceneSection& InSection, TWeakPtr<ISequencer> InSequencer);
 
 public:
 	// ISequencerSection interface
@@ -43,7 +43,7 @@ public:
 	void SlipSection(FFrameNumber SlipTime) override;
 
 	/** The section we are visualizing */
-	UTwoTargetCameraTrackingSection& Section;
+	UMovieSceneSection& Section;
 
 	/** Used to draw animation frame, need selection state and local time*/
 	TWeakPtr<ISequencer> Sequencer;

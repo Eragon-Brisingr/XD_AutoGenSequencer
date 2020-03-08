@@ -22,7 +22,7 @@ public:
 	static uint32 AutoGenDialogueSequence_AssetCategory;
 private:
 	FDelegateHandle DialogueSentenceTrackEditorHandle;
-	FDelegateHandle TwoTargetCameraTrackingTrackEditorHandle;
+	FDelegateHandle CameraTrackingTrackEditorHandle;
 
 	FName DialogueCharacterDataTypeName = TEXT("DialogueCharacterData");
 	FName DialogueSentenceEditDataTypeName = TEXT("DialogueSentenceEditData");

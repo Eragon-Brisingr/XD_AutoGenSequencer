@@ -19,8 +19,6 @@ public:
 	bool UsesToolkits() const override { return false; }
 	void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
 	void DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) override;
-
-	TWeakPtr<ISequencer> WeakSequencer;
 public:
 	static FName ID;
 };

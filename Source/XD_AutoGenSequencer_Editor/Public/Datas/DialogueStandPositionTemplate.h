@@ -21,13 +21,13 @@ public:
 		:StandPosition(StandPosition), StandName(StandName), PreviewCharacter(PreviewCharacter)
 	{}
 
-	UPROPERTY(EditAnywhere, meta = (MakeEditWidget = true))
+	UPROPERTY(EditAnywhere, meta = (MakeEditWidget = true), meta = (DisplayName = "模板站立位置"))
 	FTransform StandPosition;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "站位角色名称"))
 	FName StandName;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "站位预览角色"))
 	TSubclassOf<ACharacter> PreviewCharacter;
 
 	UPROPERTY(Transient)
@@ -61,11 +61,13 @@ public:
 
 	void CreateAllTemplatePreviewCharacter();
 
+	void ClearAllTemplatePreviewCharacter();
+
 	uint8 bSpawnedPreviewCharacter : 1;
 
-	void ClearInvalidPreviewCharacter();
-
 	void ApplyStandPositionsToDefault();
+
+	void UpdateToStandLocation();
 
 	UPROPERTY(Transient)
 	TArray<UChildActorComponent*> PreviewCharacters;

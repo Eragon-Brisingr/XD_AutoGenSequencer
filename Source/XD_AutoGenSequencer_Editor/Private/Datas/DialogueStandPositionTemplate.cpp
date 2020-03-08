@@ -48,7 +48,7 @@ void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEven
 		{
 			if (!IsTemplate())
 			{
-				ClearInvalidPreviewCharacter();
+				ClearAllTemplatePreviewCharacter();
 				CreateAllTemplatePreviewCharacter();
 			}
 		}
@@ -66,17 +66,8 @@ void ADialogueStandPositionTemplate::OnConstruction(const FTransform& Transform)
 		bSpawnedPreviewCharacter = true;
 		CreateAllTemplatePreviewCharacter();
 	}
-	for (FDialogueStandPosition& StandPosition : StandPositions)
-	{
-		if (UChildActorComponent* ChildActorComponent = StandPosition.PreviewCharacterInstance)
-		{
-			ChildActorComponent->SetRelativeTransform(StandPosition.StandPosition);
-			if (ACharacter* Character = Cast<ACharacter>(ChildActorComponent->GetChildActor()))
-			{
-				Character->SetActorRelativeLocation(FVector(0.f, 0.f, Character->GetDefaultHalfHeight()));
-			}
-		}
-	}
+	UpdateToStandLocation();
+
 
 	OnInstanceChanged.ExecuteIfBound();
 }
@@ -119,22 +110,17 @@ void ADialogueStandPositionTemplate::CreateAllTemplatePreviewCharacter()
 	}
 }
 
-void ADialogueStandPositionTemplate::ClearInvalidPreviewCharacter()
+void ADialogueStandPositionTemplate::ClearAllTemplatePreviewCharacter()
 {
-	TSet<UChildActorComponent*> ValidChildActorComponent;
-	for (FDialogueStandPosition& StandPosition : StandPositions)
+	for (UChildActorComponent* ChildActorComponent : PreviewCharacters)
 	{
-		if (StandPosition.PreviewCharacterInstance)
+		if (ChildActorComponent)
 		{
-			ValidChildActorComponent.Add(StandPosition.PreviewCharacterInstance);
+			ChildActorComponent->DestroyChildActor();
+			ChildActorComponent->DestroyComponent();
 		}
 	}
-
-	for (UChildActorComponent* InvalidActorComponent : TSet<UChildActorComponent*>(PreviewCharacters).Difference(ValidChildActorComponent))
-	{
-		PreviewCharacters.Remove(InvalidActorComponent);
-		InvalidActorComponent->DestroyComponent(true);
-	}
+	PreviewCharacters.Empty();
 }
 
 void ADialogueStandPositionTemplate::ApplyStandPositionsToDefault()
@@ -153,6 +139,21 @@ void ADialogueStandPositionTemplate::ApplyStandPositionsToDefault()
 			}
 
 			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		}
+	}
+}
+
+void ADialogueStandPositionTemplate::UpdateToStandLocation()
+{
+	for (FDialogueStandPosition& StandPosition : StandPositions)
+	{
+		if (UChildActorComponent* ChildActorComponent = StandPosition.PreviewCharacterInstance)
+		{
+			ChildActorComponent->SetRelativeTransform(StandPosition.StandPosition);
+			if (ACharacter* Character = Cast<ACharacter>(ChildActorComponent->GetChildActor()))
+			{
+				Character->SetActorRelativeLocation(FVector(0.f, 0.f, Character->GetDefaultHalfHeight()));
+			}
 		}
 	}
 }

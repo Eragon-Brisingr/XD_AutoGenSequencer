@@ -29,14 +29,12 @@ AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	StandTemplatePreview = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, StandTemplatePreview));
-	StandTemplatePreview->bIsEditorOnly = true;
-	SetRootComponent(StandTemplatePreview);
+	TemplateRoot = CreateDefaultSubobject<USceneComponent>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, TemplateRoot));
+	SetRootComponent(TemplateRoot);
 
 	CineCamera = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, CineCamera));
-	CineCamera->bIsEditorOnly = true;
 	CineCamera->SetChildActorClass(ACineCameraActor::StaticClass());
-	CineCamera->SetupAttachment(StandTemplatePreview);
+	CineCamera->SetupAttachment(TemplateRoot);
 	if (ACineCameraActor* CineCameraActorTemplate = Cast<ACineCameraActor>(CineCamera->GetChildActorTemplate()))
 	{
 		CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
@@ -61,11 +59,6 @@ void AAutoGenDialogueCameraTemplate::PostEditChangeProperty(FPropertyChangedEven
 	//Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, StandTemplate))
-	{
-		StandTemplatePreview->SetChildActorClass(StandTemplate);
-	}
-
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		RerunConstructionScripts();
@@ -119,7 +112,7 @@ bool UAutoGenDialogueCameraTemplateFactory::ConfigureProperties()
 	FClassViewerInitializationOptions Options;
 
 	Options.Mode = EClassViewerMode::ClassPicker;
-	Options.DisplayMode = EClassViewerDisplayMode::TreeView;
+	Options.DisplayMode = EClassViewerDisplayMode::ListView;
 	class FAutoGenDialogueCameraTemplateViewer : public IClassViewerFilter
 	{
 	public:
@@ -127,12 +120,12 @@ bool UAutoGenDialogueCameraTemplateFactory::ConfigureProperties()
 
 		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
 		{
-			return !InClass->HasAnyClassFlags(DisallowedClassFlags) && InClass->IsChildOf<AAutoGenDialogueCameraTemplate>() != EFilterReturn::Failed;
+			return !InClass->HasAnyClassFlags(DisallowedClassFlags) && InClass->IsChildOf<AAutoGenDialogueCameraTemplate>() != EFilterReturn::Failed && InClass->HasAnyClassFlags(CLASS_Native);
 		}
 
 		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef<const class IUnloadedBlueprintData> InUnloadedClassData, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
 		{
-			return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags) && InUnloadedClassData->IsChildOf(AAutoGenDialogueCameraTemplate::StaticClass());
+			return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags) && InUnloadedClassData->IsChildOf(AAutoGenDialogueCameraTemplate::StaticClass()) && InUnloadedClassData->HasAnyClassFlags(CLASS_Native);
 		}
 	};
 	Options.ClassFilter = MakeShareable<FAutoGenDialogueCameraTemplateViewer>(new FAutoGenDialogueCameraTemplateViewer());

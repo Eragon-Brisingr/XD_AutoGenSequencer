@@ -19,10 +19,10 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FAutoGenDialogueCameraConfig
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "镜头模板", AllowAbstract = false))
 	TSubclassOf<AAutoGenDialogueCameraTemplate> CameraTemplate;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "概率权重"))
 	float Weights = 1.f;
 };
 

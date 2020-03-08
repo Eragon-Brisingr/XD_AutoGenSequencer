@@ -28,13 +28,9 @@ public:
 
 	void PreEditChange(UProperty* PropertyThatWillChange) override;
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "站位模板"))
-	TSubclassOf<ADialogueStandPositionTemplate> StandTemplate;
 
 	UPROPERTY()
-	UChildActorComponent* StandTemplatePreview;
-
+	USceneComponent* TemplateRoot;
 	UPROPERTY(VisibleAnywhere, Transient, Category = "镜头模板")
 	UCineCameraComponent* CineCameraComponent;
 	UPROPERTY()
@@ -46,11 +42,11 @@ public:
 public:
 	struct FCameraWeightsData
 	{
-		const AAutoGenDialogueCameraTemplate* CameraTemplate;
+		FCameraWeightsData() = default;
+		const AAutoGenDialogueCameraTemplate* CameraTemplate = nullptr;
 		FVector CameraLocation;
 		FRotator CameraRotation;
 		float Weights;
-		bool IsValid() { return CameraTemplate ? true : false; }
 	};
 
 	struct FDialogueCameraCutData
@@ -68,7 +64,7 @@ public:
 	};
 
 	// 用于评估该镜头所处的对话环境中的分数
-	virtual FCameraWeightsData EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const { return FCameraWeightsData(); }
+	virtual TOptional<AAutoGenDialogueCameraTemplate::FCameraWeightsData> EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const { return FCameraWeightsData(); }
 	// 用于生成该镜头对应的轨道
 	virtual void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const {}
 };

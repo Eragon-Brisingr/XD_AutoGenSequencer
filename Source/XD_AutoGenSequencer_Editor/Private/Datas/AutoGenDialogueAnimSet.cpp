@@ -8,6 +8,7 @@
 #include <Kismet2/SClassPickerDialog.h>
 
 #include "XD_AutoGenSequencer_Editor.h"
+#include "Utils/AutoGenDialogueSettings.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -59,49 +60,8 @@ UAutoGenDialogueAnimSetFactory::UAutoGenDialogueAnimSetFactory()
 
 UObject* UAutoGenDialogueAnimSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	UAutoGenDialogueAnimSetBase* AutoGenDialogueAnimSet = NewObject<UAutoGenDialogueAnimSetBase>(InParent, AutoGenDialogueAnimSetClass, Name, Flags);
-	AutoGenDialogueAnimSetClass = nullptr;
+	UAutoGenDialogueAnimSetBase* AutoGenDialogueAnimSet = NewObject<UAutoGenDialogueAnimSetBase>(InParent, UAutoGenDialogueSettings::Get().AutoGenDialogueAnimSetType.LoadSynchronous(), Name, Flags);
 	return AutoGenDialogueAnimSet;
-}
-
-bool UAutoGenDialogueAnimSetFactory::ConfigureProperties()
-{
-	AutoGenDialogueAnimSetClass = nullptr;
-
-	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
-	FClassViewerInitializationOptions Options;
-
-	Options.Mode = EClassViewerMode::ClassPicker;
-	Options.DisplayMode = EClassViewerDisplayMode::DefaultView;
-	class FAutoGenDialogueAnimSetViewer : public IClassViewerFilter
-	{
-	public:
-		EClassFlags DisallowedClassFlags = CLASS_Deprecated | CLASS_Abstract;
-
-		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
-		{
-			return !InClass->HasAnyClassFlags(DisallowedClassFlags) && InClass->IsChildOf<UAutoGenDialogueAnimSetBase>() != EFilterReturn::Failed;
-		}
-
-		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef<const class IUnloadedBlueprintData> InUnloadedClassData, TSharedRef<class FClassViewerFilterFuncs> InFilterFuncs) override
-		{
-			return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags) && InUnloadedClassData->IsChildOf(UAutoGenDialogueAnimSetBase::StaticClass());
-		}
-	};
-	Options.ClassFilter = MakeShareable<FAutoGenDialogueAnimSetViewer>(new FAutoGenDialogueAnimSetViewer());
-	Options.NameTypeToDisplay = EClassViewerNameTypeToDisplay::Dynamic;
-
-	const FText TitleText = LOCTEXT("选择对白动画集类型", "选择对白动画集类型");
-	UClass* ChosenClass = nullptr;
-	const bool bPressedOk = SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UAutoGenDialogueAnimSetBase::StaticClass());
-
-	if (bPressedOk)
-	{
-		check(ChosenClass);
-		AutoGenDialogueAnimSetClass = ChosenClass;
-	}
-
-	return bPressedOk;
 }
 
 FText UAutoGenDialogueAnimSetFactory::GetDisplayName() const

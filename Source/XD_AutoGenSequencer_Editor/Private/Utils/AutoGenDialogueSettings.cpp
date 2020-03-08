@@ -2,17 +2,20 @@
 
 
 #include "Utils/AutoGenDialogueSettings.h"
-#include "Engine/EngineTypes.h"
+#include <Engine/EngineTypes.h>
+
 #include "Data/DialogueSentence.h"
 #include "Tracks/SentenceTrack/DialogueSentenceSection.h"
 #include "Datas/AutoGenDialogueCharacterSettings.h"
+#include "Datas/AutoGenDialogueAnimSet.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 UAutoGenDialogueSettings::UAutoGenDialogueSettings()
 {
 	DialogueSentenceType = UDialogueSentence::StaticClass();
-	DefaultDialogueCharacterSettingsType = UAutoGenDialogueCharacterSettings::StaticClass();
+	DialogueCharacterSettingsType = UAutoGenDialogueCharacterSettings::StaticClass();
+	AutoGenDialogueAnimSetType = UAutoGenDialogueAnimSet::StaticClass();
 }
 
 TSubclassOf<UDialogueSentence> UAutoGenDialogueSettings::GetDialogueSentenceType()
@@ -21,9 +24,9 @@ TSubclassOf<UDialogueSentence> UAutoGenDialogueSettings::GetDialogueSentenceType
 	return DialogueSentence;
 }
 
-TSubclassOf<UAutoGenDialogueCharacterSettings> UAutoGenDialogueSettings::GetDefaultDialogueCharacterSettingsType()
+TSubclassOf<UAutoGenDialogueCharacterSettings> UAutoGenDialogueSettings::GetDialogueCharacterSettingsType()
 {
-	static TSubclassOf<UAutoGenDialogueCharacterSettings> DialogueCharacterSettingsType = Get().DefaultDialogueCharacterSettingsType.LoadSynchronous();
+	static TSubclassOf<UAutoGenDialogueCharacterSettings> DialogueCharacterSettingsType = Get().DialogueCharacterSettingsType.LoadSynchronous();
 	return DialogueCharacterSettingsType;
 }
 

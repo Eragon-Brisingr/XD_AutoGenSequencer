@@ -36,7 +36,7 @@ void FDialogueSentenceTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& Men
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("AddSentence", "说话"), LOCTEXT("AddSentenceTooltip", "Adds an dialogue sentence track."),
+			LOCTEXT("AddSentenceTrack", "添加对白轨"), LOCTEXT("AddSentenceTrackTooltip", "添加对白轨"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([=]()
 				{
@@ -44,7 +44,7 @@ void FDialogueSentenceTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& Men
 
 					TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
 
-					const FScopedTransaction Transaction(LOCTEXT("AddSentence_Transaction", "Add Sentence"));
+					const FScopedTransaction Transaction(LOCTEXT("AddSentenceTrack_Transaction", "添加对白轨"));
 					for (FGuid ObjectBinding : ObjectBindings)
 					{
 						UObject* Object = SequencerPtr->FindSpawnedObjectOrTemplate(ObjectBinding);
@@ -60,26 +60,14 @@ void FDialogueSentenceTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& Men
 
 									if (ObjectHandle.IsValid())
 									{
-										UMovieSceneTrack* Track = nullptr;
-										if (!Track)
+										UMovieScene* MoiveScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
+										UDialogueSentenceTrack* ExistedTrack = MoiveScene->FindTrack<UDialogueSentenceTrack>(ObjectBinding);
+										if (ExistedTrack == nullptr)
 										{
-											Track = AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectHandle, UDialogueSentenceTrack::StaticClass(), NAME_None);
+											UMovieSceneTrack* Track = AddTrack(MoiveScene, ObjectHandle, UDialogueSentenceTrack::StaticClass(), NAME_None);
 											KeyPropertyResult.bTrackCreated = true;
 										}
-
-// 										if (ensure(Track))
-// 										{
-// 											Track->Modify();
-// 
-// 											UMovieSceneSection* NewSection = Cast<UDialogueSentenceTrack>(Track)->AddNewAnimationOnRow(KeyTime, AnimSequence, RowIndex);
-// 											KeyPropertyResult.bTrackModified = true;
-// 
-// 											GetSequencer()->EmptySelection();
-// 											GetSequencer()->SelectSection(NewSection);
-// 											GetSequencer()->ThrobSectionSelection();
-// 										}
 									}
-
 								}
 								return KeyPropertyResult;
 							}));

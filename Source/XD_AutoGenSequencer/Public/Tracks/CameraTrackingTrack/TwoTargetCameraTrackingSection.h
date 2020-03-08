@@ -20,7 +20,7 @@ public:
 	UTwoTargetCameraTrackingSection();
 
 	//~ UMovieSceneSection interface
-	TOptional<TRange<FFrameNumber> > GetAutoSizeRange() const override;
+	TOptional<TRange<FFrameNumber>> GetAutoSizeRange() const override;
 	void TrimSection(FQualifiedFrameTime TrimTime, bool bTrimLeft, bool bDeleteKeys) override;
 	UMovieSceneSection* SplitSection(FQualifiedFrameTime SplitTime, bool bDeleteKeys) override;
 	TOptional<FFrameTime> GetOffsetTime() const override;
@@ -76,11 +76,8 @@ public:
 private:
 	UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 
-	// TODO：确认这个的执行时机，貌似不是Section触发时执行
-	//void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
-
 	void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
-	void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag/* | EOverrideMask::RequiresInitializeFlag*/); }
+	void SetupOverrides() override { EnableOverrides(RequiresTearDownFlag); }
 	void TearDown(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override;
 
 private:

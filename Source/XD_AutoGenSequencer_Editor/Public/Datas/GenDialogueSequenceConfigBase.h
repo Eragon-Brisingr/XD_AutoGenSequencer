@@ -57,6 +57,7 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FGenDialogueCharacterData : public FDialog
 
 	int32 CharacterIdx;
 	FMovieSceneObjectBindingID BindingID;
+	FTransform WorldPosition;
 };
 
 UCLASS(abstract)
@@ -105,7 +106,7 @@ public:
 	UFUNCTION(CallInEditor, Category = "3.生成对白配置", meta = (DisplayName = "生成对白序列"))
 	void GenerateDialogueSequence();
 
-	virtual void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const {}
+	virtual void Generate(TSharedRef<ISequencer> SequencerRef, UWorld* World, const TMap<FName, ACharacter*>& CharacterNameInstanceMap, const FTransform& StandTemplateOrigin) const {}
 protected:
 	UAutoGenDialogueCameraSet* GetAutoGenDialogueCameraSet() const;
 

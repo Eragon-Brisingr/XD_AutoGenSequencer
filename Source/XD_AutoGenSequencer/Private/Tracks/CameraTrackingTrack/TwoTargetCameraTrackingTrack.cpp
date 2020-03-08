@@ -10,58 +10,13 @@ UTwoTargetCameraTrackingTrack::UTwoTargetCameraTrackingTrack(const FObjectInitia
 	:Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	SetDisplayName(LOCTEXT("TwoTargetCameraTrackingTrackName", "双目标追踪"));
+	SetDisplayName(LOCTEXT("双目标追踪", "双目标追踪"));
 #endif
 }
 
 bool UTwoTargetCameraTrackingTrack::SupportsType(TSubclassOf<UMovieSceneSection> SectionClass) const
 {
 	return SectionClass == UTwoTargetCameraTrackingSection::StaticClass();
-}
-
-void UTwoTargetCameraTrackingTrack::RemoveAllAnimationData()
-{
-	CameraTrackingSections.Empty();
-}
-
-bool UTwoTargetCameraTrackingTrack::HasSection(const UMovieSceneSection& Section) const
-{
-	return CameraTrackingSections.Contains(&Section);
-}
-
-void UTwoTargetCameraTrackingTrack::AddSection(UMovieSceneSection& Section)
-{
-	CameraTrackingSections.Add(&Section);
-}
-
-void UTwoTargetCameraTrackingTrack::RemoveSection(UMovieSceneSection& Section)
-{
-	CameraTrackingSections.Remove(&Section);
-}
-
-void UTwoTargetCameraTrackingTrack::RemoveSectionAt(int32 SectionIndex)
-{
-	CameraTrackingSections.RemoveAt(SectionIndex);
-}
-
-bool UTwoTargetCameraTrackingTrack::IsEmpty() const
-{
-	return CameraTrackingSections.Num() == 0;
-}
-
-const TArray<UMovieSceneSection*>& UTwoTargetCameraTrackingTrack::GetAllSections() const
-{
-	return CameraTrackingSections;
-}
-
-bool UTwoTargetCameraTrackingTrack::SupportsMultipleRows() const
-{
-	return false;
-}
-
-FMovieSceneTrackRowSegmentBlenderPtr UTwoTargetCameraTrackingTrack::GetRowSegmentBlender() const
-{
-	return Super::GetRowSegmentBlender();
 }
 
 UMovieSceneSection* UTwoTargetCameraTrackingTrack::CreateNewSection()

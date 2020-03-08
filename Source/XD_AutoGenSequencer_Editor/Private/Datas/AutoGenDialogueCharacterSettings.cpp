@@ -15,7 +15,7 @@ UAutoGenDialogueCharacterSettingsFactory::UAutoGenDialogueCharacterSettingsFacto
 
 UObject* UAutoGenDialogueCharacterSettingsFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	return NewObject<UAutoGenDialogueCharacterSettings>(InParent, UAutoGenDialogueSettings::GetDefaultDialogueCharacterSettingsType(), Name, Flags);
+	return NewObject<UAutoGenDialogueCharacterSettings>(InParent, UAutoGenDialogueSettings::GetDialogueCharacterSettingsType(), Name, Flags);
 }
 
 FText UAutoGenDialogueCharacterSettingsFactory::GetDisplayName() const

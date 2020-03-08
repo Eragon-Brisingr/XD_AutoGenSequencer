@@ -38,10 +38,9 @@ public:
 	UDialogueSentence* DialogueSentence;
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "说话者"))
 	FDialogueCharacterName SpeakerName = TEXT("Role");
-//	TODO：向所有人说
-// 	UPROPERTY(EditAnywhere, meta = (DisplayName = "向所有人说"))
-// 	uint8 bToAllTargets : 1;
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白目标"))
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "向所有人说"))
+	uint8 bToAllTargets : 1;
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白目标", EditCondition = "!bToAllTargets"))
 	TArray<FDialogueCharacterName> TargetNames = { FDialogueCharacterName(TEXT("Target1")) };
 public:
 	USoundBase* GetDefaultDialogueSound() const;

@@ -181,9 +181,16 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 	TSharedPtr<IPropertyUtilities> PropertyUtilities = StructCustomizationUtils.GetPropertyUtilities();
 	TSharedPtr<IPropertyHandle> DialogueSentencePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, DialogueSentence));
 	TSharedPtr<IPropertyHandle> SpeakerNamePropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, SpeakerName));
+	TSharedPtr<IPropertyHandle> ToAllTargetsPropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, bToAllTargets));
 	TSharedPtr<IPropertyHandle> TargetNamesPropertyHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, TargetNames));
 
-	TSharedRef<SHorizontalBox> TargetsWidget = SNew(SHorizontalBox);
+	TSharedRef<SHorizontalBox> TargetsWidget = SNew(SHorizontalBox)
+		.Visibility_Lambda([=]() 
+			{
+				bool bToAllTargets;
+				ToAllTargetsPropertyHandle->GetValue(bToAllTargets);
+				return bToAllTargets == false ? EVisibility::Visible : EVisibility::Collapsed;
+			});
 	{
 		auto CreateChilds = [=]()
 			{
@@ -255,6 +262,7 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -271,6 +279,24 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 					]
 				]
 				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.Padding(2.f, 0.f)
+					.AutoWidth()
+					[
+						ToAllTargetsPropertyHandle->CreatePropertyNameWidget()
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(2.f, 0.f)
+					.AutoWidth()
+					[
+						ToAllTargetsPropertyHandle->CreatePropertyValueWidget()
+					]
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -301,12 +327,7 @@ void FDialogueSentenceEditData_Customization::CustomizeHeader(TSharedRef<IProper
 
 void FDialogueSentenceEditData_Customization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	CustomizationUtils::StructBuilderDrawPropertys(StructBuilder, StructPropertyHandle, 
-		{ 
-			GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, DialogueSentence),
-			GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, SpeakerName),
-			GET_MEMBER_NAME_CHECKED(FDialogueSentenceEditData, TargetNames)
-		});
+	
 }
 
 void FDialogueCharacterName_Customization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)

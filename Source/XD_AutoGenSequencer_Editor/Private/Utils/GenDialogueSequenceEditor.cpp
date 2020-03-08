@@ -51,11 +51,6 @@ void FGenDialogueSequenceEditor::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBui
 			{
 				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
 				{
-					// TODO：考虑下修改配置的时候是否要强制生成预览导轨
-// 					if (!IsPreviewDialogueSequenceActived())
-// 					{
-// 						OpenPreviewDialogueSoundSequence();
-// 					}
 					OpenEditorForAsset(GetGenDialogueSequenceConfig());
 				}
 			}),
@@ -194,7 +189,8 @@ void FGenDialogueSequenceEditor::GenerateDialogueSequence()
 	{
 		GeneratePreviewCharacters();
 	}
-	GenDialogueSequenceConfig->Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), GetCharacterNameInstanceMap());
+	ADialogueStandPositionTemplate* DialogueStandPositionTemplate = PreviewStandPositionTemplate.Get();
+	GenDialogueSequenceConfig->Generate(WeakSequencer.Pin().ToSharedRef(), GetEditorWorld(), GetCharacterNameInstanceMap(), DialogueStandPositionTemplate->GetActorTransform());
 
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 	//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
@@ -229,6 +225,12 @@ void FGenDialogueSequenceEditor::GeneratePreviewSequence()
 	OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 }
 
+FGenDialogueSequenceEditor& FGenDialogueSequenceEditor::Get()
+{
+	static FGenDialogueSequenceEditor DialogueSequenceExtender;
+	return DialogueSequenceExtender;
+}
+
 UGenDialogueSequenceConfigBase* FGenDialogueSequenceEditor::GetGenDialogueSequenceConfig() const
 {
 	return WeakGenDialogueSequenceConfig.Get();
@@ -258,14 +260,14 @@ void FGenDialogueSequenceEditor::OpenPreviewDialogueSoundSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 	OpenEditorForAsset(GetPreviewDialogueSoundSequence());
-	SetStandTemplateInstancePickable(false);
+	UpdateStandTemplateInstanceState();
 }
 
 void FGenDialogueSequenceEditor::OpenAutoGenDialogueSequence()
 {
 	TGuardValue<bool> InnerSequenceSwitchGuard(FDialogueSequenceEditorHelper::bIsInInnerSequenceSwitch, true);
 	OpenEditorForAsset(GetAutoGenDialogueSequence());
-	SetStandTemplateInstancePickable(true);
+	UpdateStandTemplateInstanceState();
 }
 
 void FGenDialogueSequenceEditor::OnSequenceCreated(TSharedRef<ISequencer> InSequencer)
@@ -294,11 +296,6 @@ void FGenDialogueSequenceEditor::OnSequenceCreated(TSharedRef<ISequencer> InSequ
 			WhenAutoGenSequenceEditorClosed();
 		}
 	}
-
-	if (FEdMode_AutoGenSequence* EdMode_AutoGenSequence = StaticCast<FEdMode_AutoGenSequence*>(GLevelEditorModeTools().GetActiveMode(FEdMode_AutoGenSequence::ID)))
-	{
-		EdMode_AutoGenSequence->WeakSequencer = WeakSequencer;
-	}
 }
 
 void FGenDialogueSequenceEditor::OnSequencerClosed(TSharedRef<ISequencer> InSequencer)
@@ -312,21 +309,25 @@ void FGenDialogueSequenceEditor::OnSequencerClosed(TSharedRef<ISequencer> InSequ
 void FGenDialogueSequenceEditor::WhenAutoGenSequenceEditorOpened(UGenDialogueSequenceConfigBase* InGenDialogueSequenceConfig)
 {
 	UGenDialogueSequenceConfigBase* OldGenDialogueSequenceConfig = WeakGenDialogueSequenceConfig.Get();
-	WeakGenDialogueSequenceConfig = InGenDialogueSequenceConfig;
 
-	if (InGenDialogueSequenceConfig->bIsNewCreated)
-	{
-		InGenDialogueSequenceConfig->bIsNewCreated = false;
-	}
-	
 	if (OldGenDialogueSequenceConfig != InGenDialogueSequenceConfig)
 	{
+		WeakGenDialogueSequenceConfig = InGenDialogueSequenceConfig;
+		InGenDialogueSequenceConfig->bIsNewCreated = false;
+
+		if (OldGenDialogueSequenceConfig)
+		{
+			UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+			AssetEditorSubsystem->CloseAllEditorsForAsset(OldGenDialogueSequenceConfig);
+		}
+
 		GeneratePreviewCharacters();
-		SetStandTemplateInstancePickable(true);
+		UpdateStandTemplateInstanceState();
+
+		OpenEditorForAsset(GetGenDialogueSequenceConfig());
 
 		if (!InGenDialogueSequenceConfig->PreviewDialogueSequence->HasPreviewData())
 		{
-			OpenEditorForAsset(GetGenDialogueSequenceConfig());
 			// 直接开不行，延迟一帧
 			GEditor->GetTimerManager().Get().SetTimerForNextTick([=]()
 				{
@@ -338,6 +339,12 @@ void FGenDialogueSequenceEditor::WhenAutoGenSequenceEditorOpened(UGenDialogueSeq
 
 void FGenDialogueSequenceEditor::WhenAutoGenSequenceEditorClosed()
 {
+	if (WeakGenDialogueSequenceConfig.IsValid())
+	{
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		AssetEditorSubsystem->CloseAllEditorsForAsset(WeakGenDialogueSequenceConfig.Get());
+	}
+
 	WeakSequencer = nullptr;
 	WeakGenDialogueSequenceConfig = nullptr;
 	if (PreviewStandPositionTemplate.IsValid())
@@ -393,6 +400,7 @@ void FGenDialogueSequenceEditor::DestroyPreviewStandPositionTemplate()
 
 	if (PreviewStandPositionTemplate.IsValid())
 	{
+		PreviewStandPositionTemplate->ClearAllTemplatePreviewCharacter();
 		PreviewStandPositionTemplate->Destroy();
 	}
 	PreviewStandPositionTemplate = nullptr;
@@ -496,6 +504,8 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 
 		StandPositionTemplate->OnInstanceChanged.BindRaw(this, &FGenDialogueSequenceEditor::WhenStandTemplateInstanceChanged);
 	}
+
+	UpdateStandTemplateInstanceState();
 }
 
 void FGenDialogueSequenceEditor::SyncSequenceInstanceReference(ULevelSequence* LevelSeqeunce, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap)
@@ -526,30 +536,37 @@ void FGenDialogueSequenceEditor::WhenStandTemplateInstanceChanged()
 	GetGenDialogueSequenceConfig()->StandPositionPosition = StandPositionTemplate->GetActorTransform();
 }
 
-void FGenDialogueSequenceEditor::SetStandTemplateInstancePickable(bool Enable)
+void FGenDialogueSequenceEditor::UpdateStandTemplateInstanceState()
 {
-	if (PreviewStandPositionTemplate.IsValid() == false)
+	ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get();
+	if (StandPositionTemplate == nullptr)
 	{
 		return;
 	}
 
+	const bool bIsSequenceEditorMode = IsAutoGenDialogueSequenceActived();
 	UProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
 	for (TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
 	{
 		if (ACharacter* Talker = Pair.Value.Get())
 		{
 			TWeakObjectPtr<UChildActorComponent>& ParentComponent = *ParentComponentProperty->ContainerPtrToValuePtr<TWeakObjectPtr<UChildActorComponent>>(Talker);
-			if (Enable)
+			if (bIsSequenceEditorMode)
 			{
 				ParentComponent = nullptr;
+				Talker->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 			}
 			else
 			{
-				ParentComponent = *PreviewStandPositionTemplate->PreviewCharacters.FindByPredicate([&](UChildActorComponent* E) {return E->GetChildActor() == Talker; });
+				ParentComponent = *StandPositionTemplate->PreviewCharacters.FindByPredicate([&](UChildActorComponent* E) {return E->GetChildActor() == Talker; });
+				Talker->AttachToComponent(ParentComponent.Get(), FAttachmentTransformRules::KeepWorldTransform);
 			}
 		}
 	}
-	
+	if (!bIsSequenceEditorMode)
+	{
+		StandPositionTemplate->UpdateToStandLocation();
+	}
 }
 
 void FGenDialogueSequenceEditor::OpenEditorForAsset(UObject* Asset)

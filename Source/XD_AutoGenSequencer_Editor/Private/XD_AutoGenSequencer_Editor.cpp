@@ -7,7 +7,7 @@
 #include "Utils/GenDialogueSequenceEditor.h"
 #include <PropertyEditorModule.h>
 #include "Customization/DialogueSentenceCustomization.h"
-#include "TrackEditors/TwoTargetCameraTrackingEditor.h"
+#include "TrackEditors/CameraTrackingEditor.h"
 #include <ISettingsModule.h>
 #include <ISettingsSection.h>
 #include "Utils/AutoGenDialogueSettings.h"
@@ -54,9 +54,9 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 			{
 				return MakeShareable(new FDialogueSentenceTrackEditor(InSequencer));
 			}));
-		TwoTargetCameraTrackingTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateLambda([](TSharedRef<ISequencer> InSequencer)
+		CameraTrackingTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateLambda([](TSharedRef<ISequencer> InSequencer)
 			{
-				return MakeShareable(new FTwoTargetCameraTrackingEditor(InSequencer));
+				return MakeShareable(new FCameraTrackingEditor(InSequencer));
 			}));
 		FGenDialogueSequenceEditor::Get().Register(SequencerModule);
 	}
@@ -116,7 +116,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	if (ISequencerModule* SequencerModule = FModuleManager::Get().GetModulePtr<ISequencerModule>("Sequencer"))
 	{
 		SequencerModule->UnRegisterTrackEditor(DialogueSentenceTrackEditorHandle);
-		SequencerModule->UnRegisterTrackEditor(TwoTargetCameraTrackingTrackEditorHandle);
+		SequencerModule->UnRegisterTrackEditor(CameraTrackingTrackEditorHandle);
 		FGenDialogueSequenceEditor::Get().Unregister(*SequencerModule);
 	}
 
