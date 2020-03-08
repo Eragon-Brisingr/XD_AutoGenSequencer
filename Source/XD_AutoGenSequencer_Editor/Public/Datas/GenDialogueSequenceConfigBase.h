@@ -103,6 +103,7 @@ public:
 
 	virtual void GeneratePreview(const TMap<FName, ACharacter*>& CharacterNameInstanceMap) const {}
 
+	// 生成对白序列
 	UFUNCTION(CallInEditor, Category = "3.生成对白配置", meta = (DisplayName = "生成对白序列"))
 	void GenerateDialogueSequence();
 

@@ -196,6 +196,7 @@ void FGenDialogueSequenceEditor::GenerateDialogueSequence()
 	//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
 	OpenEditorForAsset(GetPreviewDialogueSoundSequence());
 	OpenEditorForAsset(GetAutoGenDialogueSequence());
+	UpdateStandTemplateInstanceState();
 }
 
 void FGenDialogueSequenceEditor::GeneratePreviewSequence()
@@ -223,6 +224,7 @@ void FGenDialogueSequenceEditor::GeneratePreviewSequence()
 	//不知道怎么直接刷新，临时切换下来刷新 ISequencer::NotifyMovieSceneDataChanged
 	OpenEditorForAsset(GetAutoGenDialogueSequence());
 	OpenEditorForAsset(GetPreviewDialogueSoundSequence());
+	UpdateStandTemplateInstanceState();
 }
 
 FGenDialogueSequenceEditor& FGenDialogueSequenceEditor::Get()
