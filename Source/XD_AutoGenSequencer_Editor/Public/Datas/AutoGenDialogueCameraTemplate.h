@@ -26,7 +26,7 @@ public:
 
 	void OnConstruction(const FTransform& Transform) override;
 
-	void PreEditChange(UProperty* PropertyThatWillChange) override;
+	void PreEditChange(FProperty* PropertyThatWillChange) override;
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	UPROPERTY()

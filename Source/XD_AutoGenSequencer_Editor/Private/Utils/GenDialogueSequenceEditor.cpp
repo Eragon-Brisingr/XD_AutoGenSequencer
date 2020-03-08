@@ -545,7 +545,7 @@ void FGenDialogueSequenceEditor::UpdateStandTemplateInstanceState()
 	}
 
 	const bool bIsSequenceEditorMode = IsAutoGenDialogueSequenceActived();
-	UProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
+	FProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
 	for (TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
 	{
 		if (ACharacter* Talker = Pair.Value.Get())

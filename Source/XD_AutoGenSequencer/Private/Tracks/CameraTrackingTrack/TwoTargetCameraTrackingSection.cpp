@@ -177,7 +177,7 @@ void FTwoTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 
 						FTwoTargetCameraTrackingSectionData& TwoTargetCameraTrackingSectionData = PersistentData.GetOrAddSectionData<FTwoTargetCameraTrackingSectionData>();
 						const TRange<FFrameNumber> FrameNumberRange = Context.GetFrameNumberRange();
-						const bool IsFirstEvaluate = FrameNumberRange.GetLowerBoundValue() != (TwoTargetCameraTrackingSectionData.PrevFrameNumber + 1);
+						const bool IsFirstEvaluate = FrameNumberRange.GetLowerBoundValue() != (TwoTargetCameraTrackingSectionData.PrevFrameNumber);
 						TwoTargetCameraTrackingSectionData.PrevFrameNumber = FrameNumberRange.GetUpperBoundValue();
 
 						float CameraYaw, FrontTargetRate, BackTargetRate;

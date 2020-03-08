@@ -205,9 +205,9 @@ bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages)
 			else
 			{
 				const FName LookAtTargetPropertyName = E.CharacterSettings->LookAtTargetPropertyName;
-				if (UProperty* LookAtTargetProperty = E.TypeOverride->FindPropertyByName(LookAtTargetPropertyName))
+				if (FProperty* LookAtTargetProperty = E.TypeOverride->FindPropertyByName(LookAtTargetPropertyName))
 				{
-					if (!LookAtTargetProperty->IsA<USoftObjectProperty>())
+					if (!LookAtTargetProperty->IsA<FSoftObjectProperty>())
 					{
 						ErrorMessages.Add(FText::Format(LOCTEXT("对白角色LookAtTargetProperty属性错误", "角色[{0}] 类型[{1}]属性类型需要为SoftObject"), FText::FromName(E.NameOverride), FText::FromName(LookAtTargetPropertyName)));
 						bIsValid &= false;

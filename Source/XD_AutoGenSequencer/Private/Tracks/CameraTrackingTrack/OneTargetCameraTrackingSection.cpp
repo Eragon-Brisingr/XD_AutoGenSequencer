@@ -32,7 +32,7 @@ void FOneTargetCameraTrackingSectionTemplate::Evaluate(const FMovieSceneEvaluati
 
 					FOneTargetCameraTrackingSectionData& OneTargetCameraTrackingSectionData = PersistentData.GetOrAddSectionData<FOneTargetCameraTrackingSectionData>();
 					const TRange<FFrameNumber> FrameNumberRange = Context.GetFrameNumberRange();
-					const bool IsFirstEvaluate = FrameNumberRange.GetLowerBoundValue() != (OneTargetCameraTrackingSectionData.PrevFrameNumber + 1);
+					const bool IsFirstEvaluate = FrameNumberRange.GetLowerBoundValue() != (OneTargetCameraTrackingSectionData.PrevFrameNumber);
 					OneTargetCameraTrackingSectionData.PrevFrameNumber = FrameNumberRange.GetUpperBoundValue();
 
 					for (const TWeakObjectPtr<>& CameraObject : Player.FindBoundObjects(Operand))

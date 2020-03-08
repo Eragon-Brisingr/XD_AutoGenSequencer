@@ -51,7 +51,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (DisplayName = "镜头模板集"))
 	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
-	void PreEditChange(UProperty* PropertyThatWillChange) override;
+	void PreEditChange(FProperty* PropertyThatWillChange) override;
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 

@@ -30,7 +30,7 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 
 #if WITH_EDITOR
 // 关闭Actor的修改回调是为了防止ChildActor重新生成
-void ADialogueStandPositionTemplate::PreEditChange(UProperty* PropertyThatWillChange)
+void ADialogueStandPositionTemplate::PreEditChange(FProperty* PropertyThatWillChange)
 {
 	UObject::PreEditChange(PropertyThatWillChange);
 	//Super::PreEditChange(PropertyThatWillChange);

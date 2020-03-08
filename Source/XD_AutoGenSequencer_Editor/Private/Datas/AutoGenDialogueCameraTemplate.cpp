@@ -48,7 +48,7 @@ void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
 	CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
 }
 
-void AAutoGenDialogueCameraTemplate::PreEditChange(UProperty* PropertyThatWillChange)
+void AAutoGenDialogueCameraTemplate::PreEditChange(FProperty* PropertyThatWillChange)
 {
 	//Super::PreEditChange(PropertyThatWillChange);
 }
