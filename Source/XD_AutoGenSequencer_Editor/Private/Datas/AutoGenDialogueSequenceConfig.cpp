@@ -1371,16 +1371,15 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			FGenDialogueData& GenDialogueData = SortedDialogueDatas[RelatedSentenceIdx];
 			ACharacter* Speaker = GenDialogueData.Speaker;
 
-			const FRotator CameraLookAtSpeakerRotation = (Speaker->GetActorLocation() - CameraActorCreateData.CameraLocation).Rotation();
-
 			// 角色要尽量面对相机
-			const float CharacterLocationMinAngle = 60.f;
-			const float CharacterFaceAngleDiff = Speaker->GetActorRotation().Vector() | CameraActorCreateData.CameraRotation.Vector();
+			const float CharacterFaceMaxAngle = 60.f;
+			const float CharacterFaceAngleDiff = FVector::DotProduct(Speaker->GetActorRotation().Vector(), CameraActorCreateData.CameraRotation.Vector());
 			// 角色要在相机的目标里
 			// TODO：通过计算FOV得到角度
 			const float CharacterLocationMaxAngle = 45.f;
+			const FRotator CameraLookAtSpeakerRotation = (Speaker->GetActorLocation() - CameraActorCreateData.CameraLocation).Rotation();
 			const float CharacterLocationAngleDiff = FVector::DotProduct(CameraActorCreateData.CameraRotation.Vector(), CameraLookAtSpeakerRotation.Vector());
-			if (CharacterFaceAngleDiff < FMath::Cos(FMath::DegreesToRadians(CharacterLocationMinAngle)) && CharacterLocationAngleDiff > FMath::Cos(FMath::DegreesToRadians(CharacterLocationMaxAngle)))
+			if (FMath::Cos(FMath::DegreesToRadians(180.f - CharacterFaceMaxAngle)) < CharacterFaceAngleDiff && CharacterLocationAngleDiff > FMath::Cos(FMath::DegreesToRadians(CharacterLocationMaxAngle)))
 			{
 				FFrameNumber SentenceStartTime = GenDialogueData.PreviewDialogueSentenceSection->GetRange().GetLowerBoundValue();
 				FFrameNumber DepthOfFieldTargetChangedFrameNumber = SentenceStartTime > SequenceStartFrameNumber ? SentenceStartTime : SequenceStartFrameNumber;

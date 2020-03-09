@@ -341,10 +341,13 @@ void FGenDialogueSequenceEditor::WhenAutoGenSequenceEditorOpened(UGenDialogueSeq
 
 void FGenDialogueSequenceEditor::WhenAutoGenSequenceEditorClosed()
 {
-	if (WeakGenDialogueSequenceConfig.IsValid())
+	if (UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = WeakGenDialogueSequenceConfig.Get())
 	{
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-		AssetEditorSubsystem->CloseAllEditorsForAsset(WeakGenDialogueSequenceConfig.Get());
+		if (IAssetEditorInstance* AssetEditorInstance = AssetEditorSubsystem->FindEditorForAsset(GenDialogueSequenceConfig, false))
+		{
+			AssetEditorInstance->CloseWindow();
+		}
 	}
 
 	WeakSequencer = nullptr;
