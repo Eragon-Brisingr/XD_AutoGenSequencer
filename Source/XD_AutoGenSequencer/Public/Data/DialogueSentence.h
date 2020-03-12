@@ -12,7 +12,7 @@ class UDialogueSentenceSection;
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class XD_AUTOGENSEQUENCER_API UDialogueSentence : public UObject
 {
 	GENERATED_BODY()
@@ -24,6 +24,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "对话", meta = (DisplayName = "字幕"))
 	FText SubTitle;
 
+	UFUNCTION(BlueprintCallable, meta = (CompactNodeTitle = "SubTitle"), Category = "对话")
 	FORCEINLINE FText GetSubTitle() const { return SubTitle; }
 
 	float GetDuration() const;
