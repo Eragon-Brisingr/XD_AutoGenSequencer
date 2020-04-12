@@ -405,7 +405,6 @@ void FGenDialogueSequenceEditor::DestroyPreviewStandPositionTemplate()
 
 	if (PreviewStandPositionTemplate.IsValid())
 	{
-		PreviewStandPositionTemplate->ClearAllTemplatePreviewCharacter();
 		PreviewStandPositionTemplate->Destroy();
 	}
 	PreviewStandPositionTemplate = nullptr;
@@ -419,7 +418,7 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 
 	UGenDialogueSequenceConfigBase* DialogueSequenceConfig = GetGenDialogueSequenceConfig();
 
-	if (TSubclassOf<ADialogueStandPositionTemplate> StandTemplateType = DialogueSequenceConfig->DialogueStationTemplate)
+	if (ADialogueStandPositionTemplate* DialogueStationTemplate = DialogueSequenceConfig->GetDialogueStationTemplate())
 	{
 		FTransform SpawnTransform = DialogueSequenceConfig->StandPositionPosition;
 		if (DialogueSequenceConfig->bIsNotSetStandPosition)
@@ -437,12 +436,15 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 		}
 
 		const TArray<FDialogueCharacterData>& DialogueCharacterDatas = DialogueSequenceConfig->DialogueCharacterDatas;
-		ADialogueStandPositionTemplate* StandPositionTemplate = GetEditorWorld()->SpawnActorDeferred<ADialogueStandPositionTemplate>(StandTemplateType, SpawnTransform);
+		FActorSpawnParameters ActorSpawnParameters;
+		ActorSpawnParameters.ObjectFlags = RF_Transient;
+		ActorSpawnParameters.Template = DialogueStationTemplate;
+		ActorSpawnParameters.bDeferConstruction = true;
+		ADialogueStandPositionTemplate* StandPositionTemplate = GetEditorWorld()->SpawnActor<ADialogueStandPositionTemplate>(ActorSpawnParameters);
 		{
 			StandPositionTemplate->StandPositions.SetNumZeroed(DialogueCharacterDatas.Num());
-			StandPositionTemplate->bSpawnedPreviewCharacter = true;
 			StandPositionTemplate->FinishSpawning(DialogueSequenceConfig->StandPositionPosition, true);
-			StandPositionTemplate->SetFlags(RF_Transient);
+			StandPositionTemplate->CreateAllTemplatePreviewCharacter();
 			GEditor->GetSelectedActors()->DeselectAll();
 			GEditor->SelectActor(StandPositionTemplate, true, false, false, true);
 			StandPositionTemplate->InvalidateLightingCache();

@@ -54,7 +54,7 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 		if (SelectedSoundWaves.Num() > 0)
 		{
 			Extender->AddMenuExtension(
-				"GetAssetActions",
+				TEXT("GetAssetActions"),
 				EExtensionHook::After,
 				nullptr,
 				FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
@@ -100,14 +100,14 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 		if (SelectedLevelSequences.Num() > 0)
 		{
 			Extender->AddMenuExtension(
-				"CommonAssetActions",
+				TEXT("CommonAssetActions"),
 				EExtensionHook::After,
 				nullptr,
 				FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder)
 					{
 						MenuBuilder.AddMenuEntry(
 							LOCTEXT("AddAutoGenDialogueSystem_Menu", "添加自动生成对白系统"),
-							LOCTEXT("AddAutoGenDialogueSystem_Tooltip", "添加自动生成对白系统"),
+							LOCTEXT("AddAutoGenDialogueSystem_Tooltip", "添加自动生成对白系统，具备自动生成对话序列的功能"),
 							FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
 								{
 									UClass* ChoseClass = nullptr;
@@ -117,18 +117,31 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 										for (const FAssetData& LevelSequenceAsset : SelectedLevelSequences)
 										{
 											ULevelSequence* LevelSequence = CastChecked<ULevelSequence>(LevelSequenceAsset.GetAsset());
-											UGenDialogueSequenceConfigBase* GenDialogueSequenceConfig = LevelSequence->FindMetaData<UGenDialogueSequenceConfigBase>();
-											if (GenDialogueSequenceConfig && !GenDialogueSequenceConfig->IsA(ChoseClass))
+											UGenDialogueSequenceConfigContainer* GenDialogueSequenceConfigContainer = LevelSequence->FindMetaData<UGenDialogueSequenceConfigContainer>();
+											if (GenDialogueSequenceConfigContainer && !GenDialogueSequenceConfigContainer->GenDialogueSequenceConfig->IsA(ChoseClass))
 											{
-												LevelSequence->RemoveMetaData<UGenDialogueSequenceConfigBase>();
-												GenDialogueSequenceConfig = nullptr;
+												LevelSequence->RemoveMetaData<UGenDialogueSequenceConfigContainer>();
+												GenDialogueSequenceConfigContainer = nullptr;
 											}
-											if (GenDialogueSequenceConfig == nullptr)
+											if (GenDialogueSequenceConfigContainer == nullptr)
 											{
 												UAutoGenDialogueSequenceFactory::AddGenDialogueSequenceConfig(LevelSequence, ChoseClass);
 											}
 											LevelSequence->MarkPackageDirty();
 										}
+									}
+								})));
+
+						MenuBuilder.AddMenuEntry(
+							LOCTEXT("RemoveAutoGenDialogueSystem_Menu", "移除自动生成对白系统"),
+							LOCTEXT("RemoveAutoGenDialogueSystem_Tooltip", "移除自动生成对白系统，回退为原始的LevelSequence，不具备再次生成对话序列的功能"),
+							FSlateIcon(), FUIAction(FExecuteAction::CreateLambda([=]()
+								{
+									for (const FAssetData& LevelSequenceAsset : SelectedLevelSequences)
+									{
+										ULevelSequence* LevelSequence = CastChecked<ULevelSequence>(LevelSequenceAsset.GetAsset());
+										LevelSequence->RemoveMetaData<UGenDialogueSequenceConfigContainer>();
+										LevelSequence->MarkPackageDirty();
 									}
 								})));
 					}));

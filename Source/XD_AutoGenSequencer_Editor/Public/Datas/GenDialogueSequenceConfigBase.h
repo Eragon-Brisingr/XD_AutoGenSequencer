@@ -18,6 +18,7 @@ class UAutoGenDialogueAnimSetBase;
 class UAutoGenDialogueCameraSet;
 class ULevelSequence;
 class UAutoGenDialogueCharacterSettings;
+class UDialogueStandPositionTemplateAsset;
 
 /**
  *
@@ -73,7 +74,8 @@ public:
 	UPreviewDialogueSoundSequence* PreviewDialogueSequence;
 
 	UPROPERTY(EditAnywhere, Category = "1.对白角色配置", meta = (DisplayName = "站位模板"))
-	TSubclassOf<ADialogueStandPositionTemplate> DialogueStationTemplate;
+	UDialogueStandPositionTemplateAsset* DialogueStationTemplateAsset;
+	ADialogueStandPositionTemplate* GetDialogueStationTemplate() const;
 
 	UPROPERTY(EditAnywhere, Category = "1.对白角色配置", EditFixedSize = true, meta = (DisplayName = "对话角色"))
 	TArray<FDialogueCharacterData> DialogueCharacterDatas;

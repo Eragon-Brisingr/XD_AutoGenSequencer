@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Info.h"
 #include "Factories/Factory.h"
+#include "AssetTypeActions_Base.h"
 #include "DialogueStandPositionTemplate.generated.h"
 
 class ACharacter;
@@ -34,14 +35,13 @@ public:
 	UChildActorComponent* PreviewCharacterInstance = nullptr;
 };
 
-UCLASS(Transient, abstract, Blueprintable, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking), showCategories = ("Utilities|Transformation"))
+UCLASS(NotBlueprintable, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking, Tick))
 class XD_AUTOGENSEQUENCER_EDITOR_API ADialogueStandPositionTemplate : public AInfo
 {
 	GENERATED_BODY()
 public:
 	ADialogueStandPositionTemplate();
 
-#if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "站位模板", meta = (DisplayName = "预览用角色"))
 	TSubclassOf<ACharacter> PreviewCharacter;
 
@@ -61,12 +61,6 @@ public:
 
 	void CreateAllTemplatePreviewCharacter();
 
-	void ClearAllTemplatePreviewCharacter();
-
-	uint8 bSpawnedPreviewCharacter : 1;
-
-	void ApplyStandPositionsToDefault();
-
 	void UpdateToStandLocation();
 
 	UPROPERTY(Transient)
@@ -74,9 +68,15 @@ public:
 
 	DECLARE_DELEGATE(FOnInstanceChanged);
 	FOnInstanceChanged OnInstanceChanged;
+};
 
-	bool IsInEditorMode() const;
-#endif
+UCLASS()
+class XD_AUTOGENSEQUENCER_EDITOR_API UDialogueStandPositionTemplateAsset : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(VisibleAnywhere, Instanced)
+	ADialogueStandPositionTemplate* Template;
 };
 
 UCLASS()
@@ -87,8 +87,17 @@ public:
 	UDialogueStandPositionTemplateFactory();
 
 	UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
-
 	FText GetDisplayName() const override;
-	uint32 GetMenuCategories() const override;
 };
 
+class FAssetTypeActions_DialogueStandPositionTemplate : public FAssetTypeActions_Base
+{
+	using Super = FAssetTypeActions_Base;
+
+	// Inherited via FAssetTypeActions_Base
+	FText GetName() const override;
+	UClass* GetSupportedClass() const override;
+	FColor GetTypeColor() const override;
+	uint32 GetCategories() override;
+	void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor) override;
+};

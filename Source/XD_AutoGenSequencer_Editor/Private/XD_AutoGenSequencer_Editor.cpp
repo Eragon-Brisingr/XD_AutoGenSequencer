@@ -20,6 +20,7 @@
 #include "EditorModeRegistry.h"
 #include "Utils/EdMode_AutoGenSequence.h"
 #include "Datas/AutoGenDialogueCharacterSettings.h"
+#include "Datas/DialogueStandPositionTemplate.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -35,6 +36,9 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 
 		AssetTypeActions_DialogueSentence = MakeShareable(new FAssetTypeActions_DialogueSentence());
 		AssetTools.RegisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
+
+		AssetTypeActions_DialogueStandPositionTemplate = MakeShareable(new FAssetTypeActions_DialogueStandPositionTemplate());
+		AssetTools.RegisterAssetTypeActions(AssetTypeActions_DialogueStandPositionTemplate.ToSharedRef());
 
 		AssetTypeActions_AutoGenDialogueAnimSet = MakeShareable(new FAssetTypeActions_AutoGenDialogueAnimSet());
 		AssetTools.RegisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
@@ -106,6 +110,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	{
 		IAssetTools& AssetTools = AssetToolsModule->Get();
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueSentence.ToSharedRef());
+		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_DialogueStandPositionTemplate.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueAnimSet.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCameraSet.ToSharedRef());
 		AssetTools.UnregisterAssetTypeActions(AssetTypeActions_AutoGenDialogueCharacterSettings.ToSharedRef());

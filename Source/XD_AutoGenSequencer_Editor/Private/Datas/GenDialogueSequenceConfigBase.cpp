@@ -18,6 +18,11 @@ FDialogueCharacterData::FDialogueCharacterData()
 	
 }
 
+ADialogueStandPositionTemplate* UGenDialogueSequenceConfigBase::GetDialogueStationTemplate() const
+{
+	return DialogueStationTemplateAsset ? DialogueStationTemplateAsset->Template : nullptr;
+}
+
 void UGenDialogueSequenceConfigBase::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
 {
 	for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
@@ -82,18 +87,17 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, DialogueStationTemplate))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UGenDialogueSequenceConfigBase, DialogueStationTemplateAsset))
 	{
-		if (DialogueStationTemplate)
+		if (DialogueStationTemplateAsset)
 		{
-			const ADialogueStandPositionTemplate* DialogueStandPositionTemplate = DialogueStationTemplate.GetDefaultObject();
-			DialogueCharacterDatas.SetNumZeroed(DialogueStandPositionTemplate->StandPositions.Num());
-			SyncInstanceData(DialogueStandPositionTemplate);
+			DialogueCharacterDatas.SetNumZeroed(GetDialogueStationTemplate()->StandPositions.Num());
+			SyncInstanceData(GetDialogueStationTemplate());
 
 			FDialogueCharacterData DefaultDialogueCharacterData;
 			for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
 			{
-				const FDialogueStandPosition& DialogueStandPosition = DialogueStandPositionTemplate->StandPositions[Idx];
+				const FDialogueStandPosition& DialogueStandPosition = GetDialogueStationTemplate()->StandPositions[Idx];
 				FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDatas[Idx];
 				if (DialogueCharacterData.NameOverride.IsNone())
 				{
@@ -101,7 +105,7 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 				}
 				if (DialogueCharacterData.TypeOverride == nullptr)
 				{
-					DialogueCharacterData.TypeOverride = DialogueStandPosition.PreviewCharacter ? DialogueStandPosition.PreviewCharacter : DialogueStandPositionTemplate->PreviewCharacter;
+					DialogueCharacterData.TypeOverride = DialogueStandPosition.PreviewCharacter ? DialogueStandPosition.PreviewCharacter : GetDialogueStationTemplate()->PreviewCharacter;
 				}
 				if (DialogueCharacterData.DialogueAnimSet == nullptr)
 				{
@@ -128,7 +132,7 @@ const FDialogueCharacterData* UGenDialogueSequenceConfigBase::FindDialogueCharac
 bool UGenDialogueSequenceConfigBase::IsConfigValid(TArray<FText>& ErrorMessages) const
 {
 	bool bIsValid = true;
-	if (DialogueStationTemplate == nullptr)
+	if (DialogueStationTemplateAsset == nullptr)
 	{
 		ErrorMessages.Add(LOCTEXT("站位模板为空", "站位模板为空"));
 		bIsValid &= false;
@@ -246,7 +250,7 @@ void UGenDialogueSequenceConfigBase::GenerateDialogueSequence()
 
 UAutoGenDialogueCameraSet* UGenDialogueSequenceConfigBase::GetAutoGenDialogueCameraSet() const
 {
-	return DialogueStationTemplate.GetDefaultObject()->AutoGenDialogueCameraSet;
+	return GetDialogueStationTemplate()->AutoGenDialogueCameraSet;
 }
 
 ULevelSequence* UGenDialogueSequenceConfigBase::GetOwingLevelSequence() const

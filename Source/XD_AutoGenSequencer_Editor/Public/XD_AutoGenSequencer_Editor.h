@@ -10,14 +10,15 @@ class FAssetTypeActions_DialogueSentence;
 class FAssetTypeActions_AutoGenDialogueAnimSet;
 class FAssetTypeActions_AutoGenDialogueCameraSet;
 class FAssetTypeActions_AutoGenDialogueCharacterSettings;
+class FAssetTypeActions_DialogueStandPositionTemplate;
 
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
 public:
 
 	/** IModuleInterface implementation */
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
+	void StartupModule() override;
+	void ShutdownModule() override;
 
 	static uint32 AutoGenDialogueSequence_AssetCategory;
 private:
@@ -32,6 +33,7 @@ private:
 	ISettingsSectionPtr SettingsSection;
 
 	TSharedPtr<FAssetTypeActions_DialogueSentence> AssetTypeActions_DialogueSentence;
+	TSharedPtr<FAssetTypeActions_DialogueStandPositionTemplate> AssetTypeActions_DialogueStandPositionTemplate;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueAnimSet> AssetTypeActions_AutoGenDialogueAnimSet;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueCameraSet> AssetTypeActions_AutoGenDialogueCameraSet;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueCharacterSettings> AssetTypeActions_AutoGenDialogueCharacterSettings;

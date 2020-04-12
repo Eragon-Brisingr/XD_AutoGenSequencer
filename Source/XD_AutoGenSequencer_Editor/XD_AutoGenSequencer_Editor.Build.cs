@@ -39,19 +39,21 @@ public class XD_AutoGenSequencer_Editor : ModuleRules
 				"Slate",
 				"SlateCore",
                 "UnrealEd",
-                "GraphEditor",
                 "AssetTools",
                 "Kismet",
+				"GraphEditor",
+				"AdvancedPreviewScene",
+                "EditorStyle",
+				"InputCore",
 
-                "Sequencer",
+				"Sequencer",
                 "MovieScene",
                 "LevelSequence",
                 "MovieSceneTools",
                 "MovieSceneTracks",
                 "CinematicCamera",
-                "EditorStyle",
 
-                "XD_AutoGenSequencer",
+				"XD_AutoGenSequencer",
 				// ... add private dependencies that you statically link with here ...
 			}
 			);

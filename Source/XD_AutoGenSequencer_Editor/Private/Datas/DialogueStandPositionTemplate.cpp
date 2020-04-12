@@ -4,14 +4,11 @@
 #include "Datas/DialogueStandPositionTemplate.h"
 #include <GameFramework/Character.h>
 #include <Components/ChildActorComponent.h>
-#include "Components/BillboardComponent.h"
-#include <Engine/BlueprintGeneratedClass.h>
+#include <Components/BillboardComponent.h>
+
 #include "XD_AutoGenSequencer_Editor.h"
-#include <KismetCompilerModule.h>
-#include <Kismet2/KismetEditorUtilities.h>
-#include <Engine/Blueprint.h>
-#include <Kismet2/BlueprintEditorUtils.h>
 #include "Utils/AutoGenDialogueSettings.h"
+#include "Utils/StandTemplateEditor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
@@ -20,54 +17,57 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 	bIsEditorOnlyActor = true;
 	SetHidden(false);
 
-//	数组有BUG，设置默认值之后编辑器Diff到超出默认长度后的元素直接溢出了
-// 	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FVector(100.f, 0.f, 0.f))));
-// 	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
+	StandPositions.Add(FDialogueStandPosition(TEXT("Role"), nullptr, FTransform(FRotator(0.f, 180.f, 0.f), FVector(100.f, 0.f, 0.f))));
+	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
 
 	PreviewCharacter = ACharacter::StaticClass();
 	AutoGenDialogueCameraSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueCameraSet.LoadSynchronous();
 }
 
-#if WITH_EDITOR
-// 关闭Actor的修改回调是为了防止ChildActor重新生成
 void ADialogueStandPositionTemplate::PreEditChange(FProperty* PropertyThatWillChange)
 {
-	UObject::PreEditChange(PropertyThatWillChange);
-	//Super::PreEditChange(PropertyThatWillChange);
+	Super::PreEditChange(PropertyThatWillChange);
 }
 
 void ADialogueStandPositionTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	UObject::PostEditChangeProperty(PropertyChangedEvent);
-	//Super::PostEditChangeProperty(PropertyChangedEvent);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	if (PropertyChangedEvent.Property)
 	{
 		FName PropertyName = PropertyChangedEvent.Property->GetFName();
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, StandPositions) || PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, PreviewCharacter))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, StandPositions))
 		{
-			if (!IsTemplate())
+			CreateAllTemplatePreviewCharacter();
+			TSet<UChildActorComponent*> PreComponents{ PreviewCharacters };
+			PreviewCharacters.Empty();
+			for (FDialogueStandPosition& StandPosition : StandPositions)
 			{
-				ClearAllTemplatePreviewCharacter();
-				CreateAllTemplatePreviewCharacter();
+				UChildActorComponent* ChildActorComponent = StandPosition.PreviewCharacterInstance;
+				PreviewCharacters.Add(StandPosition.PreviewCharacterInstance);
+			}
+			for (UChildActorComponent* OldComponent : PreComponents.Difference(TSet<UChildActorComponent*>(PreviewCharacters)))
+			{
+				OldComponent->DestroyComponent();
 			}
 		}
-		if (PropertyName != TEXT("ActorLabel"))
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueStandPositionTemplate, PreviewCharacter) || PropertyName == GET_MEMBER_NAME_CHECKED(FDialogueStandPosition, PreviewCharacter))
 		{
-			ApplyStandPositionsToDefault();
+			CreateAllTemplatePreviewCharacter();
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(FDialogueStandPosition, StandPosition))
+		{
+			UpdateToStandLocation();
 		}
 	}
+	UpdateToStandLocation();
+
+	OnInstanceChanged.ExecuteIfBound();
 }
 
 void ADialogueStandPositionTemplate::OnConstruction(const FTransform& Transform)
 {
-	if (!bSpawnedPreviewCharacter)
-	{
-		bSpawnedPreviewCharacter = true;
-		CreateAllTemplatePreviewCharacter();
-	}
 	UpdateToStandLocation();
-
 
 	OnInstanceChanged.ExecuteIfBound();
 }
@@ -94,51 +94,20 @@ void ADialogueStandPositionTemplate::CreateAllTemplatePreviewCharacter()
 		}
 
 		UClass* CharacterClass = StandPosition.PreviewCharacter ? StandPosition.PreviewCharacter : PreviewCharacter;
-		if (CharacterClass && ChildActorComponent->GetChildActorClass() != CharacterClass)
+		if (ChildActorComponent->GetChildActorClass() != CharacterClass)
 		{
 			ChildActorComponent->SetChildActorClass(CharacterClass);
-			ChildActorComponent->GetChildActor()->SetFlags(RF_Transient);
-
-			ChildActorComponent->GetChildActor()->SetActorLabel(StandPosition.StandName.ToString());
+			if (AActor* Actor = ChildActorComponent->GetChildActor())
+			{
+				Actor->SetFlags(RF_Transient);
+				Actor->SetActorLabel(StandPosition.StandName.ToString());
+			}
 		}
 
 		ChildActorComponent->SetRelativeTransform(StandPosition.StandPosition);
 		if (ACharacter* Character = Cast<ACharacter>(ChildActorComponent->GetChildActor()))
 		{
 			Character->SetActorRelativeLocation(FVector(0.f, 0.f, Character->GetDefaultHalfHeight()));
-		}
-	}
-}
-
-void ADialogueStandPositionTemplate::ClearAllTemplatePreviewCharacter()
-{
-	for (UChildActorComponent* ChildActorComponent : PreviewCharacters)
-	{
-		if (ChildActorComponent)
-		{
-			ChildActorComponent->DestroyChildActor();
-			ChildActorComponent->DestroyComponent();
-		}
-	}
-	PreviewCharacters.Empty();
-}
-
-void ADialogueStandPositionTemplate::ApplyStandPositionsToDefault()
-{
-	if (IsInEditorMode())
-	{
-		if (UBlueprint * Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy))
-		{
-			ADialogueStandPositionTemplate* Default = GetClass()->GetDefaultObject<ADialogueStandPositionTemplate>();
-			Default->PreviewCharacter = PreviewCharacter;
-			Default->StandPositions = StandPositions;
-
-			for (FDialogueStandPosition& StandPos : Default->StandPositions)
-			{
-				StandPos.PreviewCharacterInstance = nullptr;
-			}
-
-			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
 }
@@ -158,28 +127,18 @@ void ADialogueStandPositionTemplate::UpdateToStandLocation()
 	}
 }
 
-bool ADialogueStandPositionTemplate::IsInEditorMode() const
-{
-	UWorld* World = GetWorld();
-	return World && World->WorldType == EWorldType::Editor;
-}
-
 UDialogueStandPositionTemplateFactory::UDialogueStandPositionTemplateFactory()
 {
-	SupportedClass = ADialogueStandPositionTemplate::StaticClass();
+	SupportedClass = UDialogueStandPositionTemplateAsset::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
 }
 
 UObject* UDialogueStandPositionTemplateFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	UClass* BlueprintClass = nullptr;
-	UClass* BlueprintGeneratedClass = nullptr;
-
-	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-	KismetCompilerModule.GetBlueprintTypesForClass(ADialogueStandPositionTemplate::StaticClass(), BlueprintClass, BlueprintGeneratedClass);
-
-	return FKismetEditorUtilities::CreateBlueprint(ADialogueStandPositionTemplate::StaticClass(), InParent, Name, EBlueprintType::BPTYPE_Normal, BlueprintClass, BlueprintGeneratedClass);
+	UDialogueStandPositionTemplateAsset* Asset = NewObject<UDialogueStandPositionTemplateAsset>(InParent, Name, Flags);
+	Asset->Template = NewObject<ADialogueStandPositionTemplate>(Asset, Name, Flags);
+	return Asset;
 }
 
 FText UDialogueStandPositionTemplateFactory::GetDisplayName() const
@@ -187,11 +146,37 @@ FText UDialogueStandPositionTemplateFactory::GetDisplayName() const
 	return LOCTEXT("创建对白站位模板", "对白站位模板");
 }
 
-uint32 UDialogueStandPositionTemplateFactory::GetMenuCategories() const
+FText FAssetTypeActions_DialogueStandPositionTemplate::GetName() const
+{
+	return LOCTEXT("对白站位模板", "对白站位模板");
+}
+
+UClass* FAssetTypeActions_DialogueStandPositionTemplate::GetSupportedClass() const
+{
+	return UDialogueStandPositionTemplateAsset::StaticClass();
+}
+
+FColor FAssetTypeActions_DialogueStandPositionTemplate::GetTypeColor() const
+{
+	return FColor::Black;
+}
+
+uint32 FAssetTypeActions_DialogueStandPositionTemplate::GetCategories()
 {
 	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }
 
-#endif
+void FAssetTypeActions_DialogueStandPositionTemplate::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor)
+{
+	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
+	for (UObject* Object : InObjects)
+	{
+		if (UDialogueStandPositionTemplateAsset* Asset = Cast<UDialogueStandPositionTemplateAsset>(Object))
+		{
+			TSharedRef<FStandTemplateEditor> EditorToolkit = MakeShareable(new FStandTemplateEditor());
+			EditorToolkit->InitStandTemplateEditor(Mode, EditWithinLevelEditor, Asset);
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

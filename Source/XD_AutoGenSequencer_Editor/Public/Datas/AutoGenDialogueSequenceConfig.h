@@ -82,6 +82,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "输出生成日志"))
 	uint8 bShowGenerateLog : 1;
 
+	// 系统会根据结束时的动画姿态对选择集中的东湖进行打分，选择分数较高的动画
+	// 打分的依据是骨骼的距离，键为骨骼名，值为打分权重
 	UPROPERTY(EditAnywhere, Category = "3.生成对白配置", meta = (DisplayName = "动画生成关键骨骼"))
 	TMap<FName, float> AnimBoneWeights;
 
