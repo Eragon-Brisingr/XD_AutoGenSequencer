@@ -24,6 +24,8 @@ ADialogueCamera_TwoTargetTracking::ADialogueCamera_TwoTargetTracking()
 	FrontCharacterComponent = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, FrontCharacterComponent));
 	{
 		FrontCharacterComponent->SetupAttachment(TemplateRoot);
+		FrontCharacterComponent->SetWorldLocationAndRotation(FVector(-100.f, 0.f, 88.f), FRotator(0.f, 0.f, 0.f));
+		FrontCharacterComponent->SetChildActorClass(ACharacter::StaticClass());
 	}
 	PreviewFrontHint = CreateDefaultSubobject<UTextRenderComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, PreviewFrontHint), true);
 	{
@@ -34,6 +36,8 @@ ADialogueCamera_TwoTargetTracking::ADialogueCamera_TwoTargetTracking()
 	BackCharacterComponent = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, BackCharacterComponent));
 	{
 		BackCharacterComponent->SetupAttachment(TemplateRoot);
+		BackCharacterComponent->SetWorldLocationAndRotation(FVector(100.f, 0.f, 88.f), FRotator(0.f, 180.f, 0.f));
+		BackCharacterComponent->SetChildActorClass(ACharacter::StaticClass());
 	}
 	PreviewBackHint = CreateDefaultSubobject<UTextRenderComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, PreviewBackHint), true);
 	{
@@ -43,40 +47,34 @@ ADialogueCamera_TwoTargetTracking::ADialogueCamera_TwoTargetTracking()
 	}
 }
 
-void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
+void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()
 {
-	Super::OnConstruction(Transform);
+	ACharacter* FrontCharacter = Cast<ACharacter>(FrontCharacterComponent->GetChildActor());
+	ACharacter* BackCharacter = Cast<ACharacter>(BackCharacterComponent->GetChildActor());
 
-	ACineCameraActor* CineCameraActor = Cast<ACineCameraActor>(CineCamera->GetChildActor());
-	if (CineCameraComponent && CineCameraActor)
+	if (FrontCharacter && BackCharacter)
 	{
-		ACharacter* FrontCharacter = Cast<ACharacter>(FrontCharacterComponent->GetChildActor());
-		ACharacter* BackCharacter = Cast<ACharacter>(BackCharacterComponent->GetChildActor());
+		const FVector FrontPos = FrontCharacter->GetPawnViewLocation();
+		const FVector BackPos = BackCharacter->GetPawnViewLocation();
 
-		if (FrontCharacter && BackCharacter)
-		{
-			const FVector FrontPos = FrontCharacter->GetPawnViewLocation();
-			const FVector BackPos = BackCharacter->GetPawnViewLocation();
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		FVector FocusCenterLocation;
+		FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos + FrontOffset, BackPos + BackOffset,
+			CineCameraComponent->CurrentHorizontalFOV, CameraLocation, CameraRotation, FocusCenterLocation);
 
-			FVector CameraLocation;
-			FRotator CameraRotation;
-			FVector FocusCenterLocation;
-			FDialogueCameraUtils::CameraTrackingTwoTargets(CameraYawAngle, FrontTargetRate, BackTargetRate, FrontPos + FrontOffset, BackPos + BackOffset,
-				CineCameraComponent->CurrentHorizontalFOV, CameraLocation, CameraRotation, FocusCenterLocation);
+		CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 
-			CineCamera->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
-
-			const FVector HintOffset = FVector(0.f, 0.f, 50.f);
-			PreviewFrontHint->SetVisibility(true);
-			PreviewBackHint->SetVisibility(true);
-			PreviewFrontHint->SetWorldLocationAndRotation(FrontPos + HintOffset, FrontCharacter->GetActorRotation());
-			PreviewBackHint->SetWorldLocationAndRotation(BackPos + HintOffset, BackCharacter->GetActorRotation());
-		}
-		else
-		{
-			PreviewFrontHint->SetVisibility(false);
-			PreviewBackHint->SetVisibility(false);
-		}
+		const FVector HintOffset = FVector(0.f, 0.f, 50.f);
+		PreviewFrontHint->SetVisibility(true);
+		PreviewBackHint->SetVisibility(true);
+		PreviewFrontHint->SetWorldLocationAndRotation(FrontPos + HintOffset, FrontCharacter->GetActorRotation());
+		PreviewBackHint->SetWorldLocationAndRotation(BackPos + HintOffset, BackCharacter->GetActorRotation());
+	}
+	else
+	{
+		PreviewFrontHint->SetVisibility(false);
+		PreviewBackHint->SetVisibility(false);
 	}
 }
 

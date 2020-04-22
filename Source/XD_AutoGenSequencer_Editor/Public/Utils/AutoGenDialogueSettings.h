@@ -38,9 +38,5 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Settings", Config, meta = (DisplayName = "默认对白动画集"))
 	TSoftObjectPtr<UAutoGenDialogueAnimSetBase> DefaultAutoGenDialogueAnimSet;
 
-	UPROPERTY(EditAnywhere, Category = "Settings", Config, meta = (DisplayName = "默认对白镜头集"))
-	TSoftObjectPtr<UAutoGenDialogueCameraSet> DefaultAutoGenDialogueCameraSet;
-
-
 	static const UAutoGenDialogueSettings& Get() { return *GetDefault<UAutoGenDialogueSettings>(); }
 };

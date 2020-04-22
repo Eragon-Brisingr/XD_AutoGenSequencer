@@ -21,7 +21,6 @@ ADialogueStandPositionTemplate::ADialogueStandPositionTemplate()
 	StandPositions.Add(FDialogueStandPosition(TEXT("Target1"), nullptr, FTransform(FVector(-100.f, 0.f, 0.f))));
 
 	PreviewCharacter = ACharacter::StaticClass();
-	AutoGenDialogueCameraSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueCameraSet.LoadSynchronous();
 }
 
 void ADialogueStandPositionTemplate::PreEditChange(FProperty* PropertyThatWillChange)

@@ -9,7 +9,7 @@
 #include "AssetTypeActions_Base.h"
 #include "AutoGenDialogueCameraSet.generated.h"
 
-class AAutoGenDialogueCameraTemplate;
+class UAutoGenDialogueCameraTemplateAsset;
 
 /**
  * 
@@ -19,10 +19,10 @@ struct XD_AUTOGENSEQUENCER_EDITOR_API FAutoGenDialogueCameraConfig
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "镜头模板", AllowAbstract = false))
-	TSubclassOf<AAutoGenDialogueCameraTemplate> CameraTemplate;
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "镜头模板"))
+	UAutoGenDialogueCameraTemplateAsset* CameraTemplate;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "概率权重"))
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "概率权重", ClampMin = 0, ClampMax = 10))
 	float Weights = 1.f;
 };
 
@@ -55,8 +55,8 @@ class FAssetTypeActions_AutoGenDialogueCameraSet : public FAssetTypeActions_Base
 	using Super = FAssetTypeActions_Base;
 
 	// Inherited via FAssetTypeActions_Base
-	virtual FText GetName() const override;
-	virtual UClass* GetSupportedClass() const override;
-	virtual FColor GetTypeColor() const override;
-	virtual uint32 GetCategories() override;
+	FText GetName() const override;
+	UClass* GetSupportedClass() const override;
+	FColor GetTypeColor() const override;
+	uint32 GetCategories() override;
 };

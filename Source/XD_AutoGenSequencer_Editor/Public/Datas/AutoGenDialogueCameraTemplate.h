@@ -14,18 +14,18 @@ class ADialogueStandPositionTemplate;
 class UCineCameraComponent;
 class UMovieScene;
 class ACharacter;
+class ACineCameraActor;
 struct FGenDialogueCharacterData;
 
-UCLASS(Transient, abstract, NotBlueprintable, NotBlueprintType, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking))
+UCLASS(abstract, NotBlueprintable, NotBlueprintType, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking))
 class XD_AUTOGENSEQUENCER_EDITOR_API AAutoGenDialogueCameraTemplate : public AActor
 {
 	GENERATED_BODY()
-
 public:
 	AAutoGenDialogueCameraTemplate();
 
-	void OnConstruction(const FTransform& Transform) override;
-
+	void PostInitializeComponents() override;
+	void Destroyed() override;
 	void PreEditChange(FProperty* PropertyThatWillChange) override;
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
@@ -34,11 +34,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Transient, Category = "镜头模板")
 	UCineCameraComponent* CineCameraComponent;
 	UPROPERTY()
-	UChildActorComponent* CineCamera;
+	ACineCameraActor* CineCameraActorTemplate;
 
-	// 现在只是将摄像机的位置赋给了视口，Fov等数据并没有同步，只是用于简单预览
-	UPROPERTY(EditDefaultsOnly, Category = "镜头模板", meta = (DisplayName = "自动预览摄像机位置"))
-	uint8 bActiveCameraViewport : 1;
+	virtual void UpdateCameraTransform() {}
 public:
 	struct FCameraWeightsData
 	{
@@ -67,6 +65,18 @@ public:
 	virtual TOptional<AAutoGenDialogueCameraTemplate::FCameraWeightsData> EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const { return FCameraWeightsData(); }
 	// 用于生成该镜头对应的轨道
 	virtual void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const {}
+private:
+	UPROPERTY(Transient)
+	ACineCameraActor* CineCameraActor;
+};
+
+UCLASS()
+class XD_AUTOGENSEQUENCER_EDITOR_API UAutoGenDialogueCameraTemplateAsset : public UObject
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(VisibleAnywhere, Instanced)
+	AAutoGenDialogueCameraTemplate* Template;
 };
 
 UCLASS()
@@ -83,6 +93,16 @@ public:
 
 	bool ConfigureProperties() override;
 	FText GetDisplayName() const override;
-	uint32 GetMenuCategories() const override;
 };
 
+class FAssetTypeActions_AutoGenDialogueCameraTemplate : public FAssetTypeActions_Base
+{
+	using Super = FAssetTypeActions_Base;
+
+	// Inherited via FAssetTypeActions_Base
+	FText GetName() const override;
+	UClass* GetSupportedClass() const override;
+	FColor GetTypeColor() const override;
+	uint32 GetCategories() override;
+	void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor) override;
+};

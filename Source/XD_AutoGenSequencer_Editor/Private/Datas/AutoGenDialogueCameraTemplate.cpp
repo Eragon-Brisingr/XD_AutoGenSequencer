@@ -16,11 +16,11 @@
 
 #include "Datas/DialogueStandPositionTemplate.h"
 #include "XD_AutoGenSequencer_Editor.h"
+#include "Utils/CameraTemplateEditor.h"
 
 #define LOCTEXT_NAMESPACE "FXD_AutoGenSequencer_EditorModule"
 
 AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
-	:bActiveCameraViewport(true)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -28,56 +28,62 @@ AAutoGenDialogueCameraTemplate::AAutoGenDialogueCameraTemplate()
 	TemplateRoot = CreateDefaultSubobject<USceneComponent>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, TemplateRoot));
 	SetRootComponent(TemplateRoot);
 
-	CineCamera = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, CineCamera));
-	CineCamera->SetChildActorClass(ACineCameraActor::StaticClass());
-	CineCamera->SetupAttachment(TemplateRoot);
-	if (ACineCameraActor* CineCameraActorTemplate = Cast<ACineCameraActor>(CineCamera->GetChildActorTemplate()))
-	{
-		CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
-	}
+	CineCameraActorTemplate = CreateDefaultSubobject<ACineCameraActor>(GET_MEMBER_NAME_CHECKED(AAutoGenDialogueCameraTemplate, CineCameraActorTemplate));
+	CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
 }
 
-void AAutoGenDialogueCameraTemplate::OnConstruction(const FTransform& Transform)
+void AAutoGenDialogueCameraTemplate::PostInitializeComponents()
 {
-	Super::OnConstruction(Transform);
-	ACineCameraActor* CineCameraActorTemplate = CastChecked<ACineCameraActor>(CineCamera->GetChildActorTemplate());
-	CineCameraComponent = CineCameraActorTemplate->GetCineCameraComponent();
+	Super::PostInitializeComponents();
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Template = CineCameraActorTemplate;
+	SpawnParameters.ObjectFlags = RF_Transient;
+	CineCameraActor = GetWorld()->SpawnActor<ACineCameraActor>(SpawnParameters);
+	CineCameraComponent = CineCameraActor->GetCineCameraComponent();
+
+	UpdateCameraTransform();
+}
+
+void AAutoGenDialogueCameraTemplate::Destroyed()
+{
+	Super::Destroyed();
+
+	CineCameraActor->Destroy();
 }
 
 void AAutoGenDialogueCameraTemplate::PreEditChange(FProperty* PropertyThatWillChange)
 {
-	//Super::PreEditChange(PropertyThatWillChange);
+	// Hack！添加这个防止属性修改时组件反复创建
+	SetFlags(RF_ArchetypeObject);
+	Super::PreEditChange(PropertyThatWillChange);
+	ClearFlags(RF_ArchetypeObject);
 }
 
 void AAutoGenDialogueCameraTemplate::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	//ReregisterComponentsWhenModified()
-	//Super::PostEditChangeProperty(PropertyChangedEvent);
+	SetFlags(RF_ArchetypeObject);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	ClearFlags(RF_ArchetypeObject);
 
-	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	if (CineCameraActor)
 	{
-		RerunConstructionScripts();
+		UpdateCameraTransform();
 	}
 }
 
 UAutoGenDialogueCameraTemplateFactory::UAutoGenDialogueCameraTemplateFactory()
 {
-	SupportedClass = AAutoGenDialogueCameraTemplate::StaticClass();
+	SupportedClass = UAutoGenDialogueCameraTemplateAsset::StaticClass();
 	bCreateNew = true;
 	bEditAfterNew = true;
 }
 
 UObject* UAutoGenDialogueCameraTemplateFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {
-	UClass* BlueprintClass = nullptr;
-	UClass* BlueprintGeneratedClass = nullptr;
-
-	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-	KismetCompilerModule.GetBlueprintTypesForClass(CameraTemplateClass, BlueprintClass, BlueprintGeneratedClass);
-	UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(CameraTemplateClass, InParent, Name, EBlueprintType::BPTYPE_Normal, BlueprintClass, BlueprintGeneratedClass);
-	CameraTemplateClass = nullptr;
-	return Blueprint;
+	UAutoGenDialogueCameraTemplateAsset* Asset = NewObject<UAutoGenDialogueCameraTemplateAsset>(InParent, Name, Flags);
+	Asset->Template = NewObject<AAutoGenDialogueCameraTemplate>(Asset, CameraTemplateClass, Name, RF_Public | RF_Transactional);
+	return Asset;
 }
 
 bool UAutoGenDialogueCameraTemplateFactory::ConfigureProperties()
@@ -125,9 +131,37 @@ FText UAutoGenDialogueCameraTemplateFactory::GetDisplayName() const
 	return LOCTEXT("创建对白镜头模板", "对白镜头模板");
 }
 
-uint32 UAutoGenDialogueCameraTemplateFactory::GetMenuCategories() const
+FText FAssetTypeActions_AutoGenDialogueCameraTemplate::GetName() const
+{
+	return LOCTEXT("对白镜头模板", "对白镜头模板");
+}
+
+UClass* FAssetTypeActions_AutoGenDialogueCameraTemplate::GetSupportedClass() const
+{
+	return UAutoGenDialogueCameraTemplateAsset::StaticClass();
+}
+
+FColor FAssetTypeActions_AutoGenDialogueCameraTemplate::GetTypeColor() const
+{
+	return FColor::Black;
+}
+
+uint32 FAssetTypeActions_AutoGenDialogueCameraTemplate::GetCategories()
 {
 	return FXD_AutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
+}
+
+void FAssetTypeActions_AutoGenDialogueCameraTemplate::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor)
+{
+	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
+	for (UObject* Object : InObjects)
+	{
+		if (UAutoGenDialogueCameraTemplateAsset* Asset = Cast<UAutoGenDialogueCameraTemplateAsset>(Object))
+		{
+			TSharedRef<FCameraTemplateEditor> EditorToolkit = MakeShareable(new FCameraTemplateEditor());
+			EditorToolkit->InitCameraTemplateEditor(Mode, EditWithinLevelEditor, Asset);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -869,12 +869,12 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 			TArray<FCameraWeightsData> CameraWeightsDatas;
 			for (const FAutoGenDialogueCameraConfig& AutoGenDialogueCameraConfig : GenConfig.GetAutoGenDialogueCameraSet()->CameraTemplates)
 			{
-				if (ExcludeCameraTemplates.Contains(AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject()))
+				const AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate->Template;
+				if (ExcludeCameraTemplates.Contains(CameraTemplate))
 				{
 					continue;
 				}
 
-				const AAutoGenDialogueCameraTemplate* CameraTemplate = AutoGenDialogueCameraConfig.CameraTemplate.GetDefaultObject();
 				TOptional<FCameraWeightsData> EvaluatedCameraWeightsData = CameraTemplate->EvaluateCameraTemplate(Speaker, Targets, DialogueCharacterDataMap, DialogueProgress);
 				if (EvaluatedCameraWeightsData)
 				{
@@ -990,7 +990,7 @@ void UAutoGenDialogueSequenceConfig::Generate(TSharedRef<ISequencer> SequencerRe
 				const AAutoGenDialogueCameraTemplate* CameraTemplate = SelectedData.CameraTemplate;
 				CameraActorCreateData.CameraLocation = SelectedData.CameraLocation;
 				CameraActorCreateData.CameraRotation = SelectedData.CameraRotation;
-				CameraActorCreateData.CameraParams = CastChecked<ACineCameraActor>(CameraTemplate->CineCamera->GetChildActorTemplate());
+				CameraActorCreateData.CameraParams = CameraTemplate->CineCameraActorTemplate;
 				CameraActorCreateData.CameraTemplate = CameraTemplate;
 				return CameraHandle;
 			}

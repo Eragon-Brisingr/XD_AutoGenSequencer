@@ -28,8 +28,8 @@ void ADialogueCamera_OneTargetTracking::OnConstruction(const FTransform& Transfo
 		
 		const FVector TargetLocation = GetActorTransform().InverseTransformPosition(TargetCharacter->GetMesh()->GetSocketLocation(SocketName) + TargetOffset);
 		const FRotator LookAtRotation = (TargetLocation - CameraLocation).Rotation();
-		CineCamera->SetRelativeLocation(CameraLocation);
-		CineCamera->SetRelativeRotation(LookAtRotation);
+		CineCameraComponent->SetRelativeLocation(CameraLocation);
+		CineCameraComponent->SetRelativeRotation(LookAtRotation);
 
 		CameraRelativeLocation = CameraLocation - TargetLocation;
 		CameraRelativeRotation = LookAtRotation;

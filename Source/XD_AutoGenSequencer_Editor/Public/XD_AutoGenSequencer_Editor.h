@@ -11,6 +11,7 @@ class FAssetTypeActions_AutoGenDialogueAnimSet;
 class FAssetTypeActions_AutoGenDialogueCameraSet;
 class FAssetTypeActions_AutoGenDialogueCharacterSettings;
 class FAssetTypeActions_DialogueStandPositionTemplate;
+class FAssetTypeActions_AutoGenDialogueCameraTemplate;
 
 class FXD_AutoGenSequencer_EditorModule : public IModuleInterface
 {
@@ -34,6 +35,7 @@ private:
 
 	TSharedPtr<FAssetTypeActions_DialogueSentence> AssetTypeActions_DialogueSentence;
 	TSharedPtr<FAssetTypeActions_DialogueStandPositionTemplate> AssetTypeActions_DialogueStandPositionTemplate;
+	TSharedPtr<FAssetTypeActions_AutoGenDialogueCameraTemplate> AssetTypeActions_AutoGenDialogueCameraTemplate;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueAnimSet> AssetTypeActions_AutoGenDialogueAnimSet;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueCameraSet> AssetTypeActions_AutoGenDialogueCameraSet;
 	TSharedPtr<FAssetTypeActions_AutoGenDialogueCharacterSettings> AssetTypeActions_AutoGenDialogueCharacterSettings;

@@ -9,7 +9,7 @@
 
 #include "Datas/DialogueStandPositionTemplate.h"
 
-#define LOCTEXT_NAMESPACE "MyStandTemplateEditorToolkit"
+#define LOCTEXT_NAMESPACE "StandTemplateEditor"
 
 const FName FStandTemplateEditor::StandTemplateEditorDetailsTabId(TEXT("StandTemplateEditorDetailsTabId"));
 const FName FStandTemplateEditor::StandTemplateEditorViewportTabId(TEXT("StandTemplateEditorViewportTabId"));
@@ -36,12 +36,12 @@ FName FStandTemplateEditor::GetToolkitFName() const
 
 FText FStandTemplateEditor::GetBaseToolkitName() const
 {
-	return LOCTEXT("AppLabel", "TestAsset Editor");
+	return LOCTEXT("StandTemplateEditorAppLabel", "Stand Template Editor");
 }
 
 FString FStandTemplateEditor::GetWorldCentricTabPrefix() const
 {
-	return LOCTEXT("WorldCentricTabPrefix", "Graph").ToString();
+	return LOCTEXT("WorldCentricTabPrefix", "Stand Template").ToString();
 }
 
 TSharedRef<SDockTab> FStandTemplateEditor::HandleTabManagerSpawnTabDetails(const FSpawnTabArgs& Args)

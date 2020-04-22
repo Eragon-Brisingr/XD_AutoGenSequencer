@@ -19,7 +19,7 @@ class XD_AUTOGENSEQUENCER_EDITOR_API ADialogueCamera_TwoTargetTracking : public 
 public:
 	ADialogueCamera_TwoTargetTracking();
 
-	void OnConstruction(const FTransform& Transform) override;
+	void UpdateCameraTransform() override;
 	
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "前景对象占比", ClampMin = "-1", ClampMax = "0.499999"))
 	float FrontTargetRate = 0.1f;
