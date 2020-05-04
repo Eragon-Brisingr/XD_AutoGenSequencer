@@ -31,12 +31,6 @@ public:
 	FVector BackOffset;
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "镜头偏航角", ClampMin = "0.0001", ClampMax = "90"))
 	float CameraYawAngle = 20.f;
-	
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "预览前景对象编号"))
-	uint8 PreviewFrontTargetIdx = 0;
-	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "预览背景对象编号"))
-	uint8 PreviewBackTargetIdx = 1;
-
 public:
 	UPROPERTY(Transient)
 	UTextRenderComponent* PreviewFrontHint;

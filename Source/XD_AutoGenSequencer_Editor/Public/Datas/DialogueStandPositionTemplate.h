@@ -52,15 +52,11 @@ public:
 	UAutoGenDialogueCameraSet* AutoGenDialogueCameraSet;
 
 	void PreEditChange(FProperty* PropertyThatWillChange) override;
-
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-
 	void OnConstruction(const FTransform& Transform) override;
 
 	UChildActorComponent* CreateChildActorComponent();
-
 	void CreateAllTemplatePreviewCharacter();
-
 	void UpdateToStandLocation();
 
 	UPROPERTY(Transient)

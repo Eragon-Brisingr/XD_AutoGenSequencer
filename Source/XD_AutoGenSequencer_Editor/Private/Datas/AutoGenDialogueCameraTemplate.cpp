@@ -13,6 +13,7 @@
 #include <EngineUtils.h>
 #include <KismetCompilerModule.h>
 #include <Kismet2/KismetEditorUtilities.h>
+#include <AdvancedPreviewScene.h>
 
 #include "Datas/DialogueStandPositionTemplate.h"
 #include "XD_AutoGenSequencer_Editor.h"
@@ -162,6 +163,75 @@ void FAssetTypeActions_AutoGenDialogueCameraTemplate::OpenAssetEditor(const TArr
 			EditorToolkit->InitCameraTemplateEditor(Mode, EditWithinLevelEditor, Asset);
 		}
 	}
+}
+
+void UAutoGenDialogueCameraTemplateThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas, bool bAdditionalViewFamily)
+{
+	if (UAutoGenDialogueCameraTemplateAsset* Asset = Cast<UAutoGenDialogueCameraTemplateAsset>(Object))
+	{
+		if (ThumbnailScene == nullptr)
+		{
+			ThumbnailScene = new FAdvancedPreviewScene(FPreviewScene::ConstructionValues());
+		}
+
+		if (AAutoGenDialogueCameraTemplate* Template = Asset->Template)
+		{
+			FActorSpawnParameters ActorSpawnParameters;
+			ActorSpawnParameters.Template = Template;
+			ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ActorSpawnParameters.bNoFail = true;
+			ActorSpawnParameters.ObjectFlags = RF_Transient;
+			AAutoGenDialogueCameraTemplate* PreviewCameraTemplate = ThumbnailScene->GetWorld()->SpawnActor<AAutoGenDialogueCameraTemplate>(Template->GetClass(), ActorSpawnParameters);
+			PreviewCameraTemplate->UpdateCameraTransform();
+
+			{
+				UCameraComponent* CineCameraComponent = PreviewCameraTemplate->CineCameraComponent;
+
+				FMinimalViewInfo ViewInfo;
+				CineCameraComponent->GetCameraView(FApp::GetDeltaTime(), ViewInfo);
+
+				UWorld* World = CineCameraComponent->GetWorld();
+
+				FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
+					.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
+					.SetResolveScene(true));
+
+				FSceneViewInitOptions ViewInitOptions;
+
+				ViewInitOptions.BackgroundColor = FLinearColor::Black;
+				const float YOffset = (Height - Height / ViewInfo.AspectRatio) * 0.5f;
+				ViewInitOptions.SetViewRectangle(FIntRect(0, YOffset, Width, Height / ViewInfo.AspectRatio + YOffset));
+				ViewInitOptions.ViewFamily = &ViewFamily;
+
+				ViewInitOptions.ViewOrigin = ViewInfo.Location;
+				ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewInfo.Rotation) * FMatrix(
+					FPlane(0, 0, 1, 0),
+					FPlane(1, 0, 0, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, 0, 1));
+
+				ViewInitOptions.ProjectionMatrix = ViewInfo.CalculateProjectionMatrix();
+
+				FSceneView* NewView = new FSceneView(ViewInitOptions);
+				ViewFamily.Views.Add(NewView);
+
+				RenderViewFamily(Canvas, &ViewFamily);
+			}
+
+			PreviewCameraTemplate->Destroy();
+		}
+	}
+}
+
+void UAutoGenDialogueCameraTemplateThumbnailRenderer::BeginDestroy()
+{
+	if (ThumbnailScene != nullptr)
+	{
+		delete ThumbnailScene;
+		ThumbnailScene = nullptr;
+	}
+
+	Super::BeginDestroy();
 }
 
 #undef LOCTEXT_NAMESPACE

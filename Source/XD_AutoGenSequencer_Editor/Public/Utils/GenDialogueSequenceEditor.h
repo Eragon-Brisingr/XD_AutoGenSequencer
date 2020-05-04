@@ -35,6 +35,7 @@ public:
 	static FGenDialogueSequenceEditor& Get();
 private:
 	FDelegateHandle SequencerCreatedHandle;
+	FDelegateHandle OnActorMovedHandle;
 	TSharedPtr<FExtender> SequencerToolbarExtender;
 	TWeakPtr<ISequencer> WeakSequencer;
 
@@ -63,8 +64,6 @@ private:
 	void GeneratePreviewCharacters();
 	//将生成的预览实例和定序器中的同步
 	static void SyncSequenceInstanceReference(ULevelSequence* LevelSeqeunce, const TMap<FName, TSoftObjectPtr<ACharacter>>& CharacterNameInstanceMap);
-
-	void WhenStandTemplateInstanceChanged();
 
 	void UpdateStandTemplateInstanceState();
 

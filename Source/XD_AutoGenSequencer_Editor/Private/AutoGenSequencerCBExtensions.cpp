@@ -4,12 +4,14 @@
 #include "AutoGenSequencerCBExtensions.h"
 
 #include <ContentBrowserModule.h>
-#include "ContentBrowserDelegates.h"
+#include <ContentBrowserDelegates.h>
 #include <Framework/MultiBox/MultiBoxBuilder.h>
 #include <EditorStyleSet.h>
 #include <Sound/SoundWave.h>
 #include <AssetRegistryModule.h>
 #include <LevelSequence.h>
+#include <ObjectTools.h>
+
 #include "Data/DialogueSentence.h"
 #include "Utils/AutoGenDialogueSettings.h"
 #include "Factory/AutoGenDialogueSequenceFactory.h"
@@ -71,7 +73,11 @@ TSharedRef<FExtender> FAutoGenSequencerContentBrowserExtensions::OnExtendContent
 										FString SequenceName = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.AssetName.ToString());
 										FString DialogueSentencePath = FString::Printf(TEXT("%s_DialogueSentence"), *SoundWaveAsset.PackageName.ToString());
 
-										// TODO：避免已存在的资源
+										if (UPackage* Package = LoadObject<UPackage>(nullptr, *DialogueSentencePath))
+										{
+											ObjectTools::ForceDeleteObjects({ Package }, false);
+										}
+
 										UPackage* DialogueSentencePackage = CreatePackage(nullptr, *DialogueSentencePath);
 										TSubclassOf<UDialogueSentence> DialogueSentenceType = UAutoGenDialogueSettings::GetDialogueSentenceType();
 										UDialogueSentence* DialogueSentence = NewObject<UDialogueSentence>(DialogueSentencePackage, DialogueSentenceType, *SequenceName, RF_Public | RF_Standalone);

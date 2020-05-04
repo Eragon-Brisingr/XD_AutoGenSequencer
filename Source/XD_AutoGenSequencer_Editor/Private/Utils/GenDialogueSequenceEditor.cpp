@@ -122,6 +122,12 @@ void FGenDialogueSequenceEditor::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBui
 					DestroyPreviewStandPositionTemplate();
 				}
 				GeneratePreviewCharacters();
+				if (ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get())
+				{
+					GEditor->GetSelectedActors()->DeselectAll();
+					GEditor->SelectActor(StandPositionTemplate, true, false, false, true);
+					GEditor->NoteSelectionChange();
+				}
 			}),
 		FCanExecuteAction::CreateLambda([]()
 			{
@@ -408,6 +414,7 @@ void FGenDialogueSequenceEditor::DestroyPreviewStandPositionTemplate()
 		PreviewStandPositionTemplate->Destroy();
 	}
 	PreviewStandPositionTemplate = nullptr;
+	GEngine->OnActorMoved().Remove(OnActorMovedHandle);
 }
 
 void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
@@ -417,7 +424,6 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 	DestroyPreviewStandPositionTemplate();
 
 	UGenDialogueSequenceConfigBase* DialogueSequenceConfig = GetGenDialogueSequenceConfig();
-
 	if (ADialogueStandPositionTemplate* DialogueStationTemplate = DialogueSequenceConfig->GetDialogueStationTemplate())
 	{
 		FTransform SpawnTransform = DialogueSequenceConfig->StandPositionPosition;
@@ -444,12 +450,7 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 		{
 			StandPositionTemplate->StandPositions.SetNumZeroed(DialogueCharacterDatas.Num());
 			StandPositionTemplate->FinishSpawning(DialogueSequenceConfig->StandPositionPosition, true);
-			StandPositionTemplate->CreateAllTemplatePreviewCharacter();
-			GEditor->GetSelectedActors()->DeselectAll();
-			GEditor->SelectActor(StandPositionTemplate, true, false, false, true);
 			StandPositionTemplate->InvalidateLightingCache();
-			StandPositionTemplate->PostEditMove(true);
-			GEditor->NoteSelectionChange();
 		}
 		PreviewStandPositionTemplate = StandPositionTemplate;
 
@@ -509,7 +510,41 @@ void FGenDialogueSequenceEditor::GeneratePreviewCharacters()
 			SyncSequenceInstanceReference(DialogueSequenceConfig->GetOwingLevelSequence(), CharacterNameInstanceMap);
 		}
 
-		StandPositionTemplate->OnInstanceChanged.BindRaw(this, &FGenDialogueSequenceEditor::WhenStandTemplateInstanceChanged);
+		*AActor::StaticClass()->FindPropertyByName(TEXT("bEditable"))->ContainerPtrToValuePtr<bool>(StandPositionTemplate) = false;
+		FProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
+		for (TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
+		{
+			if (ACharacter* Talker = Pair.Value.Get())
+			{
+				TWeakObjectPtr<UChildActorComponent>& ParentComponent = *ParentComponentProperty->ContainerPtrToValuePtr<TWeakObjectPtr<UChildActorComponent>>(Talker);
+				ParentComponent = nullptr;
+				Talker->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			}
+		}
+		OnActorMovedHandle = GEngine->OnActorMoved().AddLambda([=](AActor* Actor)
+		{
+			ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get();
+			if (StandPositionTemplate && !IsAutoGenDialogueSequenceActived() && StandPositionTemplate->StandPositions.ContainsByPredicate([&](const FDialogueStandPosition& E){ return E.PreviewCharacterInstance->GetChildActor() == Actor; }))
+			{
+				UGenDialogueSequenceConfigBase* AutoGenDialogueSequenceConfig = GetGenDialogueSequenceConfig();
+				StandPositionTemplate->Modify();
+				AutoGenDialogueSequenceConfig->Modify();
+
+				const FTransform TemplateTransform = StandPositionTemplate->GetTransform();
+				for (int32 Idx = 0; Idx < AutoGenDialogueSequenceConfig->DialogueCharacterDatas.Num(); ++Idx)
+				{
+					UChildActorComponent* PreviewCharacterComponent = StandPositionTemplate->StandPositions[Idx].PreviewCharacterInstance;
+					if (ACharacter* CharacterInstance = Cast<ACharacter>(PreviewCharacterComponent->GetChildActor()))
+					{
+						FTransform ActorTransform = CharacterInstance->GetActorTransform();
+						ActorTransform.AddToTranslation(FVector(0.f, 0.f, -CharacterInstance->GetDefaultHalfHeight()));
+						AutoGenDialogueSequenceConfig->DialogueCharacterDatas[Idx].PositionOverride = ActorTransform;
+					}
+				}
+
+				// AutoGenDialogueSequenceConfig->StandPositionPosition = StandPositionTemplate->GetActorTransform();
+			}
+		});
 	}
 
 	UpdateStandTemplateInstanceState();
@@ -532,48 +567,9 @@ void FGenDialogueSequenceEditor::SyncSequenceInstanceReference(ULevelSequence* L
 	}
 }
 
-void FGenDialogueSequenceEditor::WhenStandTemplateInstanceChanged()
-{
-	ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get();
-	UGenDialogueSequenceConfigBase* AutoGenDialogueSequenceConfig = GetGenDialogueSequenceConfig();
-	StandPositionTemplate->Modify();
-	AutoGenDialogueSequenceConfig->Modify();
-
-	AutoGenDialogueSequenceConfig->SyncInstanceData(StandPositionTemplate);
-	GetGenDialogueSequenceConfig()->StandPositionPosition = StandPositionTemplate->GetActorTransform();
-}
-
 void FGenDialogueSequenceEditor::UpdateStandTemplateInstanceState()
 {
-	ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get();
-	if (StandPositionTemplate == nullptr)
-	{
-		return;
-	}
-
-	const bool bIsSequenceEditorMode = IsAutoGenDialogueSequenceActived();
-	FProperty* ParentComponentProperty = AActor::StaticClass()->FindPropertyByName(TEXT("ParentComponent"));
-	for (TPair<FName, TSoftObjectPtr<ACharacter>>& Pair : CharacterNameInstanceMap)
-	{
-		if (ACharacter* Talker = Pair.Value.Get())
-		{
-			TWeakObjectPtr<UChildActorComponent>& ParentComponent = *ParentComponentProperty->ContainerPtrToValuePtr<TWeakObjectPtr<UChildActorComponent>>(Talker);
-			if (bIsSequenceEditorMode)
-			{
-				ParentComponent = nullptr;
-				Talker->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-			}
-			else
-			{
-				ParentComponent = *StandPositionTemplate->PreviewCharacters.FindByPredicate([&](UChildActorComponent* E) {return E->GetChildActor() == Talker; });
-				Talker->AttachToComponent(ParentComponent.Get(), FAttachmentTransformRules::KeepWorldTransform);
-			}
-		}
-	}
-	if (!bIsSequenceEditorMode)
-	{
-		StandPositionTemplate->UpdateToStandLocation();
-	}
+	
 }
 
 void FGenDialogueSequenceEditor::OpenEditorForAsset(UObject* Asset)

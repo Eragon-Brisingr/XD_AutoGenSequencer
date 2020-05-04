@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include <GameFramework/Actor.h>
 #include <MovieSceneObjectBindingID.h>
-#include "Factories/Factory.h"
+#include <Factories/Factory.h>
+#include <ThumbnailRendering/DefaultSizedThumbnailRenderer.h>
 #include "Datas/AutoGenDialogueType.h"
 #include "AutoGenDialogueCameraTemplate.generated.h"
 
@@ -105,4 +106,16 @@ class FAssetTypeActions_AutoGenDialogueCameraTemplate : public FAssetTypeActions
 	FColor GetTypeColor() const override;
 	uint32 GetCategories() override;
 	void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor) override;
+};
+
+UCLASS()
+class UAutoGenDialogueCameraTemplateThumbnailRenderer : public UDefaultSizedThumbnailRenderer
+{
+	GENERATED_BODY()
+public:
+	void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas, bool bAdditionalViewFamily) override;
+	void BeginDestroy() override;
+	bool AllowsRealtimeThumbnails(UObject* Object) const { return false; }
+private:
+	class FAdvancedPreviewScene* ThumbnailScene = nullptr;
 };

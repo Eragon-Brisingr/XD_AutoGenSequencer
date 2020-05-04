@@ -103,6 +103,7 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 	}
 
 	FEditorModeRegistry::Get().RegisterMode<FEdMode_AutoGenSequence>(FEdMode_AutoGenSequence::ID);
+	UThumbnailManager::Get().RegisterCustomRenderer(UAutoGenDialogueCameraTemplateAsset::StaticClass(), UAutoGenDialogueCameraTemplateThumbnailRenderer::StaticClass());
 }
 
 void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
@@ -152,6 +153,11 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	}
 
 	FEditorModeRegistry::Get().UnregisterMode(FEdMode_AutoGenSequence::ID);
+
+	if (UObjectInitialized())
+	{
+		UThumbnailManager::Get().UnregisterCustomRenderer(UAutoGenDialogueCameraTemplateAsset::StaticClass());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -23,14 +23,6 @@ ADialogueStandPositionTemplate* UGenDialogueSequenceConfigBase::GetDialogueStati
 	return DialogueStationTemplateAsset ? DialogueStationTemplateAsset->Template : nullptr;
 }
 
-void UGenDialogueSequenceConfigBase::SyncInstanceData(const ADialogueStandPositionTemplate* Instance)
-{
-	for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
-	{
-		DialogueCharacterDatas[Idx].PositionOverride = Instance->StandPositions[Idx].StandPosition;
-	}
-}
-
 TArray<FName> UGenDialogueSequenceConfigBase::GetCharacterNames() const
 {
 	TArray<FName> ValidNameList;
@@ -91,8 +83,7 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 	{
 		if (DialogueStationTemplateAsset)
 		{
-			DialogueCharacterDatas.SetNumZeroed(GetDialogueStationTemplate()->StandPositions.Num());
-			SyncInstanceData(GetDialogueStationTemplate());
+			DialogueCharacterDatas.SetNum(GetDialogueStationTemplate()->StandPositions.Num());
 
 			FDialogueCharacterData DefaultDialogueCharacterData;
 			for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)

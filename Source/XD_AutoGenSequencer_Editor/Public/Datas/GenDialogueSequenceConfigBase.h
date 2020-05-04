@@ -43,7 +43,7 @@ public:
  	FTransform PositionOverride;
 
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白动画集"))
-	UAutoGenDialogueAnimSetBase* DialogueAnimSet;
+	UAutoGenDialogueAnimSetBase* DialogueAnimSet = nullptr;
 
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白角色设置"))
 	UAutoGenDialogueCharacterSettings* CharacterSettings;
@@ -77,10 +77,9 @@ public:
 	UDialogueStandPositionTemplateAsset* DialogueStationTemplateAsset;
 	ADialogueStandPositionTemplate* GetDialogueStationTemplate() const;
 
-	UPROPERTY(EditAnywhere, Category = "1.对白角色配置", EditFixedSize = true, meta = (DisplayName = "对话角色"))
+	UPROPERTY(EditAnywhere, Category = "1.对白角色配置", EditFixedSize = true, meta = (DisplayName = "对话角色", EditFixedOrder))
 	TArray<FDialogueCharacterData> DialogueCharacterDatas;
 	
-	void SyncInstanceData(const ADialogueStandPositionTemplate* Instance);
 	TArray<FName> GetCharacterNames() const;
 
 	TArray<TSharedPtr<FName>> DialogueNameList;
