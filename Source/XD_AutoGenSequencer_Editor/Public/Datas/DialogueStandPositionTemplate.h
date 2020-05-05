@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Info.h"
-#include "Factories/Factory.h"
-#include "AssetTypeActions_Base.h"
+#include <GameFramework/Info.h>
+#include <Factories/Factory.h>
+#include <AssetTypeActions_Base.h>
+#include <ThumbnailRendering/DefaultSizedThumbnailRenderer.h>
 #include "DialogueStandPositionTemplate.generated.h"
 
 class ACharacter;
@@ -96,4 +97,16 @@ class FAssetTypeActions_DialogueStandPositionTemplate : public FAssetTypeActions
 	FColor GetTypeColor() const override;
 	uint32 GetCategories() override;
 	void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor) override;
+};
+
+UCLASS()
+class UDialogueStandPositionTemplateThumbnailRenderer : public UDefaultSizedThumbnailRenderer
+{
+	GENERATED_BODY()
+public:
+	void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas, bool bAdditionalViewFamily) override;
+	void BeginDestroy() override;
+	bool AllowsRealtimeThumbnails(UObject* Object) const override { return false; }
+private:
+	class FAdvancedPreviewScene* ThumbnailScene = nullptr;
 };

@@ -6,6 +6,7 @@
 #include <EditorModes.h>
 #include <Editor.h>
 #include <EngineUtils.h>
+#include <SCommonEditorViewportToolbarBase.h>
 
 #include "Datas/DialogueStandPositionTemplate.h"
 
@@ -301,6 +302,20 @@ TSharedRef<FEditorViewportClient> SStandTemplateViewport::MakeEditorViewportClie
 {
 	StandTemplateViewportClient = MakeShareable(new FStandTemplateViewportClient(SharedThis(this), PreviewScene.ToSharedRef()));
 	return StandTemplateViewportClient.ToSharedRef();
+}
+
+TSharedPtr<SWidget> SStandTemplateViewport::MakeViewportToolbar()
+{
+	class SStandTemplateEditorViewportToolbar : public SCommonEditorViewportToolbarBase
+	{
+		using Super = SCommonEditorViewportToolbarBase;
+	public:
+		void Construct(const FArguments& InArgs, TSharedPtr<class ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
+		{
+			Super::Construct(InArgs, InInfoProvider);
+		}
+	};
+	return SNew(SStandTemplateEditorViewportToolbar, SharedThis(this));
 }
 
 #undef LOCTEXT_NAMESPACE

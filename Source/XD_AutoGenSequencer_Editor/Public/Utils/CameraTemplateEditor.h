@@ -90,6 +90,7 @@ public:
 	void OnFloatingButtonClicked() override;
 
 	TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	TSharedPtr<SWidget> MakeViewportToolbar() override;
 
 	FCameraTemplateViewportClient* GetViewportClient() { return CameraTemplateViewportClient.Get(); };
 	//Shared ptr to the client

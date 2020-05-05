@@ -6,6 +6,7 @@
 #include <GameFramework/Actor.h>
 #include <MovieSceneObjectBindingID.h>
 #include <Factories/Factory.h>
+#include <AssetTypeActions_Base.h>
 #include <ThumbnailRendering/DefaultSizedThumbnailRenderer.h>
 #include "Datas/AutoGenDialogueType.h"
 #include "AutoGenDialogueCameraTemplate.generated.h"
@@ -18,7 +19,7 @@ class ACharacter;
 class ACineCameraActor;
 struct FGenDialogueCharacterData;
 
-UCLASS(abstract, NotBlueprintable, NotBlueprintType, hidedropdown, hidecategories = (Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking))
+UCLASS(abstract, NotBlueprintable, NotBlueprintType, hidedropdown, hidecategories = (Transform, Input, Movement, Collision, Rendering, Replication, Actor, LOD, Cooking, Tags, Tick, Physics, AssetUserData))
 class XD_AUTOGENSEQUENCER_EDITOR_API AAutoGenDialogueCameraTemplate : public AActor
 {
 	GENERATED_BODY()
@@ -67,6 +68,7 @@ public:
 	// 用于生成该镜头对应的轨道
 	virtual void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const {}
 private:
+	friend class FCameraTemplateEditor;
 	UPROPERTY(Transient)
 	ACineCameraActor* CineCameraActor;
 };
@@ -115,7 +117,7 @@ class UAutoGenDialogueCameraTemplateThumbnailRenderer : public UDefaultSizedThum
 public:
 	void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas, bool bAdditionalViewFamily) override;
 	void BeginDestroy() override;
-	bool AllowsRealtimeThumbnails(UObject* Object) const { return false; }
+	bool AllowsRealtimeThumbnails(UObject* Object) const override { return false; }
 private:
 	class FAdvancedPreviewScene* ThumbnailScene = nullptr;
 };

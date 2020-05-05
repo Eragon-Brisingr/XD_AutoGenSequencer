@@ -86,6 +86,7 @@ public:
 	void OnFloatingButtonClicked() override;
 
 	TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	TSharedPtr<SWidget> MakeViewportToolbar() override;
 
 	FStandTemplateViewportClient* GetViewportClient() { return StandTemplateViewportClient.Get(); };
 	//Shared ptr to the client

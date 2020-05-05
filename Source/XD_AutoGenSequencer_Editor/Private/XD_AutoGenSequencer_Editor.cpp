@@ -103,7 +103,12 @@ void FXD_AutoGenSequencer_EditorModule::StartupModule()
 	}
 
 	FEditorModeRegistry::Get().RegisterMode<FEdMode_AutoGenSequence>(FEdMode_AutoGenSequence::ID);
-	UThumbnailManager::Get().RegisterCustomRenderer(UAutoGenDialogueCameraTemplateAsset::StaticClass(), UAutoGenDialogueCameraTemplateThumbnailRenderer::StaticClass());
+
+	UThumbnailManager& ThumbnailManager = UThumbnailManager::Get();
+	{
+		ThumbnailManager.RegisterCustomRenderer(UAutoGenDialogueCameraTemplateAsset::StaticClass(), UAutoGenDialogueCameraTemplateThumbnailRenderer::StaticClass());
+		ThumbnailManager.RegisterCustomRenderer(UDialogueStandPositionTemplateAsset::StaticClass(), UDialogueStandPositionTemplateThumbnailRenderer::StaticClass());
+	}
 }
 
 void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
@@ -157,6 +162,7 @@ void FXD_AutoGenSequencer_EditorModule::ShutdownModule()
 	if (UObjectInitialized())
 	{
 		UThumbnailManager::Get().UnregisterCustomRenderer(UAutoGenDialogueCameraTemplateAsset::StaticClass());
+		UThumbnailManager::Get().UnregisterCustomRenderer(UDialogueStandPositionTemplateAsset::StaticClass());
 	}
 }
 

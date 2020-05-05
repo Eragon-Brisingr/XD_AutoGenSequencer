@@ -6,6 +6,10 @@
 #include <EditorModes.h>
 #include <Editor.h>
 #include <EngineUtils.h>
+#include <CineCameraComponent.h>
+#include <Widgets/SBoxPanel.h>
+#include <Widgets/Input/SButton.h>
+#include <SCommonEditorViewportToolbarBase.h>
 
 #include "Datas/AutoGenDialogueCameraTemplate.h"
 
@@ -76,9 +80,12 @@ void FCameraTemplateEditor::SaveAsset_Execute()
 
 	if (UAutoGenDialogueCameraTemplateAsset* Asset = CameraTemplateAsset.Get())
 	{
-		Asset->Template = DuplicateObject(Viewport->CameraTemplateViewportClient->PreviewCameraTemplate, Asset);
-		Asset->Template->ClearFlags(RF_AllFlags);
-		Asset->Template->SetFlags(RF_Public | RF_Transactional);
+		AAutoGenDialogueCameraTemplate* PreviewCameraTemplate = Viewport->CameraTemplateViewportClient->PreviewCameraTemplate;
+		AAutoGenDialogueCameraTemplate* TemplateToSave = DuplicateObject(PreviewCameraTemplate, Asset);
+		TemplateToSave->CineCameraActorTemplate = DuplicateObject(PreviewCameraTemplate->CineCameraActor, Asset);
+		TemplateToSave->ClearFlags(RF_AllFlags);
+		TemplateToSave->SetFlags(RF_Public | RF_Transactional);
+		Asset->Template = TemplateToSave;
 	}
 }
 
@@ -132,7 +139,7 @@ TSharedRef<SDockTab> FCameraTemplateEditor::HandleTabManagerSpawnTabDetails(cons
 	DetailsViewArgs.bUpdatesFromSelection = true;
 	DetailsViewArgs.bCustomNameAreaLocation = true;
 	DetailsViewArgs.bLockable = false;
-	//DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ENameAreaSettings::HideNameArea;
 	DetailsViewArgs.NotifyHook = this;
 	DetailsViewArgs.bShowActorLabel = true;
 
@@ -169,8 +176,6 @@ FCameraTemplateViewportClient::FCameraTemplateViewportClient(const TSharedRef<SC
 {
 	AdvancedPreviewScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 
-	SetRealtime(true);
-
 	// Hide grid, we don't need this.
 	DrawHelper.bDrawGrid = false;
 	DrawHelper.bDrawPivot = false;
@@ -181,11 +186,12 @@ FCameraTemplateViewportClient::FCameraTemplateViewportClient(const TSharedRef<SC
 	SetViewLocation(FVector(75, 75, 75));
 	SetViewRotation(FVector(-75, -75, -75).Rotation());
 
+	SetRealtime(true);
 	EngineShowFlags.SetScreenPercentage(true);
+	SetGameView(true);
 
 	// Set the Default type to Ortho and the XZ Plane
-	ELevelViewportType NewViewportType = LVT_Perspective;
-	SetViewportType(NewViewportType);
+	SetViewportType(LVT_Perspective);
 
 	// View Modes in Persp and Ortho
 	SetViewModes(VMI_Lit, VMI_Lit);
@@ -302,6 +308,20 @@ TSharedRef<FEditorViewportClient> SCameraTemplateViewport::MakeEditorViewportCli
 {
 	CameraTemplateViewportClient = MakeShareable(new FCameraTemplateViewportClient(SharedThis(this), PreviewScene.ToSharedRef()));
 	return CameraTemplateViewportClient.ToSharedRef();
+}
+
+TSharedPtr<SWidget> SCameraTemplateViewport::MakeViewportToolbar()
+{
+	class SCameraTemplateEditorViewportToolbar : public SCommonEditorViewportToolbarBase
+	{
+		using Super = SCommonEditorViewportToolbarBase;
+	public:
+		void Construct(const FArguments& InArgs, TSharedPtr<class ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
+		{
+			Super::Construct(InArgs, InInfoProvider);
+		}
+	};
+	return SNew(SCameraTemplateEditorViewportToolbar, SharedThis(this));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -21,30 +21,44 @@
 
 ADialogueCamera_TwoTargetTracking::ADialogueCamera_TwoTargetTracking()
 {
+	FrontCharacterType = ACharacter::StaticClass();
+	BackCharacterType = ACharacter::StaticClass();
+
 	FrontCharacterComponent = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, FrontCharacterComponent));
 	{
 		FrontCharacterComponent->SetupAttachment(TemplateRoot);
 		FrontCharacterComponent->SetWorldLocationAndRotation(FVector(-100.f, 0.f, 88.f), FRotator(0.f, 0.f, 0.f));
-		FrontCharacterComponent->SetChildActorClass(ACharacter::StaticClass());
-	}
-	PreviewFrontHint = CreateDefaultSubobject<UTextRenderComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, PreviewFrontHint), true);
-	{
-		PreviewFrontHint->SetText(LOCTEXT("Front Target Hint", "Front"));
-		PreviewFrontHint->HorizontalAlignment = EHorizTextAligment::EHTA_Center;
-		PreviewFrontHint->SetupAttachment(FrontCharacterComponent);
+		FrontCharacterComponent->SetChildActorClass(FrontCharacterType);
 	}
 	BackCharacterComponent = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, BackCharacterComponent));
 	{
 		BackCharacterComponent->SetupAttachment(TemplateRoot);
 		BackCharacterComponent->SetWorldLocationAndRotation(FVector(100.f, 0.f, 88.f), FRotator(0.f, 180.f, 0.f));
-		BackCharacterComponent->SetChildActorClass(ACharacter::StaticClass());
+		BackCharacterComponent->SetChildActorClass(BackCharacterType);
 	}
-	PreviewBackHint = CreateDefaultSubobject<UTextRenderComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, PreviewBackHint), true);
+}
+
+void ADialogueCamera_TwoTargetTracking::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, FrontCharacterType))
 	{
-		PreviewBackHint->SetText(LOCTEXT("Back Target Hint", "Back"));
-		PreviewBackHint->HorizontalAlignment = EHorizTextAligment::EHTA_Center;
-		PreviewBackHint->SetupAttachment(BackCharacterComponent);
+		FrontCharacterComponent->SetChildActorClass(FrontCharacterType);
 	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueCamera_TwoTargetTracking, BackCharacterType))
+	{
+		BackCharacterComponent->SetChildActorClass(BackCharacterType);
+	}
+}
+
+void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	FrontCharacterInstance = Cast<ACharacter>(FrontCharacterComponent->GetChildActor());
+	BackCharacterInstance = Cast<ACharacter>(BackCharacterComponent->GetChildActor());
 }
 
 void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()
@@ -52,6 +66,8 @@ void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()
 	ACharacter* FrontCharacter = Cast<ACharacter>(FrontCharacterComponent->GetChildActor());
 	ACharacter* BackCharacter = Cast<ACharacter>(BackCharacterComponent->GetChildActor());
 
+	CineCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
+	CineCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack = BackCharacter;
 	if (FrontCharacter && BackCharacter)
 	{
 		const FVector FrontPos = FrontCharacter->GetPawnViewLocation();
@@ -66,15 +82,6 @@ void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()
 		CineCameraComponent->SetWorldLocationAndRotation(CameraLocation, CameraRotation);
 
 		const FVector HintOffset = FVector(0.f, 0.f, 50.f);
-		PreviewFrontHint->SetVisibility(true);
-		PreviewBackHint->SetVisibility(true);
-		PreviewFrontHint->SetWorldLocationAndRotation(FrontPos + HintOffset, FrontCharacter->GetActorRotation());
-		PreviewBackHint->SetWorldLocationAndRotation(BackPos + HintOffset, BackCharacter->GetActorRotation());
-	}
-	else
-	{
-		PreviewFrontHint->SetVisibility(false);
-		PreviewBackHint->SetVisibility(false);
 	}
 }
 
