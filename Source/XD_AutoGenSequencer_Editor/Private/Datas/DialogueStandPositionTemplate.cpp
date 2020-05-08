@@ -95,14 +95,11 @@ void ADialogueStandPositionTemplate::CreateAllTemplatePreviewCharacter()
 		}
 
 		UClass* CharacterClass = StandPosition.PreviewCharacter ? StandPosition.PreviewCharacter : PreviewCharacter;
-		if (ChildActorComponent->GetChildActorClass() != CharacterClass)
+		ChildActorComponent->SetChildActorClass(CharacterClass);
+		if (AActor* Actor = ChildActorComponent->GetChildActor())
 		{
-			ChildActorComponent->SetChildActorClass(CharacterClass);
-			if (AActor* Actor = ChildActorComponent->GetChildActor())
-			{
-				Actor->SetFlags(RF_Transient);
-				Actor->SetActorLabel(StandPosition.StandName.ToString());
-			}
+			Actor->SetFlags(RF_Transient);
+			Actor->SetActorLabel(StandPosition.StandName.ToString());
 		}
 
 		ChildActorComponent->SetRelativeTransform(StandPosition.StandPosition);
