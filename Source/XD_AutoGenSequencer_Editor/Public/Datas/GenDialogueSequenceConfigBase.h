@@ -46,7 +46,7 @@ public:
 	UAutoGenDialogueAnimSetBase* DialogueAnimSet = nullptr;
 
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "对白角色设置"))
-	UAutoGenDialogueCharacterSettings* CharacterSettings;
+	UAutoGenDialogueCharacterSettings* CharacterSettings = nullptr;
 };
 
 // 生成期间的角色数据信息

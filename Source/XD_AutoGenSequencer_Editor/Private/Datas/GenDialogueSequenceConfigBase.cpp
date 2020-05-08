@@ -85,23 +85,14 @@ void UGenDialogueSequenceConfigBase::PostEditChangeProperty(FPropertyChangedEven
 		{
 			DialogueCharacterDatas.SetNum(GetDialogueStationTemplate()->StandPositions.Num());
 
-			FDialogueCharacterData DefaultDialogueCharacterData;
 			for (int32 Idx = 0; Idx < DialogueCharacterDatas.Num(); ++Idx)
 			{
 				const FDialogueStandPosition& DialogueStandPosition = GetDialogueStationTemplate()->StandPositions[Idx];
 				FDialogueCharacterData& DialogueCharacterData = DialogueCharacterDatas[Idx];
-				if (DialogueCharacterData.NameOverride.IsNone())
-				{
-					DialogueCharacterData.NameOverride = DialogueStandPosition.StandName;
-				}
-				if (DialogueCharacterData.TypeOverride == nullptr)
-				{
-					DialogueCharacterData.TypeOverride = DialogueStandPosition.PreviewCharacter ? DialogueStandPosition.PreviewCharacter : GetDialogueStationTemplate()->PreviewCharacter;
-				}
-				if (DialogueCharacterData.DialogueAnimSet == nullptr)
-				{
-					DialogueCharacterData.DialogueAnimSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueAnimSet.LoadSynchronous();
-				}
+				DialogueCharacterData.NameOverride = DialogueStandPosition.StandName;
+				DialogueCharacterData.PositionOverride = DialogueStandPosition.StandPosition;
+				DialogueCharacterData.TypeOverride = DialogueStandPosition.PreviewCharacter ? DialogueStandPosition.PreviewCharacter : GetDialogueStationTemplate()->PreviewCharacter;
+				DialogueCharacterData.DialogueAnimSet = GetDefault<UAutoGenDialogueSettings>()->DefaultAutoGenDialogueAnimSet.LoadSynchronous();
 			}
 
 			DialogueNameList.Empty();
