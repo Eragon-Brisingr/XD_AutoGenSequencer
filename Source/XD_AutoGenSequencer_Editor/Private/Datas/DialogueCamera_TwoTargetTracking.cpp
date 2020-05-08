@@ -56,9 +56,6 @@ void ADialogueCamera_TwoTargetTracking::PostEditChangeProperty(FPropertyChangedE
 void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-
-	FrontCharacterInstance = Cast<ACharacter>(FrontCharacterComponent->GetChildActor());
-	BackCharacterInstance = Cast<ACharacter>(BackCharacterComponent->GetChildActor());
 }
 
 void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()

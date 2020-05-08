@@ -42,12 +42,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "预览配置", meta = (DisplayName = "前景角色类型"))
 	TSubclassOf<ACharacter> FrontCharacterType;
-	UPROPERTY(EditAnywhere, Category = "预览配置", Transient, meta = (DisplayName = "前景角色配置"))
-	ACharacter* FrontCharacterInstance;
 	UPROPERTY(EditAnywhere, Category = "预览配置", meta = (DisplayName = "背景角色类型"))
 	TSubclassOf<ACharacter> BackCharacterType;
-	UPROPERTY(EditAnywhere, Category = "预览配置", Transient, meta = (DisplayName = "背景角色配置"))
-	ACharacter* BackCharacterInstance;
 public:
 	TOptional<FCameraWeightsData> EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const override;
 	void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const override;
