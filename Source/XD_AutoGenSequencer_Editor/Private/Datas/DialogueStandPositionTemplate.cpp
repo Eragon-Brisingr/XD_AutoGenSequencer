@@ -88,11 +88,12 @@ void ADialogueStandPositionTemplate::CreateAllTemplatePreviewCharacter()
 	for (FDialogueStandPosition& StandPosition : StandPositions)
 	{
 		UChildActorComponent* ChildActorComponent = StandPosition.PreviewCharacterInstance;
-		if (!ChildActorComponent)
+		if (ChildActorComponent)
 		{
-			ChildActorComponent = CreateChildActorComponent();
-			StandPosition.PreviewCharacterInstance = ChildActorComponent;
+			ChildActorComponent->DestroyComponent();
 		}
+		ChildActorComponent = CreateChildActorComponent();
+		StandPosition.PreviewCharacterInstance = ChildActorComponent;
 
 		UClass* CharacterClass = StandPosition.PreviewCharacter ? StandPosition.PreviewCharacter : PreviewCharacter;
 		ChildActorComponent->SetChildActorClass(CharacterClass);
