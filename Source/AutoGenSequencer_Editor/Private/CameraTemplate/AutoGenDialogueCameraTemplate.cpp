@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 #include <Components/ChildActorComponent.h>
 #include <CineCameraComponent.h>
 #include <GameFramework/Character.h>
@@ -15,9 +15,9 @@
 #include <Kismet2/KismetEditorUtilities.h>
 #include <AdvancedPreviewScene.h>
 
-#include "Datas/DialogueStandPositionTemplate.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
 #include "AutoGenSequencer_Editor.h"
-#include "Utils/CameraTemplateEditor.h"
+#include "CameraTemplate/CameraTemplateEditor.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
 

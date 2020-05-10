@@ -9,8 +9,8 @@
 #include <Kismet2/SClassPickerDialog.h>
 
 #include "MovieSceneToolsProjectSettings.h"
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
-#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "Preview/PreviewDialogueSoundSequence.h"
+#include "AutoGenEditor/AutoGenDialogueSequenceConfig.h"
 #include "AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"

@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "AutoGenEditor/AutoGenDialogueSequenceConfig.h"
 #include <ScopedTransaction.h>
 #include <Algo/Transform.h>
 #include <GameFramework/Character.h>
@@ -33,20 +33,19 @@
 #include <Channels/MovieSceneChannelProxy.h>
 #include <Components/CapsuleComponent.h>
 
-#include "Datas/DialogueStandPositionTemplate.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
 #include "Data/DialogueSentence.h"
-#include "Datas/AutoGenDialogueSequenceConfig.h"
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Preview/PreviewDialogueSoundSequence.h"
 #include "Tracks/SentenceTrack/DialogueSentenceTrack.h"
 #include "Interface/AutoGenDialogueInterface.h"
 #include "Tracks/SentenceTrack/DialogueSentenceSection.h"
 #include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 #include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
 #include "Utils/DialogueCameraUtils.h"
 #include "Datas/AutoGenDialogueAnimSet.h"
 #include "Utils/AutoGenDialogueSettings.h"
-#include "Datas/AutoGenDialogueCameraSet.h"
+#include "CameraTemplate/AutoGenDialogueCameraSet.h"
 #include "Utils/GenAnimTrackUtils.h"
 #include "Utils/DialogueAnimationUtils.h"
 #include "Utils/AutoGenSequence_Log.h"

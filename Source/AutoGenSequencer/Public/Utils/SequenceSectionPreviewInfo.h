@@ -29,8 +29,8 @@ class AUTOGENSEQUENCER_API ISequenceSectionPreviewInfo
 public:
 #if WITH_EDITOR
 	// 当Section被选中时绘制预览信息
-	virtual void DrawSectionSelectedPreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const {}
+	virtual void DrawSectionSelectedPreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const = 0;
 	// 当Section在执行中时绘制预览信息
-	virtual void DrawSectionExecutePreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const {}
+	virtual void DrawSectionExecutePreviewInfo(IMovieScenePlayer* Player, const FFrameNumber& FramePosition, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) const = 0;
 #endif
 };

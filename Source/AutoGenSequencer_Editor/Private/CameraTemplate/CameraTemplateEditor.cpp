@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utils/CameraTemplateEditor.h"
+#include "CameraTemplate/CameraTemplateEditor.h"
 #include <AdvancedPreviewScene.h>
 #include <EditorModes.h>
 #include <Editor.h>
@@ -11,7 +11,7 @@
 #include <Widgets/Input/SButton.h>
 #include <SCommonEditorViewportToolbarBase.h>
 
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 
 #define LOCTEXT_NAMESPACE "CameraTemplateEditor"
 

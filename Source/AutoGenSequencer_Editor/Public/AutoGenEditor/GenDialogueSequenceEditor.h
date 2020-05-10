@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include <Framework/Commands/Commands.h>
 
 class FExtender;
 class ISequencer;
@@ -18,6 +19,21 @@ class ULevelSequence;
 /**
  * 
  */
+class AUTOGENSEQUENCER_EDITOR_API FGenDialogueSequenceCommands : public TCommands<FGenDialogueSequenceCommands>
+{
+public:
+	FGenDialogueSequenceCommands();
+
+	TSharedPtr<FUICommandInfo> OpenGenerateConfig;
+	TSharedPtr<FUICommandInfo> OpenPreviewSequence;
+	TSharedPtr<FUICommandInfo> OpenDialogueSequence;
+	TSharedPtr<FUICommandInfo> GenerateDialogueSequence;
+	TSharedPtr<FUICommandInfo> RefreshStandTemplate;
+	TSharedPtr<FUICommandInfo> ToggleShowDebugInfo;
+
+	void RegisterCommands() override;
+};
+
 class AUTOGENSEQUENCER_EDITOR_API FGenDialogueSequenceEditor
 {
 	friend class FEdMode_AutoGenSequence;
@@ -34,6 +50,8 @@ public:
 
 	static FGenDialogueSequenceEditor& Get();
 private:
+	TSharedPtr<FUICommandList> GenDialogueSequenceCommands;
+
 	FDelegateHandle SequencerCreatedHandle;
 	FDelegateHandle OnActorMovedHandle;
 	TSharedPtr<FExtender> SequencerToolbarExtender;

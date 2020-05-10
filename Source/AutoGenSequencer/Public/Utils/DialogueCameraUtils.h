@@ -13,6 +13,7 @@ class FSceneView;
 class AUTOGENSEQUENCER_API FDialogueCameraUtils
 {
 public:
+	// 算法提供者：陈祥男
 	static void CameraTrackingTwoTargets(float CameraYawAngle, float FrontTargetRate, float BackTargetRate, FVector FrontTargetPosition, FVector BackTargetPosition, float Fov, FVector& CameraLocation, FRotator& CameraRotation, FVector& FocusCenterLocation);
 
 	// 屏幕投影

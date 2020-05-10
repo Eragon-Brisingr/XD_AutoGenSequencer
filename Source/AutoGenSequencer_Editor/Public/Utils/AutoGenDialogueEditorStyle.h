@@ -19,10 +19,4 @@ public:
 	}
 
 	~FAutoGenDialogueEditorStyle();
-public:
-	FSlateIcon GetConfigIcon() const;
-	FSlateIcon GetPreviewIcon() const;
-	FSlateIcon GetDialogueIcon() const;
-	FSlateIcon GetGenerateIcon() const;
-	FSlateIcon GetStandpositionIcon() const;
 };

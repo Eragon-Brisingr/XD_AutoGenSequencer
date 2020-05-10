@@ -1,31 +1,44 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/DialogueCamera_OneTargetTracking.h"
+#include "CameraTemplate/DialogueCamera_OneTargetTracking.h"
 #include <GameFramework/Character.h>
 #include <Components/SkeletalMeshComponent.h>
+#include <CineCameraComponent.h>
 
 #include "Tracks/CameraTrackingTrack/OneTargetCameraTrackingTrack.h"
 #include "Tracks/CameraTrackingTrack/OneTargetCameraTrackingSection.h"
-#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
 
 
 ADialogueCamera_OneTargetTracking::ADialogueCamera_OneTargetTracking()
 {
-	CameraTarget = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_OneTargetTracking, CameraTarget));
+	TargetCharacterType = ACharacter::StaticClass();
+
+	CameraTargetCharacter = CreateDefaultSubobject<UChildActorComponent>(GET_MEMBER_NAME_CHECKED(ADialogueCamera_OneTargetTracking, CameraTargetCharacter));
 	{
-		CameraTarget->SetupAttachment(TemplateRoot);
+		CameraTargetCharacter->SetupAttachment(TemplateRoot);
+		CameraTargetCharacter->SetChildActorClass(TargetCharacterType);
 	}
 }
 
-void ADialogueCamera_OneTargetTracking::OnConstruction(const FTransform& Transform)
+void ADialogueCamera_OneTargetTracking::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::OnConstruction(Transform);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (ACharacter* TargetCharacter = Cast<ACharacter>(CameraTarget->GetChildActor()))
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ADialogueCamera_OneTargetTracking, TargetCharacterType))
+	{
+		CameraTargetCharacter->SetChildActorClass(TargetCharacterType);
+	}
+}
+
+void ADialogueCamera_OneTargetTracking::UpdateCameraTransform()
+{
+	if (ACharacter* TargetCharacter = Cast<ACharacter>(CameraTargetCharacter->GetChildActor()))
 	{
 		TargetCharacter->SetActorRelativeLocation(FVector(0.f, 0.f, TargetCharacter->GetDefaultHalfHeight()));
-		
+
 		const FVector TargetLocation = GetActorTransform().InverseTransformPosition(TargetCharacter->GetMesh()->GetSocketLocation(SocketName) + TargetOffset);
 		const FRotator LookAtRotation = (TargetLocation - CameraLocation).Rotation();
 		CineCameraComponent->SetRelativeLocation(CameraLocation);

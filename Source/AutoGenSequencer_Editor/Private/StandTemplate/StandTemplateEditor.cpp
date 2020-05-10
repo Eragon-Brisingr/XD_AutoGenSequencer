@@ -1,14 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utils/StandTemplateEditor.h"
+#include "StandTemplate/StandTemplateEditor.h"
 #include <AdvancedPreviewScene.h>
 #include <EditorModes.h>
 #include <Editor.h>
 #include <EngineUtils.h>
 #include <SCommonEditorViewportToolbarBase.h>
 
-#include "Datas/DialogueStandPositionTemplate.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
 
 #define LOCTEXT_NAMESPACE "StandTemplateEditor"
 

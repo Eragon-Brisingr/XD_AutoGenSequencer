@@ -1,15 +1,15 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/DialogueCamera_TwoTargetTracking.h"
+#include "CameraTemplate/DialogueCamera_TwoTargetTracking.h"
 #include <CineCameraActor.h>
 #include <Editor.h>
 #include <Kismet/KismetSystemLibrary.h>
 #include <GameFramework/Character.h>
 #include <CineCameraComponent.h>
 
-#include "Datas/DialogueStandPositionTemplate.h"
-#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
 #include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingTrack.h"
 #include "Tracks/CameraTrackingTrack/TwoTargetCameraTrackingSection.h"
 #include "Utils/DialogueCameraUtils.h"
@@ -51,11 +51,6 @@ void ADialogueCamera_TwoTargetTracking::PostEditChangeProperty(FPropertyChangedE
 	{
 		BackCharacterComponent->SetChildActorClass(BackCharacterType);
 	}
-}
-
-void ADialogueCamera_TwoTargetTracking::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
 }
 
 void ADialogueCamera_TwoTargetTracking::UpdateCameraTransform()

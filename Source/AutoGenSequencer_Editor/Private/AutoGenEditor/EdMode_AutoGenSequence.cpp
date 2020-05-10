@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utils/EdMode_AutoGenSequence.h"
+#include "AutoGenEditor/EdMode_AutoGenSequence.h"
 #include <CanvasTypes.h>
 #include <CanvasItem.h>
 #include <ISequencer.h>
@@ -14,8 +14,8 @@
 #include <LevelEditorViewport.h>
 #include <GameFramework/Character.h>
 
+#include "AutoGenEditor/GenDialogueSequenceEditor.h"
 #include "Utils/SequenceSectionPreviewInfo.h"
-#include "Utils/GenDialogueSequenceEditor.h"
 #include "Utils/DialogueCameraUtils.h"
 
 FName FEdMode_AutoGenSequence::ID = TEXT("EdMode_AutoGenSequence");

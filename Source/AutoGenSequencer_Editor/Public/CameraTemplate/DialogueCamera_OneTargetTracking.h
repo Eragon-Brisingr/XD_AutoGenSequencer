@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 #include "DialogueCamera_OneTargetTracking.generated.h"
 
 /**
@@ -16,10 +16,8 @@ class AUTOGENSEQUENCER_EDITOR_API ADialogueCamera_OneTargetTracking : public AAu
 public:
     ADialogueCamera_OneTargetTracking();
 
-    void OnConstruction(const FTransform& Transform) override;
-
-    UPROPERTY(VisibleDefaultsOnly)
-	UChildActorComponent* CameraTarget;
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	void UpdateCameraTransform() override;
 
     UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (MakeEditWidget = true))
     FVector CameraLocation = FVector(100.f, 100.f, 170.f);
@@ -32,6 +30,11 @@ public:
     FVector CameraRelativeLocation;
     UPROPERTY(VisibleAnywhere, Category = "镜头模板", AdvancedDisplay)
     FRotator CameraRelativeRotation;
+    
+    UPROPERTY()
+	UChildActorComponent* CameraTargetCharacter;
+    UPROPERTY(EditAnywhere, Category = "预览配置", meta = (DisplayName = "注视角色类型"))
+	TSubclassOf<ACharacter> TargetCharacterType;
 
     TOptional<FCameraWeightsData> EvaluateCameraTemplate(ACharacter* LookTarget, const TArray<ACharacter*>& Others, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, float DialogueProgress) const override;
     void GenerateCameraTrackData(ACharacter* LookTarget, const TArray<ACharacter*>& Others, UMovieScene& MovieScene, FGuid CineCameraComponentGuid, const TMap<ACharacter*, FGenDialogueCharacterData>& DialogueCharacterDataMap, const TArray<FDialogueCameraCutData>& DialogueCameraCutDatas) const override;

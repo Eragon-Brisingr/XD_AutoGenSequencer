@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/AutoGenDialogueCameraSet.h"
+#include "CameraTemplate/AutoGenDialogueCameraSet.h"
 #include "AutoGenSequencer_Editor.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"

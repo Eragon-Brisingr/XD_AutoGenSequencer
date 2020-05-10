@@ -1,8 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AutoGenSequencerCBExtensions.h"
-
+#include "AutoGenEditor/AutoGenSequencerCBExtensions.h"
 #include <ContentBrowserModule.h>
 #include <ContentBrowserDelegates.h>
 #include <Framework/MultiBox/MultiBoxBuilder.h>
@@ -11,11 +10,12 @@
 #include <AssetRegistryModule.h>
 #include <LevelSequence.h>
 #include <ObjectTools.h>
+#include <ScopedTransaction.h>
 
 #include "Data/DialogueSentence.h"
 #include "Utils/AutoGenDialogueSettings.h"
 #include "Factory/AutoGenDialogueSequenceFactory.h"
-#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
 

@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Customization/DialogueSentenceCustomization.h"
+#include "AutoGenEditor/DialogueConfigCustomization.h"
 #include <DetailWidgetRow.h>
 #include <Widgets/SBoxPanel.h>
 #include <GameFramework/Character.h>
@@ -17,8 +17,8 @@
 #include <IPropertyTypeCustomization.h>
 #include <IPropertyUtilities.h>
 
-#include "Datas/GenDialogueSequenceConfigBase.h"
-#include "Datas/AutoGenDialogueSequenceConfig.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
+#include "AutoGenEditor/AutoGenDialogueSequenceConfig.h"
 #include "Interface/AutoGenDialogueInterface.h"
 #include "Utils/AutoGenSequence_Log.h"
 

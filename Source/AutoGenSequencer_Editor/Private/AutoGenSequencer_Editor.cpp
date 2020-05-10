@@ -2,26 +2,27 @@
 
 #include "AutoGenSequencer_Editor.h"
 #include <ISequencerModule.h>
-#include "AutoGenSequencerCBExtensions.h"
-#include "TrackEditors/DialogueSentenceTrackEditor.h"
-#include "Utils/GenDialogueSequenceEditor.h"
 #include <PropertyEditorModule.h>
-#include "Customization/DialogueSentenceCustomization.h"
-#include "TrackEditors/CameraTrackingEditor.h"
 #include <ISettingsModule.h>
 #include <ISettingsSection.h>
-#include "Utils/AutoGenDialogueSettings.h"
 #include <AssetToolsModule.h>
+#include <ISettingsCategory.h>
+#include <EditorModeRegistry.h>
+
+#include "AutoGenEditor/DialogueConfigCustomization.h"
+#include "TrackEditors/CameraTrackingEditor.h"
+#include "Utils/AutoGenDialogueSettings.h"
+#include "AutoGenEditor/AutoGenSequencerCBExtensions.h"
+#include "TrackEditors/DialogueSentenceTrackEditor.h"
+#include "AutoGenEditor/GenDialogueSequenceEditor.h"
 #include "Utils/AutoGenDialogueRuntimeSettings.h"
-#include "ISettingsCategory.h"
 #include "Factory/DialogueSentenceFactory.h"
 #include "Datas/AutoGenDialogueAnimSet.h"
-#include "Datas/AutoGenDialogueCameraSet.h"
-#include "EditorModeRegistry.h"
-#include "Utils/EdMode_AutoGenSequence.h"
+#include "CameraTemplate/AutoGenDialogueCameraSet.h"
+#include "AutoGenEditor/EdMode_AutoGenSequence.h"
 #include "Datas/AutoGenDialogueCharacterSettings.h"
-#include "Datas/DialogueStandPositionTemplate.h"
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
 

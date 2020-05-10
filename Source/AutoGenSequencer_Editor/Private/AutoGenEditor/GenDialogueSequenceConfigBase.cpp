@@ -1,15 +1,15 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/GenDialogueSequenceConfigBase.h"
-#include "Datas/DialogueStandPositionTemplate.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
 #include "Utils/AutoGenDialogueSettings.h"
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
+#include "Preview/PreviewDialogueSoundSequence.h"
 #include "Datas/AutoGenDialogueAnimSet.h"
 #include "Interface/AutoGenDialogueInterface.h"
-#include "Datas/AutoGenDialogueCameraSet.h"
+#include "CameraTemplate/AutoGenDialogueCameraSet.h"
 #include "Datas/AutoGenDialogueCharacterSettings.h"
-#include "Utils/GenDialogueSequenceEditor.h"
+#include "AutoGenEditor/GenDialogueSequenceEditor.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
 

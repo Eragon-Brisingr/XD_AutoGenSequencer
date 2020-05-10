@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Datas/GenDialogueSequenceConfigBase.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
 #include <Templates/SubclassOf.h>
 #include "Datas/AutoGenDialogueType.h"
 #include "AutoGenDialogueSequenceConfig.generated.h"

@@ -1,8 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utils/GenDialogueSequenceEditor.h"
-
+#include "AutoGenEditor/GenDialogueSequenceEditor.h"
 #include <ISequencerModule.h>
 #include <Toolkits/AssetEditorToolkit.h>
 #include <Framework/MultiBox/MultiBoxBuilder.h>
@@ -18,10 +17,10 @@
 #include <LevelSequence.h>
 
 #include "Utils/AutoGenDialogueEditorStyle.h"
-#include "Preview/Sequence/PreviewDialogueSoundSequence.h"
-#include "Datas/DialogueStandPositionTemplate.h"
-#include "Datas/GenDialogueSequenceConfigBase.h"
-#include "Utils/EdMode_AutoGenSequence.h"
+#include "Preview/PreviewDialogueSoundSequence.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
+#include "AutoGenEditor/GenDialogueSequenceConfigBase.h"
+#include "AutoGenEditor/EdMode_AutoGenSequence.h"
 #include "Factory/AutoGenDialogueSequenceFactory.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
@@ -31,13 +30,138 @@ namespace FDialogueSequenceEditorHelper
 	bool bIsInInnerSequenceSwitch = false;
 }
 
+FGenDialogueSequenceCommands::FGenDialogueSequenceCommands()
+	: TCommands<FGenDialogueSequenceCommands>(TEXT("GenDialogueSequence"), LOCTEXT("Gen Dialogue Sequence", "Gen Dialogue Sequence"), NAME_None, FAutoGenDialogueEditorStyle::Get().GetStyleSetName())
+{
+
+}
+
+void FGenDialogueSequenceCommands::RegisterCommands()
+{
+	UI_COMMAND(OpenGenerateConfig, "打开对白配置", "打开对白配置", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(OpenPreviewSequence, "打开预览序列", "打开预览序列", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(OpenDialogueSequence, "打开对白序列", "打开对白序列", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(GenerateDialogueSequence, "生成最终对话序列", "生成最终对话序列", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(RefreshStandTemplate, "刷新模板显示", "刷新模板显示", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(ToggleShowDebugInfo, "切换辅助绘制模式", "切换辅助绘制模式", EUserInterfaceActionType::Button, FInputChord());
+}
+
 void FGenDialogueSequenceEditor::Register(ISequencerModule& SequencerModule)
 {
+	FGenDialogueSequenceCommands::Register();
+	const FGenDialogueSequenceCommands& Commands = FGenDialogueSequenceCommands::Get();
+	GenDialogueSequenceCommands = MakeShared<FUICommandList>();
+	GenDialogueSequenceCommands->MapAction(Commands.OpenGenerateConfig, 
+		FExecuteAction::CreateLambda([=]()
+		{
+			if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
+			{
+				OpenEditorForAsset(GetGenDialogueSequenceConfig());
+			}
+		}),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid();
+		}));
+	GenDialogueSequenceCommands->MapAction(Commands.OpenPreviewSequence,
+		FExecuteAction::CreateLambda([=]()
+		{
+			if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
+			{
+				OpenPreviewDialogueSoundSequence();
+			}
+		}),
+		FCanExecuteAction::CreateLambda([=]()
+		{
+			return IsAutoGenDialogueSequenceActived();
+		}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid();
+		}));
+	GenDialogueSequenceCommands->MapAction(Commands.OpenDialogueSequence,
+		FExecuteAction::CreateLambda([=]()
+		{
+			OpenAutoGenDialogueSequence();
+		}),
+		FCanExecuteAction::CreateLambda([=]()
+		{
+			return IsPreviewDialogueSequenceActived();
+		}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid();
+		}));
+	GenDialogueSequenceCommands->MapAction(Commands.GenerateDialogueSequence,
+		FExecuteAction::CreateLambda([=]()
+		{
+			GenerateDialogueSequence();
+		}),
+			FCanExecuteAction::CreateLambda([]()
+		{
+			return true;
+		}),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid() && IsPreviewDialogueSequenceActived();
+		}));
+	GenDialogueSequenceCommands->MapAction(Commands.RefreshStandTemplate,
+		FExecuteAction::CreateLambda([=]()
+		{
+			if (PreviewStandPositionTemplate.IsValid())
+			{
+				DestroyPreviewStandPositionTemplate();
+			}
+			GeneratePreviewCharacters();
+			if (ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get())
+			{
+				GEditor->GetSelectedActors()->DeselectAll();
+				GEditor->SelectActor(StandPositionTemplate, true, false, false, true);
+				GEditor->NoteSelectionChange();
+			}
+		}),
+		FCanExecuteAction::CreateLambda([]()
+		{
+			return true;
+		}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid();
+		}), EUIActionRepeatMode::RepeatEnabled);
+	GenDialogueSequenceCommands->MapAction(Commands.ToggleShowDebugInfo,
+		FExecuteAction::CreateLambda([=]()
+		{
+			FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
+			if (EditorModeTools.IsModeActive(FEdMode_AutoGenSequence::ID))
+			{
+				EditorModeTools.DeactivateMode(FEdMode_AutoGenSequence::ID);
+			}
+			else
+			{
+				EditorModeTools.ActivateMode(FEdMode_AutoGenSequence::ID);
+			}
+		}),
+		FCanExecuteAction::CreateLambda([]()
+		{
+			return true;
+		}),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateLambda([=]()
+		{
+			return WeakGenDialogueSequenceConfig.IsValid();
+		}), EUIActionRepeatMode::RepeatEnabled);
+
 	SequencerCreatedHandle = SequencerModule.RegisterOnSequencerCreated(FOnSequencerCreated::FDelegate::CreateRaw(this, &FGenDialogueSequenceEditor::OnSequenceCreated));
 
 	SequencerToolbarExtender = MakeShareable(new FExtender());
 	SequencerToolbarExtender->AddToolBarExtension(
-		"Base Commands",
+		TEXT("Base Commands"),
 		EExtensionHook::Before,
 		nullptr,
 		FToolBarExtensionDelegate::CreateRaw(this, &FGenDialogueSequenceEditor::BuildAutoGenToolbar));
@@ -47,131 +171,21 @@ void FGenDialogueSequenceEditor::Register(ISequencerModule& SequencerModule)
 
 void FGenDialogueSequenceEditor::BuildAutoGenToolbar(FToolBarBuilder &ToolBarBuilder)
 {
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
-				{
-					OpenEditorForAsset(GetGenDialogueSequenceConfig());
-				}
-			}),
-		FCanExecuteAction(),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid();
-			})), NAME_None,
-		LOCTEXT("打开对白配置", "打开对白配置"),
-		LOCTEXT("打开对白配置", "打开对白配置"),
-		FAutoGenDialogueEditorStyle::Get().GetConfigIcon());
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				if (UPreviewDialogueSoundSequence* PreviewDialogueSoundSequence = GetPreviewDialogueSoundSequence())
-				{
-					OpenPreviewDialogueSoundSequence();
-				}
-			}),
-		FCanExecuteAction::CreateLambda([=]()
-			{
-				return IsAutoGenDialogueSequenceActived();
-			}),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid();
-			})), NAME_None,
-		LOCTEXT("打开预览序列", "打开预览序列"),
-		LOCTEXT("打开预览序列", "打开预览序列"),
-		FAutoGenDialogueEditorStyle::Get().GetPreviewIcon());
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-		{
-			OpenAutoGenDialogueSequence();
-		}),
-		FCanExecuteAction::CreateLambda([=]()
-			{
-				return IsPreviewDialogueSequenceActived();
-			}),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid();
-			})), NAME_None,
-		LOCTEXT("打开对白序列", "打开对白序列"),
-		LOCTEXT("打开对白序列", "打开对白序列"),
-		FAutoGenDialogueEditorStyle::Get().GetDialogueIcon());
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				GenerateDialogueSequence();
-			}),
-		FCanExecuteAction::CreateLambda([]()
-			{
-				return true;
-			}),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid() && IsPreviewDialogueSequenceActived();
-			})), NAME_None,
-		LOCTEXT("生成最终对话序列", "生成最终对话序列"),
-		LOCTEXT("生成最终对话序列", "生成最终对话序列"),
-		FAutoGenDialogueEditorStyle::Get().GetGenerateIcon());
+	ToolBarBuilder.PushCommandList(GenDialogueSequenceCommands.ToSharedRef());
+	const FGenDialogueSequenceCommands& Commands = FGenDialogueSequenceCommands::Get();
 
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				if (PreviewStandPositionTemplate.IsValid())
-				{
-					DestroyPreviewStandPositionTemplate();
-				}
-				GeneratePreviewCharacters();
-				if (ADialogueStandPositionTemplate* StandPositionTemplate = PreviewStandPositionTemplate.Get())
-				{
-					GEditor->GetSelectedActors()->DeselectAll();
-					GEditor->SelectActor(StandPositionTemplate, true, false, false, true);
-					GEditor->NoteSelectionChange();
-				}
-			}),
-		FCanExecuteAction::CreateLambda([]()
-			{
-				return true;
-			}),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid();
-			}), EUIActionRepeatMode::RepeatEnabled), NAME_None,
-		LOCTEXT("刷新模板显示", "刷新模板显示"),
-		LOCTEXT("刷新模板显示", "刷新模板显示"),
-		FAutoGenDialogueEditorStyle::Get().GetStandpositionIcon());
-
-	ToolBarBuilder.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
-			{
-				FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
-				if (EditorModeTools.IsModeActive(FEdMode_AutoGenSequence::ID))
-				{
-					EditorModeTools.DeactivateMode(FEdMode_AutoGenSequence::ID);
-				}
-				else
-				{
-					EditorModeTools.ActivateMode(FEdMode_AutoGenSequence::ID);
-				}
-			}),
-		FCanExecuteAction::CreateLambda([]()
-			{
-				return true;
-			}),
-		FIsActionChecked(),
-		FIsActionButtonVisible::CreateLambda([=]()
-			{
-				return WeakGenDialogueSequenceConfig.IsValid();
-			}), EUIActionRepeatMode::RepeatEnabled), NAME_None,
-		LOCTEXT("切换辅助绘制模式", "切换辅助绘制模式"),
-		LOCTEXT("切换辅助绘制模式", "切换辅助绘制模式"),
-		FSlateIcon());
-
-	ToolBarBuilder.AddSeparator("Auto Gen Dialogue");
+	ToolBarBuilder.AddToolBarButton(Commands.OpenGenerateConfig);
+	ToolBarBuilder.AddToolBarButton(Commands.OpenPreviewSequence);
+	ToolBarBuilder.AddToolBarButton(Commands.OpenDialogueSequence);
+	ToolBarBuilder.AddToolBarButton(Commands.GenerateDialogueSequence);
+	ToolBarBuilder.AddToolBarButton(Commands.RefreshStandTemplate);
+	ToolBarBuilder.AddToolBarButton(Commands.ToggleShowDebugInfo);
+	ToolBarBuilder.AddSeparator(TEXT("Auto Gen Dialogue"));
 }
 
 void FGenDialogueSequenceEditor::Unregister(ISequencerModule& SequencerModule)
 {
+	FGenDialogueSequenceCommands::Unregister();
 	SequencerModule.UnregisterSequenceEditor(SequencerCreatedHandle);
 	SequencerModule.GetToolBarExtensibilityManager()->RemoveExtender(SequencerToolbarExtender);
 }

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Datas/AutoGenDialogueCameraTemplate.h"
+#include "CameraTemplate/AutoGenDialogueCameraTemplate.h"
 #include "DialogueCamera_TwoTargetTracking.generated.h"
 
 class UTextRenderComponent;
@@ -21,7 +21,6 @@ public:
 	ADialogueCamera_TwoTargetTracking();
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	void OnConstruction(const FTransform& Transform) override;
 	void UpdateCameraTransform() override;
 	
 	UPROPERTY(EditAnywhere, Category = "镜头模板", meta = (DisplayName = "前景对象占比", ClampMin = "-1", ClampMax = "0.499999"))

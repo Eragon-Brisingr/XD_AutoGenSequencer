@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Datas/DialogueStandPositionTemplate.h"
+#include "StandTemplate/DialogueStandPositionTemplate.h"
 #include <GameFramework/Character.h>
 #include <Components/ChildActorComponent.h>
 #include <Components/BillboardComponent.h>
@@ -10,7 +10,7 @@
 
 #include "AutoGenSequencer_Editor.h"
 #include "Utils/AutoGenDialogueSettings.h"
-#include "Utils/StandTemplateEditor.h"
+#include "StandTemplate/StandTemplateEditor.h"
 
 #define LOCTEXT_NAMESPACE "FAutoGenSequencer_EditorModule"
 
