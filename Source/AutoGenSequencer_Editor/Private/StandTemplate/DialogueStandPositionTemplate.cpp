@@ -223,7 +223,7 @@ void UDialogueStandPositionTemplateThumbnailRenderer::Draw(UObject* Object, int3
 				float OrbitYaw = SceneThumbnailInfo->OrbitYaw;
 				float OrbitZoom = SceneThumbnailInfo->OrbitZoom;
 
-				FSphere SphereBounds{};
+				FSphere SphereBounds = FSphere(StandPositionTemplate->GetActorLocation(), 100.f);
 				StandPositionTemplate->ForEachComponent<UPrimitiveComponent>(true, [&](UPrimitiveComponent* PrimitiveComponent)
 				{
 					PrimitiveComponent->UpdateBounds();

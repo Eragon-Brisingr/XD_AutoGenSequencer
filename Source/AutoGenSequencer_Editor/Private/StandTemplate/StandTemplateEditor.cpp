@@ -7,6 +7,9 @@
 #include <Editor.h>
 #include <EngineUtils.h>
 #include <SCommonEditorViewportToolbarBase.h>
+#include <EditorModeManager.h>
+#include <EditorViewportClient.h>
+#include <Engine/Selection.h>
 
 #include "StandTemplate/DialogueStandPositionTemplate.h"
 
@@ -99,6 +102,12 @@ void FStandTemplateEditor::UnregisterTabSpawners(const TSharedRef<FTabManager>& 
 void FStandTemplateEditor::SaveAsset_Execute()
 {
 	Super::SaveAsset_Execute();
+
+	if (Viewport.IsValid())
+	{
+		Viewport->GetViewportClient()->InitStandTemplateViewportClient(StandPositionTemplateAsset.Get());
+		DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewTemplate);
+	}
 }
 
 void FStandTemplateEditor::InitStandTemplateEditor(
@@ -175,7 +184,7 @@ FStandTemplateViewportClient::FStandTemplateViewportClient(const TSharedRef<SSta
 
 	// View Modes in Persp and Ortho
 	SetViewModes(VMI_Lit, VMI_Lit);
-
+	
 	GetModeTools()->SetDefaultMode(FBuiltinEditorModes::EM_Default);
 }
 
@@ -185,6 +194,10 @@ void FStandTemplateViewportClient::InitStandTemplateViewportClient(UDialogueStan
 
 	FActorSpawnParameters ActorSpawnParameters;
 	ActorSpawnParameters.Template = InAsset->Template;
+	if (PreviewTemplate)
+	{
+		PreviewTemplate->Destroy();
+	}
 	PreviewTemplate = GetWorld()->SpawnActor<ADialogueStandPositionTemplate>(ActorSpawnParameters);
 	PreviewTemplate->CreateAllTemplatePreviewCharacter();
 
@@ -224,8 +237,10 @@ void FStandTemplateViewportClient::Draw(const FSceneView* View, FPrimitiveDrawIn
 		{
 			const UChildActorComponent* LHS = PreviewCharacters[I];
 			const UChildActorComponent* RHS = PreviewCharacters[J];
-
-			PDI->DrawLine(LHS->GetComponentLocation(), RHS->GetComponentLocation(), FColor::Green, SDPG_Foreground, 1.f);
+			if (LHS && RHS)
+			{
+				PDI->DrawLine(LHS->GetComponentLocation(), RHS->GetComponentLocation(), FColor::Green, SDPG_Foreground, 1.f);
+			}
 		}
 	}
 }

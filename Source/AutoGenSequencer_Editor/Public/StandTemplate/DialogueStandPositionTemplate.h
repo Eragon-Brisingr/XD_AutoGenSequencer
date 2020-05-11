@@ -12,6 +12,7 @@
 class ACharacter;
 class UChildActorComponent;
 class UAutoGenDialogueCameraTemplateAsset;
+class UAutoGenDialogueCameraSet;
 
 USTRUCT()
 struct FDialogueStandPosition
