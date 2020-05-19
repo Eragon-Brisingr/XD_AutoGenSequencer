@@ -80,12 +80,14 @@ void FCameraTemplateEditor::SaveAsset_Execute()
 
 	if (UAutoGenDialogueCameraTemplateAsset* Asset = CameraTemplateAsset.Get())
 	{
-		AAutoGenDialogueCameraTemplate* PreviewCameraTemplate = Viewport->CameraTemplateViewportClient->PreviewCameraTemplate;
-		AAutoGenDialogueCameraTemplate* TemplateToSave = DuplicateObject(PreviewCameraTemplate, Asset);
-		TemplateToSave->CineCameraActorTemplate = DuplicateObject(PreviewCameraTemplate->CineCameraActor, Asset);
-		TemplateToSave->ClearFlags(RF_AllFlags);
-		TemplateToSave->SetFlags(RF_Public | RF_Transactional);
-		Asset->Template = TemplateToSave;
+		if (AAutoGenDialogueCameraTemplate* PreviewCameraTemplate = Viewport->CameraTemplateViewportClient->PreviewCameraTemplate.Get())
+		{
+			AAutoGenDialogueCameraTemplate* TemplateToSave = DuplicateObject(PreviewCameraTemplate, Asset);
+			TemplateToSave->CineCameraActorTemplate = DuplicateObject(PreviewCameraTemplate->CineCameraActor, Asset);
+			TemplateToSave->ClearFlags(RF_AllFlags);
+			TemplateToSave->SetFlags(RF_Public | RF_Transactional);
+			Asset->Template = TemplateToSave;
+		}
 	}
 }
 
@@ -146,7 +148,7 @@ TSharedRef<SDockTab> FCameraTemplateEditor::HandleTabManagerSpawnTabDetails(cons
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	DetailsWidget = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-	DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewCameraTemplate);
+	DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewCameraTemplate.Get());
 	DetailsWidget->OnFinishedChangingProperties().AddLambda([=](const FPropertyChangedEvent& Event)
 	{
 		if (CameraTemplateAsset.IsValid())
@@ -228,7 +230,7 @@ void FCameraTemplateViewportClient::DrawCanvas(FViewport& InViewport, FSceneView
 
 void FCameraTemplateViewportClient::Tick(float DeltaSeconds)
 {
-	if (PreviewCameraTemplate)
+	if (PreviewCameraTemplate.IsValid())
 	{
 		bUseControllingActorViewInfo = true;
 
@@ -245,14 +247,17 @@ void FCameraTemplateViewportClient::Tick(float DeltaSeconds)
 
 bool FCameraTemplateViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
 {
-	const UCameraComponent* CameraComponent = PreviewCameraTemplate->CineCameraComponent;
-	OutAspectRatio = CameraComponent->AspectRatio;
+	if (PreviewCameraTemplate.IsValid())
+	{
+		const UCameraComponent* CameraComponent = PreviewCameraTemplate->CineCameraComponent;
+		OutAspectRatio = CameraComponent->AspectRatio;
+	}
 	return true;
 }
 
 ELevelViewportType FCameraTemplateViewportClient::GetViewportType() const
 {
-	if (PreviewCameraTemplate)
+	if (PreviewCameraTemplate.IsValid())
 	{
 		const UCameraComponent* CameraComponent = PreviewCameraTemplate->CineCameraComponent;
 		return (CameraComponent->ProjectionMode == ECameraProjectionMode::Perspective) ? LVT_Perspective : LVT_OrthoFreelook;
@@ -262,10 +267,13 @@ ELevelViewportType FCameraTemplateViewportClient::GetViewportType() const
 
 void FCameraTemplateViewportClient::OverridePostProcessSettings(FSceneView& View)
 {
-	const UCameraComponent* CameraComponent = PreviewCameraTemplate->CineCameraComponent;
-	if (CameraComponent)
+	if (PreviewCameraTemplate.IsValid())
 	{
-		View.OverridePostProcessSettings(CameraComponent->PostProcessSettings, CameraComponent->PostProcessBlendWeight);
+		const UCameraComponent* CameraComponent = PreviewCameraTemplate->CineCameraComponent;
+		if (CameraComponent)
+		{
+			View.OverridePostProcessSettings(CameraComponent->PostProcessSettings, CameraComponent->PostProcessBlendWeight);
+		}
 	}
 }
 

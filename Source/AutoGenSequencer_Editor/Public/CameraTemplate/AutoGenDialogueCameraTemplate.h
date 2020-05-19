@@ -107,6 +107,7 @@ class FAssetTypeActions_AutoGenDialogueCameraTemplate : public FAssetTypeActions
 	UClass* GetSupportedClass() const override;
 	FColor GetTypeColor() const override;
 	uint32 GetCategories() override;
+	TSharedPtr<SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override;
 	void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor) override;
 };
 

@@ -57,7 +57,7 @@ public:
 	FAdvancedPreviewScene* AdvancedPreviewScene;
 public:
 	TWeakObjectPtr<UAutoGenDialogueCameraTemplateAsset> CameraTemplateAsset;
-	AAutoGenDialogueCameraTemplate* PreviewCameraTemplate = nullptr;
+	TWeakObjectPtr<AAutoGenDialogueCameraTemplate> PreviewCameraTemplate;
 
 	void InitCameraTemplateViewportClient(UAutoGenDialogueCameraTemplateAsset* InAsset);
 	void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;

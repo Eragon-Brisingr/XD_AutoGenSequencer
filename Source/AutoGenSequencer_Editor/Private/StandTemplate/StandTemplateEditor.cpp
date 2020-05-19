@@ -60,7 +60,7 @@ TSharedRef<SDockTab> FStandTemplateEditor::HandleTabManagerSpawnTabDetails(const
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	DetailsWidget = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
-	DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewTemplate);
+	DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewTemplate.Get());
 
 	return SNew(SDockTab).TabRole(ETabRole::PanelTab)[DetailsWidget.ToSharedRef()];
 }
@@ -106,7 +106,7 @@ void FStandTemplateEditor::SaveAsset_Execute()
 	if (Viewport.IsValid())
 	{
 		Viewport->GetViewportClient()->InitStandTemplateViewportClient(StandPositionTemplateAsset.Get());
-		DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewTemplate);
+		DetailsWidget->SetObject(Viewport->GetViewportClient()->PreviewTemplate.Get());
 	}
 }
 
@@ -194,7 +194,7 @@ void FStandTemplateViewportClient::InitStandTemplateViewportClient(UDialogueStan
 
 	FActorSpawnParameters ActorSpawnParameters;
 	ActorSpawnParameters.Template = InAsset->Template;
-	if (PreviewTemplate)
+	if (PreviewTemplate.IsValid())
 	{
 		PreviewTemplate->Destroy();
 	}
@@ -213,7 +213,7 @@ void FStandTemplateViewportClient::InitStandTemplateViewportClient(UDialogueStan
 	});
 	GetModeTools()->ActivateDefaultMode();
 	SetWidgetMode(FWidget::EWidgetMode::WM_Translate);
-	GetModeTools()->GetSelectedActors()->Select(PreviewTemplate, true);
+	GetModeTools()->GetSelectedActors()->Select(PreviewTemplate.Get(), true);
 }
 
 void FStandTemplateViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
@@ -229,6 +229,11 @@ void FStandTemplateViewportClient::ProcessClick(FSceneView& View, HHitProxy* Hit
 void FStandTemplateViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	Super::Draw(View, PDI);
+
+	if (PreviewTemplate.IsValid() == false)
+	{
+		return;
+	}
 
 	const TArray<UChildActorComponent*>& PreviewCharacters = PreviewTemplate->PreviewCharacters;
 	for (int32 I = 0; I < PreviewCharacters.Num(); ++I)
@@ -248,6 +253,11 @@ void FStandTemplateViewportClient::Draw(const FSceneView* View, FPrimitiveDrawIn
 void FStandTemplateViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
 {
 	Super::DrawCanvas(InViewport, View, Canvas);
+
+	if (PreviewTemplate.IsValid() == false)
+	{
+		return;
+	}
 
 	const TArray<UChildActorComponent*>& PreviewCharacters = PreviewTemplate->PreviewCharacters;
 	for (int32 I = 0; I < PreviewCharacters.Num(); ++I)

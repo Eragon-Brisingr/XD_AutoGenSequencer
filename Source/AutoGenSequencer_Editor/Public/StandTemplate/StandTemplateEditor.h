@@ -58,7 +58,7 @@ public:
 	FAdvancedPreviewScene* AdvancedPreviewScene;
 public:
 	TWeakObjectPtr<UDialogueStandPositionTemplateAsset> StandPositionTemplateAsset;
-	ADialogueStandPositionTemplate* PreviewTemplate = nullptr;
+	TWeakObjectPtr<ADialogueStandPositionTemplate> PreviewTemplate;
 
 	void InitStandTemplateViewportClient(UDialogueStandPositionTemplateAsset* InWarpper);
 	void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;

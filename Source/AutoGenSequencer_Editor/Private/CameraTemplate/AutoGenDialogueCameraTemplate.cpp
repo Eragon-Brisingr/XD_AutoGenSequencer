@@ -152,6 +152,24 @@ uint32 FAssetTypeActions_AutoGenDialogueCameraTemplate::GetCategories()
 	return FAutoGenSequencer_EditorModule::AutoGenDialogueSequence_AssetCategory;
 }
 
+TSharedPtr<SWidget> FAssetTypeActions_AutoGenDialogueCameraTemplate::GetThumbnailOverlay(const FAssetData& AssetData) const
+{
+	UAutoGenDialogueCameraTemplateAsset* DialogueCameraTemplateAsset = CastChecked<UAutoGenDialogueCameraTemplateAsset>(AssetData.GetAsset());
+	const FText DisplayText = DialogueCameraTemplateAsset->Template ? DialogueCameraTemplateAsset->Template->GetClass()->GetDisplayNameText() : LOCTEXT("None", "None");
+
+	return SNew(SBorder)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Top)
+		[
+			SNew(STextBlock)
+			.Text(DisplayText)
+			.HighlightText(DisplayText)
+			.HighlightColor(FColor(64,64,64))
+			.ShadowOffset(FVector2D(1.0f, 1.0f))
+			.AutoWrapText(true)
+		];
+}
+
 void FAssetTypeActions_AutoGenDialogueCameraTemplate::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor)
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;

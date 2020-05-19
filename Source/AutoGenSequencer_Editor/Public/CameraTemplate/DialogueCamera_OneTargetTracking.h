@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS(meta = (DisplayName = "单目标追踪镜头模板"))
+UCLASS(meta = (DisplayName = "单目标镜头"))
 class AUTOGENSEQUENCER_EDITOR_API ADialogueCamera_OneTargetTracking : public AAutoGenDialogueCameraTemplate
 {
 	GENERATED_BODY()

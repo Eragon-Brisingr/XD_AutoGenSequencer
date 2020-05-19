@@ -12,7 +12,7 @@ class ACharacter;
 /**
  * 
  */
-UCLASS(meta = (DisplayName = "双目标追踪镜头模板"))
+UCLASS(meta = (DisplayName = "双目标镜头"))
 class AUTOGENSEQUENCER_EDITOR_API ADialogueCamera_TwoTargetTracking : public AAutoGenDialogueCameraTemplate
 {
 	GENERATED_BODY()
