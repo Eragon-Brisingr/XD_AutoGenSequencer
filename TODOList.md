@@ -17,6 +17,7 @@
 [ ] 镜头语言，根据对话顺序使用镜头组先后次序调整出合理的镜头叙事（同上）  
 [ ] 渐进式生成，可以让用户选择镜头打分前4的镜头  
 [ ] 补光改成可拓展方案  
+[ ] 动画轨之间的融合采用重叠轨道模式
 
 # 对白动画
 [ ] 可输入带位移的动画，生成过程读取位移应用在Transform导轨上  （F3DTransformTrackEditor::ImportAnimSequenceTransforms）  
@@ -24,3 +25,6 @@
 
 # 过程化镜头
 [ ] 参考Cinemachine https://gameinstitute.qq.com/community/detail/127397  
+
+# 情绪表情分类EMFacs
+[ ] 情绪表情分类EMFacs https://www.paulekman.com/facial-action-coding-system/

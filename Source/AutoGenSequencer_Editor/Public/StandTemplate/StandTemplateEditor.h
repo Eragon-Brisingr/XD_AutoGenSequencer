@@ -40,7 +40,6 @@ private:
 
 	TWeakObjectPtr<UDialogueStandPositionTemplateAsset> StandPositionTemplateAsset;
 
-	TSharedPtr<SGraphEditor> EdGraphEditor;
 	TSharedPtr<IDetailsView> DetailsWidget;
 	TSharedPtr<class SStandTemplateViewport> Viewport;
 
@@ -52,7 +51,7 @@ class FStandTemplateViewportClient : public FEditorViewportClient
 {
 	using Super = FEditorViewportClient;
 public:
-	FStandTemplateViewportClient(const TSharedRef<SStandTemplateViewport>& InThumbnailViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene);
+	FStandTemplateViewportClient(const TSharedRef<SStandTemplateViewport>& InViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene);
 
 	TWeakPtr<class SStandTemplateViewport> ViewportPtr;
 	FAdvancedPreviewScene* AdvancedPreviewScene;

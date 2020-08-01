@@ -51,7 +51,7 @@ class FCameraTemplateViewportClient : public FEditorViewportClient
 {
 	using Super = FEditorViewportClient;
 public:
-	FCameraTemplateViewportClient(const TSharedRef<SCameraTemplateViewport>& InThumbnailViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene);
+	FCameraTemplateViewportClient(const TSharedRef<SCameraTemplateViewport>& InViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene);
 
 	TWeakPtr<class SCameraTemplateViewport> ViewportPtr;
 	FAdvancedPreviewScene* AdvancedPreviewScene;

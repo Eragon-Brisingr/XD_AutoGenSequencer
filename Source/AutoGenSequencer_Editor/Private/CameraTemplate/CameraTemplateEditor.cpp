@@ -172,9 +172,9 @@ TSharedRef<SDockTab> FCameraTemplateEditor::HandleTabManagerSpawnTabViewport(con
 	return SpawnedTab;
 }
 
-FCameraTemplateViewportClient::FCameraTemplateViewportClient(const TSharedRef<SCameraTemplateViewport>& InThumbnailViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene)
-	: Super(nullptr, &InPreviewScene.Get(), StaticCastSharedRef<SEditorViewport>(InThumbnailViewport))
-	, ViewportPtr(InThumbnailViewport)
+FCameraTemplateViewportClient::FCameraTemplateViewportClient(const TSharedRef<SCameraTemplateViewport>& InViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene)
+	: Super(nullptr, &InPreviewScene.Get(), StaticCastSharedRef<SEditorViewport>(InViewport))
+	, ViewportPtr(InViewport)
 {
 	AdvancedPreviewScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 

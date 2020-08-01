@@ -158,9 +158,9 @@ void FStandTemplateEditor::InitStandTemplateEditor(
 	Super::InitAssetEditor(InMode, InToolkitHost, FName("StandTemplateEditorIdentifier"), Layout, true, true, InAsset);
 }
 
-FStandTemplateViewportClient::FStandTemplateViewportClient(const TSharedRef<SStandTemplateViewport>& InThumbnailViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene)
-	: Super(nullptr, &InPreviewScene.Get(), StaticCastSharedRef<SEditorViewport>(InThumbnailViewport))
-	, ViewportPtr(InThumbnailViewport)
+FStandTemplateViewportClient::FStandTemplateViewportClient(const TSharedRef<SStandTemplateViewport>& InViewport, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene)
+	: Super(nullptr, &InPreviewScene.Get(), StaticCastSharedRef<SEditorViewport>(InViewport))
+	, ViewportPtr(InViewport)
 {
 	AdvancedPreviewScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 
